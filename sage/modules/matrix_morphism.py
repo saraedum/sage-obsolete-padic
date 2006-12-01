@@ -108,7 +108,7 @@ class MatrixMorphism(sage.categories.all.Morphism):
         if C.is_ambient():
             return C(v)
         return C.linear_combination_of_basis(v)
-        
+
     def __invert__(self):
         if self.nrows() != self.ncols():
             raise ZeroDivisionError, "Inverse of morphism not defined."%self
@@ -166,7 +166,7 @@ class MatrixMorphism(sage.categories.all.Morphism):
             raise ArithmeticError, "Matrix morphism must be an endomorphism."
         return self.matrix().determinant()
         
-    def fcp(self, var):
+    def fcp(self, var='x'):
         """
         Return the factorization of the characteristic polynomial.
         """
