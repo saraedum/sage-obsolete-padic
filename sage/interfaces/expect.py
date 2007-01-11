@@ -255,7 +255,7 @@ class Expect(ParentWithBase):
                 raise RuntimeError, alt_message
             else:
                 raise RuntimeError, 'Unable to start %s (%s failed to start during this SAGE session; not attempting to start again)\n%s'%(self.__name, self.__name, self._install_hints())
-        
+
         self._session_number += 1
         current_path = os.path.abspath('.')
         dir = self.__path
@@ -272,6 +272,7 @@ class Expect(ParentWithBase):
 ##                  self._install_hints(), self.__name)
         
         if self.__verbose_start:
+            print cmd
             print "Starting %s"%cmd.split()[0]
             
         try:
@@ -285,7 +286,7 @@ class Expect(ParentWithBase):
             failed_to_start.append(self.__name)
             raise RuntimeError, "Unable to start %s because the command '%s' failed.\n%s"%(
                 self.__name, cmd, self._install_hints())
-        
+
         os.chdir(current_path)
         self._expect.timeout = self.__max_startup_time
         #self._expect.setmaxread(self.__maxread)
