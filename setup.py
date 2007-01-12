@@ -658,6 +658,8 @@ setup(name        = 'sage',
                      
                      'sage.algebras',
                      
+                     'sage.catalogue',
+                     
                      'sage.categories',
 
                      'sage.coding',
@@ -670,6 +672,8 @@ setup(name        = 'sage',
                      
                      'sage.ext',
                      
+                     'sage.calculus',
+
                      'sage.functions',
 
                      'sage.geometry',
