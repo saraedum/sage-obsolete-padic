@@ -16,6 +16,9 @@
 #
 #                  http://www.gnu.org/licenses/
 ############################################################################
+# 
+# import gc
+# gc.set_debug(gc.DEBUG_LEAK)
 
 import sys
 import os
@@ -70,7 +73,16 @@ def write_stats(dsage_server, stats_file):
     except Exception, msg:
         print 'Error writing stats: %s' % (msg)
         return
-        
+
+def create_manhole():
+    from twisted.manhole import telnet
+    factory = telnet.ShellFactory()
+    factory.username = 'yqiang'
+    factory.password = 'foo'
+    port = reactor.listenTCP(2000, factory)
+    
+    return port
+    	
 def startLogging(log_file):
     """
     This method initializes the logging facilities for the server. 
@@ -79,17 +91,19 @@ def startLogging(log_file):
     
     if log_file == 'stdout':
         log.startLogging(sys.stdout)
+        log.msg('WARNING: DSAGE Server ONLY logging to stdout!')
     else:
-        print "DSAGE Server logging to file: ", log_file
         server_log = open(log_file, 'a')
+        log.startLogging(sys.stdout)
         log.startLogging(server_log)
+        log.msg("DSAGE Server: Logging to file: ", log_file)
 
 def main():
     """
     Main execution loop of the server.
     
     """
-        
+    
     config = get_conf('server')
     LOG_FILE = config['log_file']
     LOG_LEVEL = config['log_level']
@@ -151,7 +165,8 @@ def main():
                 port_used = False
             if not port_used:
                 if SSL:
-                    ssl_context = ssl.DefaultOpenSSLContextFactory(SSL_PRIVKEY, SSL_CERT)
+                    ssl_context = ssl.DefaultOpenSSLContextFactory(
+                                    SSL_PRIVKEY, SSL_CERT)
                     reactor.listenSSL(NEW_CLIENT_PORT,
                                       client_factory,
                                       contextFactory = ssl_context)
@@ -186,7 +201,7 @@ def main():
 
     # from sage.dsage.misc.countrefs import logInThread
     # logInThread(n=15)
-    
+    # reactor.callWhenRunning(create_manhole)
     reactor.run(installSignalHandlers=1)
 
 if __name__ == "__main__":
