@@ -365,6 +365,12 @@ dwt = Extension('sage.gsl.dwt',['sage/gsl/dwt.pyx'],
 
 sagex_ds = Extension('sage.misc.sagex_ds', ['sage/misc/sagex_ds.pyx'])
 
+symmetrica = Extension('sage.libs.symmetrica.symmetrica',
+                       sources = ["sage/libs/symmetrica/%s"%s for s in \
+                                  ["symmetrica.pyx"]],
+                       include_dirs=['/usr/include/malloc/'],
+                       libraries = ["symmetrica"])
+
 
 #####################################################
 
@@ -457,6 +463,8 @@ ext_modules = [ \
     complex_number,
 
     sagex_ds,
+
+    symmetrica,
 
     Extension('sage.media.channels',
               sources = ['sage/media/channels.pyx']), \
@@ -956,6 +964,8 @@ setup(name        = 'sage',
                      'sage.combinat',
                      
                      'sage.crypto',
+
+		     'sage.crypto.mq',
                      
                      'sage.databases',
                      
@@ -990,7 +1000,8 @@ setup(name        = 'sage',
                      'sage.libs.flint',
                      'sage.libs.pari',
                      'sage.libs.singular',
-                     
+                     'sage.libs.symmetrica', 
+
                      'sage.logic',
                      
                      'sage.matrix',
