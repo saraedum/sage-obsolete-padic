@@ -130,7 +130,7 @@ def notebook_twisted(self,
         nb._migrate_worksheets()
         os.unlink('%s/nb-older-backup.sobj'%directory)
         print "Updating to new format complete."
-        
+
     nb.save()
     del nb
 
@@ -183,9 +183,13 @@ worksheet.init_sage_prestart(twist.notebook.get_server(), twist.notebook.get_uli
 
 import signal, sys, random
 def save_notebook():
+    from twisted.internet.error import ReactorNotRunning
     print "Saving notebook..."
     twist.notebook.save()
-    reactor.stop()
+    try:
+        reactor.stop()
+    except ReactorNotRunning:
+        pass
     print "Notebook cleanly saved."
     
 def my_sigint(x, n):
