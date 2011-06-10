@@ -2648,6 +2648,47 @@ class Partition_class(CombinatorialObject):
         """
         return self.dimension()**2/factorial(self.size())
 
+    def outline(self, variable = sage.symbolic.ring.var("x")):
+        r"""
+        Returns the outline of the partition ``self``.
+
+        This is a piecewise linear function, normalized so that the area
+        under the partition [1] is 2.
+
+        INPUT:
+
+        - ``self`` -- a partition
+
+        - variable -- a variable (default: x)
+
+        EXAMPLES::
+
+            sage: [Partition([5,4]).outline()(x=i) for i in range(-10,11)]
+            [10, 9, 8, 7, 6, 5, 6, 5, 6, 5, 4, 3, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+
+            sage: Partition([]).outline()
+            abs(x)
+
+            sage: Partition([1]).outline()
+            abs(x - 1) + abs(x + 1) - abs(x)
+
+            sage: y=sage.symbolic.ring.var("y")
+            sage: Partition([6,5,1]).outline(variable=y)
+            abs(y - 3) - abs(y - 2) + abs(y - 1) - abs(y + 3) + abs(y + 4) - abs(y + 5) + abs(y + 6)
+
+        TESTS::
+
+            sage: integrate(Partition([1]).outline()-abs(x),(x,-10,10))
+            2
+
+        """
+        outside_contents = [self.content(*c) for c in self.outside_corners()]
+        inside_contents = [self.content(*c) for c in self.corners()]
+        return sum(abs(variable+c) for c in outside_contents)\
+                       -sum(abs(variable+c) for c in inside_contents)
+
+
+
 
 ##################################################
 
@@ -2967,15 +3008,15 @@ def RestrictedPartitions(n, S, k=None):
     integer n into sums with k summands with the summands of the
     partition coming from the set S. If k is not given all restricted
     partitions for all k are returned.
-    
+
     Wraps GAP's RestrictedPartitions.
-    
+
     EXAMPLES::
-    
+
         sage: RestrictedPartitions(5,[3,2,1])
         doctest:...: DeprecationWarning: RestrictedPartitions is deprecated; use Partitions with the parts_in keyword instead.
         See http://trac.sagemath.org/5478 for details.
-        Partitions of 5 restricted to the values [1, 2, 3] 
+        Partitions of 5 restricted to the values [1, 2, 3]
         sage: RestrictedPartitions(5,[3,2,1]).list()
         [[3, 2], [3, 1, 1], [2, 2, 1], [2, 1, 1, 1], [1, 1, 1, 1, 1]]
         sage: RestrictedPartitions(5,[3,2,1],4)
@@ -3033,17 +3074,19 @@ class RestrictedPartitions_nsk(CombinatorialClass):
     def __repr__(self):
         """
         EXAMPLES::
-        
+
             sage: RestrictedPartitions(5,[3,2,1]).__repr__()
             doctest:...: DeprecationWarning: RestrictedPartitions is deprecated; use Partitions with the parts_in keyword instead.
             See http://trac.sagemath.org/5478 for details.
-            'Partitions of 5 restricted to the values [1, 2, 3] '
+            doctest:...: DeprecationWarning: RestrictedPartitions_nsk is deprecated; use Partitions with the parts_in keyword instead.
+            See http://trac.sagemath.org/5478 for details.
+            'Partitions of 5 restricted to the values [1, 2, 3]'
             sage: RestrictedPartitions(5,[3,2,1],4).__repr__()
             'Partitions of 5 restricted to the values [1, 2, 3] of length 4'
         """
-        string = "Partitions of %s restricted to the values %s "%(self.n, self.S)
+        string = "Partitions of %s restricted to the values %s"%(self.n, self.S)
         if self.k is not None:
-            string += "of length %s" % self.k
+            string += " of length %s" % self.k
         return string
 
     def list(self):
@@ -3052,15 +3095,13 @@ class RestrictedPartitions_nsk(CombinatorialClass):
         integer n into sums with k summands with the summands of the
         partition coming from the set `S`. If k is not given all
         restricted partitions for all k are returned.
-        
+
         Wraps GAP's RestrictedPartitions.
-        
+
         EXAMPLES::
-        
+
             sage: RestrictedPartitions(8,[1,3,5,7]).list()
             doctest:...: DeprecationWarning: RestrictedPartitions is deprecated; use Partitions with the parts_in keyword instead.
-            See http://trac.sagemath.org/5478 for details.
-            doctest:...: DeprecationWarning: RestrictedPartitions_nsk is deprecated; use Partitions with the parts_in keyword instead.
             See http://trac.sagemath.org/5478 for details.
             [[7, 1], [5, 3], [5, 1, 1, 1], [3, 3, 1, 1], [3, 1, 1, 1, 1, 1], [1, 1, 1, 1, 1, 1, 1, 1]]
             sage: RestrictedPartitions(8,[1,3,5,7],2).list()
