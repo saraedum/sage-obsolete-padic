@@ -12,7 +12,7 @@ class Polyhedron_RDF(Polyhedron_base):
     Base class for polyhedra over ``RDF``.
 
     TESTS::
-      
+
         sage: p = Polyhedron([(0,0)], base_ring=RDF);  p
         A 0-dimensional polyhedron in RDF^2 defined as the convex hull of 1 vertex
         sage: TestSuite(p).run()
@@ -22,7 +22,7 @@ class Polyhedron_RDF(Polyhedron_base):
     def _is_zero(self, x):
         """
         Test whether ``x`` is zero.
-        
+
         INPUT:
 
         - ``x`` -- a number in the base ring.
@@ -32,7 +32,7 @@ class Polyhedron_RDF(Polyhedron_base):
         Boolean.
 
         EXAMPLES::
-         
+
             sage: p = Polyhedron([(0,0)], base_ring=RDF)
             sage: p._is_zero(0)
             True
@@ -49,7 +49,7 @@ class Polyhedron_RDF(Polyhedron_base):
     def _is_nonneg(self, x):
         """
         Test whether ``x`` is nonnegative.
-        
+
         INPUT:
 
         - ``x`` -- a number in the base ring.
@@ -59,7 +59,7 @@ class Polyhedron_RDF(Polyhedron_base):
         Boolean.
 
         EXAMPLES::
-         
+
             sage: p = Polyhedron([(0,0)], base_ring=RDF)
             sage: p._is_nonneg(1)
             True
@@ -76,7 +76,7 @@ class Polyhedron_RDF(Polyhedron_base):
     def _is_positive(self, x):
         """
         Test whether ``x`` is positive.
-        
+
         INPUT:
 
         - ``x`` -- a number in the base ring.
@@ -86,7 +86,7 @@ class Polyhedron_RDF(Polyhedron_base):
         Boolean.
 
         EXAMPLES::
-         
+
             sage: p = Polyhedron([(0,0)], base_ring=RDF)
             sage: p._is_positive(1)
             True
@@ -99,6 +99,6 @@ class Polyhedron_RDF(Polyhedron_base):
             True
         """
         return x>=-1e-6
-      
+
     _base_ring = RDF
 

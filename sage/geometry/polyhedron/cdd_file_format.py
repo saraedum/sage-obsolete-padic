@@ -22,7 +22,7 @@ def cdd_Vrepresentation(cdd_type, vertices, rays, lines):
     Return a string containing the V-representation in cddlib's ext format.
 
     NOTE:
-        
+
     If there is no vertex given, then the origin will be implicitly
     added. You cannot write the empty V-representation (which cdd
     would refuse to process).
