@@ -11,7 +11,7 @@ class Polyhedron_QQ(Polyhedron_base):
     Base class for Polyhedra over `\QQ`
 
     TESTS::
-      
+
         sage: p = Polyhedron([(0,0)], base_ring=QQ);  p
         A 0-dimensional polyhedron in QQ^2 defined as the convex hull of 1 vertex
         sage: TestSuite(p).run()
@@ -19,7 +19,7 @@ class Polyhedron_QQ(Polyhedron_base):
     def _is_zero(self, x):
         """
         Test whether ``x`` is zero.
-        
+
         INPUT:
 
         - ``x`` -- a number in the base ring.
@@ -29,7 +29,7 @@ class Polyhedron_QQ(Polyhedron_base):
         Boolean.
 
         EXAMPLES::
-         
+
             sage: p = Polyhedron([(0,0)], base_ring=QQ)
             sage: p._is_zero(0)
             True
@@ -41,7 +41,7 @@ class Polyhedron_QQ(Polyhedron_base):
     def _is_nonneg(self, x):
         """
         Test whether ``x`` is nonnegative.
-        
+
         INPUT:
 
         - ``x`` -- a number in the base ring.
@@ -51,7 +51,7 @@ class Polyhedron_QQ(Polyhedron_base):
         Boolean.
 
         EXAMPLES::
-         
+
             sage: p = Polyhedron([(0,0)], base_ring=QQ)
             sage: p._is_nonneg(1)
             True
@@ -63,7 +63,7 @@ class Polyhedron_QQ(Polyhedron_base):
     def _is_positive(self, x):
         """
         Test whether ``x`` is positive.
-        
+
         INPUT:
 
         - ``x`` -- a number in the base ring.
@@ -73,7 +73,7 @@ class Polyhedron_QQ(Polyhedron_base):
         Boolean.
 
         EXAMPLES::
-         
+
             sage: p = Polyhedron([(0,0)], base_ring=QQ)
             sage: p._is_positive(1)
             True
@@ -83,6 +83,4 @@ class Polyhedron_QQ(Polyhedron_base):
         return x>0
 
     _base_ring = QQ
-      
-      
-      
+

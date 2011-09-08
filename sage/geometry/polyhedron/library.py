@@ -42,7 +42,7 @@ class Polytopes():
         """
         A matrix of rational approximations to orthonormal vectors to
         ``(1,...,1)``.
-    
+
         INPUT:
 
         - ``dim_n`` - the dimension of the vectors
@@ -100,7 +100,7 @@ class Polytopes():
         An internal utility function for constructing the Birkhoff polytopes.
 
         EXAMPLES::
-        
+
             sage: from sage.geometry.polyhedron.library import Polytopes
             sage: Polytopes._pfunc(1,2,permutations(3)[0])
             0
@@ -195,7 +195,7 @@ class Polytopes():
         Return an icosahedron with edge length 1.
 
         INPUT:
-        
+
         - ``base_ring`` -- Either ``QQ`` or ``RDF``.
 
         OUTPUT:
@@ -233,9 +233,9 @@ class Polytopes():
     def dodecahedron(self, base_ring=QQ):
         """
         Return a dodecahedron.
-        
+
         INPUT:
-        
+
         - ``base_ring`` -- Either ``QQ`` (in which case a rational
           approximation to the golden ratio is used) or ``RDF``.
 
@@ -537,7 +537,7 @@ class Polytopes():
         - ``n`` -- the numbers ``(1,...,n)`` are permuted
 
         - ``project`` -- If ``False`` the polyhedron is left in dimension ``n``.
- 
+
         OUTPUT:
 
         A Polyhedron object representing the permutahedron.
@@ -562,7 +562,7 @@ class Polytopes():
         Return a cube in the given dimension
 
         INPUT:
- 
+
         - ``dim_n`` -- integer. The dimension of the cube.
 
         OUTPUT:
@@ -613,13 +613,13 @@ class Polytopes():
         verts = verts + permutations([0 for i in range(dim_n-1)] + [-1])
         return Polyhedron(vertices=verts)
 
-    
+
     def parallelotope(self, generators):
         r"""
         Return the parallelotope spanned by the generators.
 
         INPUT:
-        
+
         - ``generators`` -- an iterable of anything convertible to vector
           (for example, a list of vectors) such that the vectors all
           have the same dimension.
@@ -631,7 +631,7 @@ class Polytopes():
         parallelepiped (3 generators).
 
         EXAMPLES::
-        
+
             sage: polytopes.parallelotope([ (1,0), (0,1) ])
             A 2-dimensional polyhedron in QQ^2 defined as the convex hull of 4 vertices
             sage: polytopes.parallelotope([[1,2,3,4],[0,1,0,7],[3,1,0,2],[0,0,1,0]])
@@ -643,12 +643,12 @@ class Polytopes():
         except TypeError:
             generators = [ vector(RDF,v) for v in generators ]
             base_ring = RDF
-            
+
         from sage.combinat.combination import Combinations
         par =  [ 0*generators[0] ]
         par += [ sum(c) for c in Combinations(generators) if c!=[] ]
         return Polyhedron(vertices=par, base_ring=base_ring)
-                           
+
 
 
 polytopes = Polytopes()
