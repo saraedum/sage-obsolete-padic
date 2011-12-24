@@ -86,7 +86,7 @@ cdef class Action(Functor):
         self.US = ref(S)
         self._is_left = is_left
         self.op = op
-        
+
     def _apply_functor(self, x):
         return self(x)
         
