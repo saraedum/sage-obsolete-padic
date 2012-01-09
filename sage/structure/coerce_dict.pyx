@@ -1,5 +1,6 @@
 #*****************************************************************************
 #       Copyright (C) 2007 Robert Bradshaw <robertwb@math.washington.edu>
+#                     2011 Simon King <simon.king@uni-jena.de>
 #
 #  Distributed under the terms of the GNU General Public License (GPL)
 #
@@ -9,33 +10,132 @@
 
 include "../ext/python_list.pxi"
 
+from sage.misc.constant_function import ConstantFunction
+from weakref import KeyedRef
+
+############################################
+# The following code is responsible for
+# removing dead references from the cache
+############################################
+
+cdef dict _refcache = {}
+
+cdef class TripleDictEraser:
+    """
+    Erases items from a :class:`TripleDict` when a weak reference becomes
+    invalid.
+
+    This is of internal use only. Instances of this class will be passed as a
+    callback function when creating a weak reference.
+
+    EXAMPLES::
+
+        sage: from sage.structure.coerce_dict import TripleDict
+        sage: class A: pass
+        sage: a = A()
+        sage: T = TripleDict(11)
+        sage: T[a,ZZ,None] = 1
+        sage: T[ZZ,a,1] = 2
+        sage: T[a,a,ZZ] = 3
+        sage: len(T)
+        3
+        sage: del a
+        sage: import gc
+        sage: n = gc.collect()
+        sage: len(T)
+        0
+
+    AUTHOR:
+
+    - Simon King (2012-01)
+    """
+
+    def __init__(self, D):
+        """
+        INPUT:
+
+        A :class:`TripleDict`.
+
+        EXAMPLES::
+
+            sage: from sage.structure.coerce_dict import TripleDict, TripleDictEraser
+            sage: D = TripleDict(11)
+            sage: TripleDictEraser(D)
+            <sage.structure.coerce_dict.TripleDictEraser object at ...>
+
+        """
+        self.D = D
+
+    def __call__(self, r):
+        """
+        INPUT:
+
+        A weak reference with key.
+
+        When this is called with a weak reference ``r``, then each item
+        containing ``r`` is removed from the associated :class:`TripleDict`.
+        Normally, this only happens when a weak reference becomes invalid.
+
+        EXAMPLES::
+
+            sage: from sage.structure.coerce_dict import TripleDict
+            sage: class A: pass
+            sage: a = A()
+            sage: T = TripleDict(11)
+            sage: T[a,ZZ,None] = 1
+            sage: T[ZZ,a,1] = 2
+            sage: T[a,a,ZZ] = 3
+            sage: len(T)
+            3
+            sage: del a
+            sage: import gc
+            sage: n = gc.collect()
+            sage: len(T)    # indirect doctest
+            0
+        """
+        # r is a (weak) reference (typically to a parent), and it knows the
+        # stored key of the unique triple r() had been part of.
+        # We remove that unique triple from self.D
+        cdef size_t k1,k2,k3
+        k1,k2,k3 = r.key
+        cdef size_t h = (k1 + 13*k2 ^ 503*k3)
+        cdef list bucket = <object>PyList_GET_ITEM(self.D.buckets, h % PyList_GET_SIZE(self.D.buckets))
+        cdef int i
+        for i from 0 <= i < PyList_GET_SIZE(bucket) by 4:
+            if <size_t><object>PyList_GET_ITEM(bucket, i)==k1 and \
+               <size_t><object>PyList_GET_ITEM(bucket, i+1)==k2 and \
+               <size_t><object>PyList_GET_ITEM(bucket, i+2)==k3:
+                del bucket[i:i+4]
+                self.D._size -= 1
+                break
+        cdef list L = _refcache[k1,k2,k3]
+        del L[L.index(r)]
 
 cdef class TripleDict:
     """
-    This is a hashtable specifically designed for (read) speed in 
-    the coercion model. 
-    
-    It differs from a python dict in the following important ways: 
-    
+    This is a hashtable specifically designed for (read) speed in
+    the coercion model.
+
+    It differs from a python dict in the following important ways:
+
        - All keys must be sequence of exactly three elements. All sequence
-         types (tuple, list, etc.) map to the same item. 
+         types (tuple, list, etc.) map to the same item.
        - Comparison is done using the 'is' rather than '==' operator.
-       
-    There are special cdef set/get methods for faster access. 
-    It is bare-bones in the sense that not all dictionary methods are 
-    implemented. 
-    
-    It is implemented as a list of lists (hereafter called buckets). The bucket 
-    is chosen according to a very simple hash based on the object pointer.
-    and each bucket is of the form [k1, k2, k3, value, k1, k2, k3, value, ...]
-    on which a linear search is performed. 
-    
+
+    There are special cdef set/get methods for faster access.
+    It is bare-bones in the sense that not all dictionary methods are
+    implemented.
+
+    It is implemented as a list of lists (hereafter called buckets). The bucket
+    is chosen according to a very simple hash based on the object pointer,
+    and each bucket is of the form [id(k1), id(k2), id(k3), value, id(k1),
+    id(k2), id(k3), value, ...], on which a linear search is performed.
+
     To spread objects evenly, the size should ideally be a prime, and certainly
-    not divisible by 2. 
-    
-    
-    EXAMPLES: 
-    
+    not divisible by 2.
+
+    EXAMPLES::
+
         sage: from sage.structure.coerce_dict import TripleDict
         sage: L = TripleDict(31)
         sage: a = 'a'; b = 'b'; c = 'c'
@@ -82,24 +182,70 @@ cdef class TripleDict:
         Traceback (most recent call last):
         ...
         KeyError: 'a'
-        
-    The following illustrates why even sizes are bad. 
+
+    The following illustrates why even sizes are bad::
+
         sage: L = TripleDict(4, L)
         sage: L.stats()
         (0, 250.25, 1001)
         sage: L.bucket_lens()
         [1001, 0, 0, 0]
 
+    Note that this kind of dictionary is also used for caching actions
+    and coerce maps. In previous versions of Sage, the cache was by
+    strong references and resulted in a memory leak in the following
+    example. However, this leak was fixed by trac ticket :trac:`715`,
+    using weak references::
 
-    AUTHOR: 
-       -- Robert Bradshaw, 2007-08
+        sage: K = GF(1<<55,'t')
+        sage: for i in range(50):
+        ...     a = K.random_element()
+        ...     E = EllipticCurve(j=a)
+        ...     P = E.random_point()
+        ...     Q = 2*P
+        sage: import gc
+        sage: n = gc.collect()
+        sage: from sage.schemes.elliptic_curves.ell_finite_field import EllipticCurve_finite_field
+        sage: LE = [x for x in gc.get_objects() if isinstance(x, EllipticCurve_finite_field)]
+        sage: len(LE)    # indirect doctest
+        1
+
+    ..NOTE::
+
+        The index `h` corresponding to the key [k1, k2, k3] is computed as a
+        value of unsigned type size_t as follows:
+
+        ..MATH::
+
+            h = id(k1) + 13*id(k2) \oplus 503 id(k3)
+
+        Indeed, although the PyList_GetItem function and corresponding
+        PyList_GET_ITEM macro take a value of signed type Py_ssize_t as input
+        for the index, they do not accept negative inputs as the higher level
+        Python functions. Moreover, the above formula can overflow so that `h`
+        might be considered as negative. Even though this value is taken
+        modulo the size of the buckets' list before accessing the corresponding
+        item, the Cython "%" operator behaves for values of type size_t and
+        Py_ssize_t like the C "%" operator, rather than like the Python "%"
+        operator as it does for values of type int. That is, it returns a
+        result of the same sign as its input. Therefore, if `h` was defined as
+        a signed value, we might access the list at a negative index and raise
+        a segfault (and this has been observed on 32 bits systems, see
+        :trac:`715` for details).
+
+    AUTHORS:
+
+    - Robert Bradshaw, 2007-08
+
+    - Simon King, 2012-01
     """
-    
+
     def __init__(self, size, data=None, threshold=0):
         """
-        Create a special dict using triples for keys. 
-        
-        EXAMPLES: 
+        Create a special dict using triples for keys.
+
+        EXAMPLES::
+
             sage: from sage.structure.coerce_dict import TripleDict
             sage: L = TripleDict(31)
             sage: a = 'a'; b = 'b'; c = 'c'
@@ -111,15 +257,17 @@ cdef class TripleDict:
         self.threshold = threshold
         self.buckets = [[] for i from 0 <= i <  size]
         self._size = 0
+        self.eraser = TripleDictEraser(self)
         if data is not None:
-            for k, v in data.iteritems():
-                self[k] = v
-                
+            for (k1,k2,k3), v in data.iteritems():
+                self.set(k1,k2,k3, v)
+
     def __len__(self):
         """
         The number of items in self.
-        
-        EXAMPLES: 
+
+        EXAMPLES::
+
             sage: from sage.structure.coerce_dict import TripleDict
             sage: L = TripleDict(37)
             sage: a = 'a'; b = 'b'; c = 'c'
@@ -131,15 +279,17 @@ cdef class TripleDict:
             3
         """
         return self._size
-        
+
     def stats(self):
         """
-        The distribution of items in buckets. 
-        
-        OUTPUT: 
-            (min, avg, max)
-        
-        EXAMPLES: 
+        The distribution of items in buckets.
+
+        OUTPUT:
+
+        - (min, avg, max)
+
+        EXAMPLES::
+
             sage: from sage.structure.coerce_dict import TripleDict
             sage: L = TripleDict(37)
             sage: for i in range(100): L[i,i,i] = None
@@ -150,7 +300,7 @@ cdef class TripleDict:
             sage: for i in range(100): L[i,i,i] = None
             sage: L.stats() # random
             (0, 0.03325573661456601, 1)
-            
+
             sage: L = TripleDict(1)
             sage: for i in range(100): L[i,i,i] = None
             sage: L.stats()
@@ -166,15 +316,17 @@ cdef class TripleDict:
             else:
                 min = 0
         return min, 1.0*size/len(self.buckets), max
-        
+
     def bucket_lens(self):
         """
-        The distribution of items in buckets. 
-        
-        OUTPUT: 
-            A list of how many items are in each bucket. 
-        
-        EXAMPLES: 
+        The distribution of items in buckets.
+
+        OUTPUT:
+
+        A list of how many items are in each bucket.
+
+        EXAMPLES::
+
             sage: from sage.structure.coerce_dict import TripleDict
             sage: L = TripleDict(37)
             sage: for i in range(100): L[i,i,i] = None
@@ -182,19 +334,20 @@ cdef class TripleDict:
             [3, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 4, 3, 3, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 4, 3, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 4]
             sage: sum(L.bucket_lens())
             100
-            
+
             sage: L = TripleDict(1)
             sage: for i in range(100): L[i,i,i] = None
             sage: L.bucket_lens()
             [100]
         """
         return [len(self.buckets[i])/4 for i from 0 <= i < len(self.buckets)]
-        
+
     def _get_buckets(self):
         """
-        The actual buckets of self, for debugging. 
-        
-        EXAMPLE: 
+        The actual buckets of self, for debugging.
+
+        EXAMPLES::
+
             sage: from sage.structure.coerce_dict import TripleDict
             sage: L = TripleDict(3)
             sage: L[0,0,0] = None
@@ -202,10 +355,11 @@ cdef class TripleDict:
             [[0, 0, 0, None], [], []]
         """
         return self.buckets
-        
+
     def __getitem__(self, k):
         """
-        EXAMPLES: 
+        EXAMPLES::
+
             sage: from sage.structure.coerce_dict import TripleDict
             sage: L = TripleDict(31)
             sage: a = 'a'; b = 'b'; c = 'c'
@@ -213,27 +367,33 @@ cdef class TripleDict:
             sage: L[a,b,c]
             1
         """
+        cdef object k1,k2,k3
         try:
             k1, k2, k3 = k
         except (TypeError,ValueError):
             raise KeyError, k
         return self.get(k1, k2, k3)
-            
-    cdef get(self, k1, k2, k3):
-        cdef Py_ssize_t h = (<Py_ssize_t><void *>k1 + 13*<Py_ssize_t><void *>k2 ^ 503*<Py_ssize_t><void *>k3)
-        if h < 0: h = -h
+
+    cdef get(self, object k1, object k2, object k3):
+        cdef size_t h = (<size_t><void *>k1 + 13*<size_t><void *>k2 ^ 503*<size_t><void *>k3)
         cdef Py_ssize_t i
-        bucket = <object>PyList_GET_ITEM(self.buckets, h % PyList_GET_SIZE(self.buckets))
+        cdef list all_buckets = self.buckets
+        cdef list bucket = <object>PyList_GET_ITEM(all_buckets, h % PyList_GET_SIZE(all_buckets))
+        cdef object tmp
         for i from 0 <= i < PyList_GET_SIZE(bucket) by 4:
-            if PyList_GET_ITEM(bucket, i) == <PyObject*>k1 and \
-               PyList_GET_ITEM(bucket, i+1) == <PyObject*>k2 and \
-               PyList_GET_ITEM(bucket, i+2) == <PyObject*>k3:
-                return <object>PyList_GET_ITEM(bucket, i+3)
+            tmp = <object>PyList_GET_ITEM(bucket, i)
+            if <size_t>tmp == <size_t><void *>k1:
+                tmp = <object>PyList_GET_ITEM(bucket, i+1)
+                if <size_t>tmp == <size_t><void *>k2:
+                    tmp = <object>PyList_GET_ITEM(bucket, i+2)
+                    if <size_t>tmp == <size_t><void *>k3:
+                        return <object>PyList_GET_ITEM(bucket, i+3)
         raise KeyError, (k1, k2, k3)
-        
+
     def __setitem__(self, k, value):
         """
-        EXAMPLES: 
+        EXAMPLES::
+
             sage: from sage.structure.coerce_dict import TripleDict
             sage: L = TripleDict(31)
             sage: a = 'a'; b = 'b'; c = 'c'
@@ -241,31 +401,59 @@ cdef class TripleDict:
             sage: L[a,b,c]
             -1
         """
+        cdef object k1,k2,k3
         try:
             k1, k2, k3 = k
         except (TypeError,ValueError):
             raise KeyError, k
         self.set(k1, k2, k3, value)
-            
-    cdef set(self, k1, k2, k3, value):
+
+    cdef set(self, object k1, object k2, object k3, value):
         if self.threshold and self._size > len(self.buckets) * self.threshold:
             self.resize()
-        cdef Py_ssize_t h = (<Py_ssize_t><void *>k1 + 13*<Py_ssize_t><void *>k2 ^ 503*<Py_ssize_t><void *>k3)
-        if h < 0: h = -h
+        cdef size_t h1 = <size_t><void *>k1
+        cdef size_t h2 = <size_t><void *>k2
+        cdef size_t h3 = <size_t><void *>k3
+        cdef size_t h = (h1 + 13*h2 ^ 503*h3)
         cdef Py_ssize_t i
-        bucket = <object>PyList_GET_ITEM(self.buckets, h % PyList_GET_SIZE(self.buckets))
+        cdef list bucket = <object>PyList_GET_ITEM(self.buckets, h % PyList_GET_SIZE(self.buckets))
+        cdef object tmp
         for i from 0 <= i < PyList_GET_SIZE(bucket) by 4:
-            if PyList_GET_ITEM(bucket, i) == <PyObject*>k1 and \
-               PyList_GET_ITEM(bucket, i+1) == <PyObject*>k2 and \
-               PyList_GET_ITEM(bucket, i+2) == <PyObject*>k3:
-                bucket[i+3] = value
-                return
-        bucket += [k1, k2, k3, value]
+            tmp = <object>PyList_GET_ITEM(bucket, i)
+            if <size_t>tmp == h1:
+                tmp = <object>PyList_GET_ITEM(bucket, i+1)
+                if <size_t>tmp == h2:
+                    tmp = <object>PyList_GET_ITEM(bucket, i+2)
+                    if <size_t>tmp == h3:
+                        bucket[i+3] = value
+                        return
+        PyList_Append(bucket, h1)
+        PyList_Append(bucket, h2)
+        PyList_Append(bucket, h3)
+        PyList_Append(bucket, value)
+        try:
+            PyList_Append(_refcache.setdefault((h1 , h2, h3), []),
+                KeyedRef(k1,self.eraser,(h1, h2, h3)))
+        except TypeError:
+            PyList_Append(_refcache.setdefault((h1, h2, h3), []), k1)
+        if k2 is not k1:
+            try:
+                PyList_Append(_refcache.setdefault((h1 , h2, h3), []),
+                    KeyedRef(k2,self.eraser,(h1, h2, h3)))
+            except TypeError:
+                PyList_Append(_refcache.setdefault((h1, h2, h3), []), k2)
+        if k3 is not k1 and k3 is not k2:
+            try:
+                PyList_Append(_refcache.setdefault((h1 , h2, h3), []),
+                    KeyedRef(k3,self.eraser,(h1, h2, h3)))
+            except TypeError:
+                PyList_Append(_refcache.setdefault((h1, h2, h3), []),k3)
         self._size += 1
-            
+
     def __delitem__(self, k):
         """
-        EXAMPLES: 
+        EXAMPLES::
+
             sage: from sage.structure.coerce_dict import TripleDict
             sage: L = TripleDict(31)
             sage: a = 'a'; b = 'b'; c = 'c'
@@ -274,31 +462,32 @@ cdef class TripleDict:
             sage: len(L)
             0
         """
+        cdef object k1,k2,k3
         try:
             k1, k2, k3 = k
         except (TypeError,ValueError):
             raise KeyError, k
-        cdef Py_ssize_t h = (<Py_ssize_t><void *>k1 + 13*<Py_ssize_t><void *>k2 ^ 503*<Py_ssize_t><void *>k3)
-        if h < 0: h = -h
+        cdef size_t h = (<size_t><void *>k1 + 13*<size_t><void *>k2 ^ 503*<size_t><void *>k3)
         cdef Py_ssize_t i
-        bucket = <object>PyList_GET_ITEM(self.buckets, h % PyList_GET_SIZE(self.buckets))
+        cdef list bucket = <object>PyList_GET_ITEM(self.buckets, h % PyList_GET_SIZE(self.buckets))
         for i from 0 <= i < PyList_GET_SIZE(bucket) by 4:
-            if PyList_GET_ITEM(bucket, i) == <PyObject*>k1 and \
-               PyList_GET_ITEM(bucket, i+1) == <PyObject*>k2 and \
-               PyList_GET_ITEM(bucket, i+2) == <PyObject*>k3:
+            if <size_t><object>PyList_GET_ITEM(bucket, i) == <size_t><void *>k1 and \
+               <size_t><object>PyList_GET_ITEM(bucket, i+1) == <size_t><void *>k2 and \
+               <size_t><object>PyList_GET_ITEM(bucket, i+2) == <size_t><void *>k3:
                 del bucket[i:i+4]
                 self._size -= 1
                 return
         raise KeyError, k
-        
+
     def resize(self, int buckets=0):
         """
-        Changes the number of buckets of self, while preserving the contents. 
-        
-        If the number of buckets is 0 or not given, it resizes self to the 
-        smallest prime that is at least twice as large as self. 
-        
-        EXAMPLES: 
+        Changes the number of buckets of self, while preserving the contents.
+
+        If the number of buckets is 0 or not given, it resizes self to the
+        smallest prime that is at least twice as large as self.
+
+        EXAMPLES::
+
             sage: from sage.structure.coerce_dict import TripleDict
             sage: L = TripleDict(8)
             sage: for i in range(100): L[i,i,i] = None
@@ -312,12 +501,26 @@ cdef class TripleDict:
         """
         if buckets == 0:
             buckets = next_odd_prime(2*len(self.buckets))
-        cdef TripleDict new = TripleDict(buckets, self)
-        self.buckets = new.buckets
-            
+        cdef list old_buckets = self.buckets
+        cdef list bucket
+        cdef Py_ssize_t i
+        cdef size_t h
+        self.buckets = [[] for i from 0 <= i <  buckets]
+        cdef size_t k1,k2,k3
+        cdef object v
+        for bucket in old_buckets:
+            for i from 0 <= i < PyList_GET_SIZE(bucket) by 4:
+                k1 = <size_t><object>PyList_GET_ITEM(bucket, i)
+                k2 = <size_t><object>PyList_GET_ITEM(bucket, i+1)
+                k3 = <size_t><object>PyList_GET_ITEM(bucket, i+2)
+                v  = <object>PyList_GET_ITEM(bucket, i+3)
+                h = (k1 + 13*k2 ^ 503*k3)
+                self.buckets[h % buckets] += [k1,k2,k3,v]
+
     def iteritems(self):
         """
-        EXAMPLES: 
+        EXAMPLES::
+
             sage: from sage.structure.coerce_dict import TripleDict
             sage: L = TripleDict(31)
             sage: L[1,2,3] = None
@@ -325,13 +528,14 @@ cdef class TripleDict:
             [((1, 2, 3), None)]
         """
         return TripleDictIter(self)
-        
+
     def __reduce__(self):
         """
-        Note that we don't expect equality as this class concerns itself with 
-        object identity rather than object equality. 
+        Note that we don't expect equality as this class concerns itself with
+        object identity rather than object equality.
 
-        EXAMPLES: 
+        EXAMPLES::
+
             sage: from sage.structure.coerce_dict import TripleDict
             sage: L = TripleDict(31)
             sage: L[1,2,3] = True
@@ -341,12 +545,12 @@ cdef class TripleDict:
             [((1, 2, 3), True)]
         """
         return TripleDict, (len(self.buckets), dict(self.iteritems()), self.threshold)
-        
 
 cdef class TripleDictIter:
     def __init__(self, pairs):
         """
-        EXAMPLES: 
+        EXAMPLES::
+
             sage: from sage.structure.coerce_dict import TripleDict, TripleDictIter
             sage: L = TripleDict(31)
             sage: L[1,2,3] = None
@@ -355,9 +559,11 @@ cdef class TripleDictIter:
         """
         self.pairs = pairs
         self.buckets = iter(self.pairs.buckets)
+
     def __iter__(self):
         """
-        EXAMPLES: 
+        EXAMPLES::
+
             sage: from sage.structure.coerce_dict import TripleDict, TripleDictIter
             sage: L = TripleDict(31)
             sage: L[1,2,3] = None
@@ -365,9 +571,11 @@ cdef class TripleDictIter:
             ((1, 2, 3), None)
         """
         return self
+
     def __next__(self):
         """
-        EXAMPLES: 
+        EXAMPLES::
+
             sage: from sage.structure.coerce_dict import TripleDict, TripleDictIter
             sage: L = TripleDict(31)
             sage: L[1,2,3] = None
@@ -378,16 +586,17 @@ cdef class TripleDictIter:
         while self.bucket_iter is None:
             self.bucket_iter = self.buckets.next()
         self.bucket_iter = iter(self.bucket_iter)
+        cdef size_t k1,k2,k3
         try:
             k1 = self.bucket_iter.next()
             k2 = self.bucket_iter.next()
             k3 = self.bucket_iter.next()
             value = self.bucket_iter.next()
-            return ((k1, k2, k3), value)
+            return ((<object><PyObject *>k1, <object><PyObject *>k2,
+                     <object><PyObject *>k3), value)
         except StopIteration:
             self.bucket_iter = None
             return self.next()
-
 
 
 cdef long next_odd_prime(long n):
