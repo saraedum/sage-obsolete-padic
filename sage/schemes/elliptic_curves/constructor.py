@@ -80,13 +80,18 @@ def EllipticCurve(x=None, y=None, j=None, minimal_twist=True):
         sage: EllipticCurve('389a')
         Elliptic Curve defined by y^2 + y = x^3 + x^2 - 2*x over Rational Field
 
+    Old Cremona labels are allowed::
+
+        sage: EllipticCurve('2400FF')
+        Elliptic Curve defined by y^2 = x^3 + x^2 + 2*x + 8 over Rational Field
+
     Unicode labels are allowed::
 
         sage: EllipticCurve(u'389a')
         Elliptic Curve defined by y^2 + y = x^3 + x^2 - 2*x over Rational Field
-    
+
     We create curves over a finite field as follows::
-    
+
         sage: EllipticCurve([GF(5)(0),0,1,-1,0])
         Elliptic Curve defined by y^2 + y = x^3 + 4*x over Finite Field of size 5
         sage: EllipticCurve(GF(5), [0, 0,1,-1,0])
