@@ -27,6 +27,7 @@ import sys
 
 cimport sage.rings.padics.local_generic_element
 from sage.rings.padics.local_generic_element cimport LocalGenericElement
+from sage.rings.padics.precision_error import PrecisionError
 from sage.rings.rational cimport Rational
 #cimport sage.structure.element
 #from sage.structure.element cimport Element
@@ -263,16 +264,29 @@ cdef class pAdicGenericElement(LocalGenericElement):
             sage: c*b + 3
             3 + 2*5^4 + 5^5 + 3*5^6 + 5^7 + O(5^20)
         """
-        if right == 0:
-            raise ZeroDivisionError
         P = self.parent()
         if P.is_field():
             return self / right
         else:
             right = P(right)
-            v, u = right.val_unit()
-            return P(self / u) >> v
-            
+            if right._is_inexact_zero():
+                raise PrecisionError("cannot divide by something indistinguishable from zero")
+            elif right._is_exact_zero():
+                raise ZeroDivisionError("cannot divide by zero")
+            return self._floordiv_(right)
+
+    cpdef RingElement _floordiv_(self, RingElement right):
+        """
+        Implements floor division.
+
+        EXAMPLES::
+
+            sage: R = Zp(5, 5); a = R(77)
+            sage: a // 15 # indirect doctest
+            1 + 4*5 + 5^2 + 3*5^3 + O(5^4)
+        """
+        v, u = right.val_unit()
+        return self.parent()(self / u) >> v
 
     def __getitem__(self, n):
         r"""
@@ -458,6 +472,85 @@ cdef class pAdicGenericElement(LocalGenericElement):
             return Integer(1)
         else:
             return infinity
+
+    def minimal_polynomial(self, name):
+        """
+        Returns a minimal polynomial of this `p`-adic element, i.e., ``x - self``
+
+        INPUT:
+        
+        - ``self`` -- a `p`-adic element
+        
+        - ``name`` -- string: the name of the variable
+
+        OUTPUT:
+        
+        - ``polynomial`` -- a minimal polynomial of this `p`-adic element,
+          i.e., ``x - self``
+
+        EXAMPLES::
+
+            sage: Zp(5,5)(1/3).minimal_polynomial('x')
+            (1 + O(5^5))*x + (3 + 5 + 3*5^2 + 5^3 + 3*5^4 + O(5^5))
+        """
+        R = self.parent()[name]
+        return R.gen() - R(self)
+
+    def norm(self, ground=None):
+        """
+        Returns the norm of this `p`-adic element over the ground ring.
+
+        NOTE!  This is not the `p`-adic absolute value.  This is a field
+        theoretic norm down to a ground ring.  If you want the `p`-adic
+        absolute value, use the ``abs()`` function instead.
+
+        INPUT:
+        
+        - ``self`` -- a `p`-adic element
+        
+        - ``ground`` -- a subring of the ground ring (default: base
+          ring)
+
+        OUTPUT:
+        
+        - element -- the norm of this `p`-adic element over the ground
+          ring
+
+        EXAMPLES::
+
+            sage: Zp(5)(5).norm()
+            5 + O(5^21)
+        """
+        if (ground is not None) and (ground != self.parent()):
+            raise ValueError, "Ground Field not a subfield"
+        else:
+            return self
+
+    def trace(self, ground=None):
+        """
+        Returns the trace of this `p`-adic element over the ground ring
+
+        INPUT:
+        
+        - ``self`` -- a `p`-adic element
+
+        - ``ground`` -- a subring of the ground ring (default: base
+          ring)
+
+        OUTPUT:
+        
+        - ``element`` -- the trace of this `p`-adic element over the
+          ground ring
+
+        EXAMPLES::
+        
+            sage: Zp(5,5)(5).trace()
+            5 + O(5^6)
+        """
+        if (ground is not None) and (ground != self.parent()):
+            raise ValueError, "Ground ring not a subring"
+        else:
+            return self
 
     def algdep(self, n):
         """
@@ -737,7 +830,9 @@ cdef class pAdicGenericElement(LocalGenericElement):
 
     def valuation(self, p = None):
         """
-        Returns the valuation of self.
+        Returns the valuation of this element.
+
+        If this element is zero, the returned valuation will be equal to the absolute precision.
 
         INPUT:
         
@@ -1574,3 +1669,5 @@ cdef class pAdicGenericElement(LocalGenericElement):
                 return Rational(0) 
             return Rational(K.prime())**(-self.valuation()) 
 
+    cpdef bint _is_base_elt(self, p) except -1:
+        raise NotImplementedError

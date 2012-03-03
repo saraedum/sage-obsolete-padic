@@ -165,7 +165,6 @@ from sage.libs.ntl.ntl_ZZ cimport ntl_ZZ
 from sage.libs.ntl.ntl_ZZ_p cimport ntl_ZZ_p
 from sage.libs.ntl.ntl_ZZ_pContext cimport ntl_ZZ_pContext_class
 from sage.libs.ntl.ntl_ZZ_pContext import ntl_ZZ_pContext
-from sage.rings.padics.padic_base_generic_element cimport pAdicBaseGenericElement
 from sage.rings.padics.padic_generic_element cimport pAdicGenericElement
 from sage.libs.pari.gen import gen as pari_gen
 from sage.rings.all import is_IntegerMod
@@ -1264,7 +1263,7 @@ cdef class pAdicZZpXCAElement(pAdicZZpXElement):
                     ans = self._new_c(mpz_get_si(tmp))
                 mpz_clear(tmp)
                 return ans
-            elif PY_TYPE_CHECK(_right, Rational) or (PY_TYPE_CHECK(_right, pAdicBaseGenericElement) and _right.parent().prime() == self.prime_pow.prime):
+            elif PY_TYPE_CHECK(_right, Rational) or (PY_TYPE_CHECK(_right, pAdicGenericElement) and _right._is_base_elt(self.prime_pow.prime)):
                 raise ValueError, "Need more precision"
             else:
                 raise TypeError, "exponent must be an integer, rational or base p-adic with the same prime"
@@ -1282,7 +1281,7 @@ cdef class pAdicZZpXCAElement(pAdicZZpXElement):
                 return ans
             padic_exp = False
             exp_val = _right.valuation(self.prime_pow.prime) ##
-        elif PY_TYPE_CHECK(_right, pAdicBaseGenericElement) and _right.parent().prime() == self.prime_pow.prime:
+        elif PY_TYPE_CHECK(_right, pAdicGenericElement) and _right._is_base_elt(self.prime_pow.prime):
             if self_ordp != 0:
                 raise ValueError, "in order to raise to a p-adic exponent, base must be a unit"
             right = Integer(_right)

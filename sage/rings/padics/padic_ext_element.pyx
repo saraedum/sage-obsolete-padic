@@ -367,3 +367,6 @@ cdef class pAdicExtElement(pAdicGenericElement):
             ppow = ppow << 1
             ans += ppow * L[m]**exp
         return ans
+
+    cpdef bint _is_base_elt(self, p) except -1:
+        return False

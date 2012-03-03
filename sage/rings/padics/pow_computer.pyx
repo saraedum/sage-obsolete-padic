@@ -440,6 +440,10 @@ cdef class PowComputer_base(PowComputer_class):
             mpz_init(self.small_powers[i])
             mpz_mul(self.small_powers[i], self.small_powers[i - 1], prime.value)
         mpz_pow_ui(self.top_power, prime.value, prec_cap)
+        self.deg = 1
+        self.e = 1
+        self.f = 1
+        self.ram_prec_cap = prec_cap
         (<PowComputer_class>self)._initialized = 1
         
     def __dealloc__(self):
