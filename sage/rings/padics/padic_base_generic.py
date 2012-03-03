@@ -10,7 +10,9 @@ AUTHORS:
 
 from padic_generic import pAdicGeneric
 from sage.rings.padics.pow_computer import PowComputer
-from sage.rings.padics.padic_base_coercion import pAdicCoercion_ZZ_CR, pAdicCoercion_QQ_CR, pAdicConvert_QQ_CR, pAdicCoercion_ZZ_CA, pAdicConvert_QQ_CA, pAdicCoercion_ZZ_FM, pAdicConvert_QQ_FM
+from sage.rings.padics.padic_capped_relative_element import pAdicCoercion_ZZ_CR, pAdicCoercion_QQ_CR, pAdicConvert_QQ_CR
+from sage.rings.padics.padic_capped_absolute_element import pAdicCoercion_ZZ_CA, pAdicConvert_QQ_CA
+from sage.rings.padics.padic_fixed_mod_element import pAdicCoercion_ZZ_FM, pAdicConvert_QQ_FM
 
 class pAdicBaseGeneric(pAdicGeneric):
     def __init__(self, p, prec, print_mode, names, element_class):
