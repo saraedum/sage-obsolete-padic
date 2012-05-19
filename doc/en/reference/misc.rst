@@ -8,6 +8,7 @@ Miscellaneous
 
    sage/misc/abstract_method
    sage/misc/cachefunc
+   sage/misc/c3
    sage/misc/decorators
    sage/misc/classgraph
    sage/misc/dev_tools
@@ -36,6 +37,7 @@ Miscellaneous
    sage/misc/lazy_import
    sage/misc/log
    sage/misc/persist
+   sage/misc/unknown
    sage/misc/func_persist
    sage/misc/sage_eval
    sage/misc/random_testing

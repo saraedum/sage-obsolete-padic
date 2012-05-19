@@ -630,7 +630,7 @@ ext_modules = [
                           ["curve.h","egr.h","descent.h","points.h","isogs.h",
                             "marith.h","htconst.h","interface.h"]
                         ],
-              libraries = ["curvesntl", "g0nntl", "jcntl", "rankntl",
+              libraries = ["jc",
                            "ntl", "gmp", "gmpxx", "stdc++", "m", "pari"]),
                          # IMHO "pari" could be removed here, but some people
                          # claim it is needed on Cygwin (see #9896, #9914).
@@ -723,8 +723,8 @@ ext_modules = [
         
     Extension('sage.libs.cremona.homspace',
               sources = ["sage/libs/cremona/homspace.pyx"],
-              libraries = ['g0nntl', 'jcntl', 'gmpxx', 'ntl', 'gmp',
-                           'm', 'stdc++', 'pari', 'curvesntl'],
+              libraries = ['jc', 'gmpxx', 'ntl', 'gmp',
+                           'm', 'stdc++', 'pari'],
                          # IMHO "pari" could be removed here, but some people
                          # claim it is needed on Cygwin (see #9896, #9914).
                          # If so, we should use uname_specific(). -leif
@@ -737,7 +737,7 @@ ext_modules = [
 
     Extension('sage.libs.cremona.mat',
               sources = ["sage/libs/cremona/mat.pyx"],
-              libraries = ['g0nntl', 'jcntl', 'gmpxx', 'ntl',
+              libraries = ['jc', 'gmpxx', 'ntl',
                            'gmp', 'm', 'stdc++', ],
               language='c++',
               define_macros = [("NTL_ALL",None)],
@@ -748,8 +748,8 @@ ext_modules = [
 
     Extension('sage.libs.cremona.newforms',
               sources = ["sage/libs/cremona/newforms.pyx"],
-              libraries = ['g0nntl', 'jcntl', 'gmpxx', 'ntl', 'gmp',
-                           'm', 'stdc++', 'pari', 'curvesntl'],
+              libraries = ['jc', 'gmpxx', 'ntl', 'gmp',
+                           'm', 'stdc++', 'pari'],
                          # IMHO "pari" could be removed here, but some people
                          # claim it is needed on Cygwin (see #9896, #9914).
                          # If so, we should use uname_specific(). -leif
@@ -1059,6 +1059,9 @@ ext_modules = [
     Extension('sage.misc.cython_c',
               sources = ['sage/misc/cython_c.pyx']),
 
+    Extension('sage.misc.c3',
+              sources = ['sage/misc/c3.pyx']),
+
     Extension('sage.misc.derivative',
               sources = ['sage/misc/derivative.pyx']),
 
@@ -1073,6 +1076,9 @@ ext_modules = [
 
     Extension('sage.misc.misc_c',
               sources = ['sage/misc/misc_c.pyx']),
+
+    Extension('sage.misc.nested_class',
+              sources = ['sage/misc/nested_class.pyx']),
 
     Extension('sage.misc.parser',
               sources = ['sage/misc/parser.pyx']),
@@ -1093,6 +1099,9 @@ ext_modules = [
     Extension('sage.misc.sage_timeit_class',
               sources = ['sage/misc/sage_timeit_class.pyx']),
     
+    Extension('sage.misc.classcall_metaclass', 
+              sources = ['sage/misc/classcall_metaclass.pyx']), 
+
     Extension('sage.misc.sagex_ds',
               sources = ['sage/misc/sagex_ds.pyx']),
     
