@@ -1028,7 +1028,7 @@ ext_modules = [
     Extension('sage.matrix.misc',
               sources = ['sage/matrix/misc.pyx'],
               libraries=['mpfr','gmp']),
-    
+
     Extension('sage.matrix.strassen',
               sources = ['sage/matrix/strassen.pyx']),
                             
@@ -1777,7 +1777,10 @@ ext_modules = [
 
     Extension('sage.structure.mutability',
               sources = ['sage/structure/mutability.pyx']),
-    
+
+    Extension('sage.structure.misc',
+              sources = ['sage/structure/misc.pyx']),
+
     Extension('sage.structure.parent',
               sources = ['sage/structure/parent.pyx']),
 
