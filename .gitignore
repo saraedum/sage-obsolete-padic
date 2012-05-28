@@ -9514,4 +9514,11 @@ doc/output/
 sage/misc/c3.c
 sage/misc/classcall_metaclass.c
 sage/misc/nested_class.c
-
+sage/rings/polynomial/mult_table0.png
+sage/rings/polynomial/mult_table1.png
+sage/rings/polynomial/mult_table2.png
+sage/rings/polynomial/mult_table3.png
+sage/rings/polynomial/mult_table4.png
+sage/rings/polynomial/mult_table5.png
+sage/rings/polynomial/mult_table6.png
+sage/rings/polynomial/mult_table7.png
