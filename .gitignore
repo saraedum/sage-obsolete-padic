@@ -9508,3 +9508,10 @@ sage/symbolic/ring.cpp
 sage/tests/cython.c
 sage/tests/interrupt.c
 sage/tests/stl_vector.cpp
+build/
+doc/en/reference/sage/
+doc/output/
+sage/misc/c3.c
+sage/misc/classcall_metaclass.c
+sage/misc/nested_class.c
+
