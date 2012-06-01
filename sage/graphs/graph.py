@@ -43,13 +43,15 @@ graphs.
 
     :meth:`~Graph.is_prime` | Tests whether the current graph is prime.
     :meth:`~Graph.is_split` | Returns ``True`` if the graph is a Split graph, ``False`` otherwise.
-    :meth:`~Graph.is_triangle_free` | Returns whether ``self`` is triangle-free
+    :meth:`~Graph.is_triangle_free` | Returns whether ``self`` is triangle-free.
     :meth:`~Graph.is_bipartite` | Returns True if graph G is bipartite, False if not.
     :meth:`~Graph.is_line_graph` | Tests wether the graph is a line graph.
     :meth:`~Graph.is_odd_hole_free` | Tests whether ``self`` contains an induced odd hole.
     :meth:`~Graph.is_even_hole_free` | Tests whether ``self`` contains an induced even hole.
     :meth:`~Graph.is_cartesian_product` | Tests whether ``self`` is a cartesian product of graphs.
-
+    :meth:`~Graph.is_long_hole_free` | Tests whether ``self`` contains an induced cycle of length at least 5.
+    :meth:`~Graph.is_long_antihole_free` | Tests whether ``self`` contains an induced anticycle of length at least 5.
+    :meth:`~Graph.is_weakly_chordal` | Tests whether ``self`` is weakly chordal.
 
 
 **Connectivity and orientations:**
@@ -187,6 +189,9 @@ AUTHORS:
 - Nicolas M. Thiery (2010-02): graph layout code refactoring, dot2tex/graphviz interface
 
 - David Coudert (2012-04) : Reduction rules in vertex_cover.
+
+- Birk Eisermann (2012-06): added recognition of weakly chordal graphs and
+                            long-hole-free / long-antihole-free graphs
 
 
 Graph Format
@@ -445,6 +450,8 @@ Show each graph as you iterate through the results:
 
     sage: for g in Q:
     ...     show(g)
+
+
 
 
 Visualization
@@ -1806,7 +1813,7 @@ class Graph(GenericGraph):
                 
             start = start + 2
 
-        return True            
+        return True
 
     def is_line_graph(self, certificate = False):
         r"""
@@ -4981,32 +4988,32 @@ class Graph(GenericGraph):
             True
         """
         return self._gomory_hu_tree(method=method)
-        
+
 
     def two_factor_petersen(self):
         r"""
         Returns a decomposition of the graph into 2-factors.
-    
+
         Petersen's 2-factor decomposition theorem asserts that any
         `2r`-regular graph `G` can be decomposed into 2-factors.
         Equivalently, it means that the edges of any `2r`-regular
         graphs can be partitionned in `r` sets `C_1,\dots,C_r` such
         that for all `i`, the set `C_i` is a disjoint union of cycles
         ( a 2-regular graph ).
-    
+
         As any graph of maximal degree `\Delta` can be completed into
         a regular graph of degree `2\lceil\frac\Delta 2\rceil`, this
         result also means that the edges of any graph of degree `\Delta`
         can be partitionned in `r=2\lceil\frac\Delta 2\rceil` sets
-        `C_1,\dots,C_r` such that for all `i`, the set `C_i` is a 
-        graph of maximal degree `2` ( a disjoint union of paths 
+        `C_1,\dots,C_r` such that for all `i`, the set `C_i` is a
+        graph of maximal degree `2` ( a disjoint union of paths
         and cycles ).
-    
+
         EXAMPLE:
-    
+
         The Complete Graph on `7` vertices is a `6`-regular graph, so it can
         be edge-partitionned into `2`-regular graphs::
-    
+
             sage: g = graphs.CompleteGraph(7)
             sage: classes = g.two_factor_petersen()
             sage: for c in classes:
@@ -5026,37 +5033,46 @@ class Graph(GenericGraph):
             sage: g.plot(edge_colors={'black':cl[0], 'red':cl[1]})
 
         """
-    
+
         d = self.eulerian_orientation()
-    
+
         # This new graph is bipartite, and built the following way :
         #
         # To each vertex v of the digraph are associated two vertices,
         # a sink (-1,v) and a source (1,v)
         # Any edge (u,v) in the digraph is then added as ((-1,u),(1,v))
-    
+
         from sage.graphs.graph import Graph
         g = Graph()
         g.add_edges([((-1,u),(1,v)) for (u,v) in d.edge_iterator(labels=None)])
-    
+
         # This new bipartite graph is now edge_colored
         from sage.graphs.graph_coloring import edge_coloring
         classes = edge_coloring(g)
-    
+
         # The edges in the classes are of the form ((-1,u),(1,v))
         # and have to be translated back to (u,v)
         classes_b = []
         for c in classes:
             classes_b.append([(u,v) for ((uu,u),(vv,v)) in c])
-    
+
         return classes_b
+
+# Aliases to functions defined in Cython modules
+import types
+
+import sage.graphs.weakly_chordal
+Graph.is_long_hole_free = types.MethodType(sage.graphs.weakly_chordal.is_long_hole_free, None, Graph)
+Graph.is_long_antihole_free = types.MethodType(sage.graphs.weakly_chordal.is_long_antihole_free, None, Graph)
+Graph.is_weakly_chordal = types.MethodType(sage.graphs.weakly_chordal.is_weakly_chordal, None, Graph)
+
 
 def compare_edges(x, y):
     """
     Compare edge x to edge y, return -1 if x y, 1 if x y, else 0.
-    
+
     EXAMPLES::
-    
+
         sage: G = graphs.PetersenGraph()
         sage: E = G.edges()
         sage: from sage.graphs.graph import compare_edges
