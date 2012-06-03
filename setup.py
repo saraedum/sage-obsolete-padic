@@ -983,6 +983,11 @@ code = setup(name = 'sage',
                      'sage.tests.french_book',
 
                      'sage.sandpiles',
+
+                     'sage.sat',
+                     'sage.sat.converters',
+                     'sage.sat.solvers',
+                     'sage.sat.solvers.cryptominisat',
                      
                      'sage.sets',
                      
