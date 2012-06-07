@@ -1377,7 +1377,7 @@ cdef class Expression(CommutativeRingElement):
             sage: v,c = var('v,c')
             sage: assume(c != 0)
             sage: integral((1+v^2/c^2)^3/(1-v^2/c^2)^(3/2),v)
-	    -17/8*v^3/(sqrt(-v^2/c^2 + 1)*c^2) - 1/4*v^5/(sqrt(-v^2/c^2 + 1)*c^4) + 83/8*v/sqrt(-v^2/c^2 + 1) - 75/8*arcsin(v/(c^2*sqrt(c^(-2))))/sqrt(c^(-2))
+            -17/8*v^3/(sqrt(-v^2/c^2 + 1)*c^2) - 1/4*v^5/(sqrt(-v^2/c^2 + 1)*c^4) + 83/8*v/sqrt(-v^2/c^2 + 1) - 75/8*arcsin(v/(c^2*sqrt(c^(-2))))/sqrt(c^(-2))
             sage: forget()
         """
         from sage.symbolic.assumptions import _assumptions
@@ -8596,12 +8596,12 @@ cdef class Expression(CommutativeRingElement):
         Numerically find a local maximum of the expression ``self``
         on the interval [a,b] (or [b,a]) along with the point at which the
         maximum is attained.
-        
+
         See the documentation for
         :func:`find_minimum_on_interval` for more details.
 
         EXAMPLES::
-        
+
             sage: f = x*cos(x)
             sage: f.find_maximum_on_interval(0,5)
             (0.5610963381910451, 0.8603335890...)
@@ -8611,39 +8611,39 @@ cdef class Expression(CommutativeRingElement):
         minval, x = (-self).find_minimum_on_interval(a, b, var=var, tol=tol,
                                                      maxfun=maxfun)
         return -minval, x
-        
+
     def find_minimum_on_interval(self, a, b, var=None, tol=1.48e-08, maxfun=500):
         r"""
         Numerically find a local minimum of the expression ``self``
         on the interval [a,b] (or [b,a]) and the point at which it attains
         that minimum. Note that ``self`` must be a function of
         (at most) one variable.
-        
+
         INPUT:
-        
+
         -  ``var`` - variable (default: first variable in
            self)
-        
+
         -  ``a,b`` - endpoints of interval on which to minimize
            self.
-        
+
         -  ``tol`` - the convergence tolerance
-        
+
         -  ``maxfun`` - maximum function evaluations
-        
-        
+
+
         OUTPUT:
-        
+
         A tuple ``(minval, x)``, where
 
         - ``minval`` -- float. The minimum value that self takes on in
           the interval ``[a,b]``.
-        
+
         - ``x`` -- float. The point at which self takes on the minimum
           value.
-        
+
         EXAMPLES::
-        
+
             sage: f = x*cos(x)
             sage: f.find_minimum_on_interval(1, 5)
             (-3.288371395590..., 3.4256184695...)
@@ -8654,11 +8654,11 @@ cdef class Expression(CommutativeRingElement):
             sage: show(f.plot(0, 20))
             sage: f.find_minimum_on_interval(1, 15)
             (-9.477294259479..., 9.5293344109...)
-        
+
         ALGORITHM:
 
         Uses :func:`sage.numerical.optimize.find_minimum_on_interval`.
-        
+
         AUTHORS:
 
         - William Stein (2007-12-07)
@@ -8879,7 +8879,7 @@ cdef class Expression(CommutativeRingElement):
 
                 - 'mathematica' - (optional) use Mathematica
 
-     		- 'giac' - (optional) use Giac
+                - 'giac' - (optional) use Giac
 
 
         EXAMPLES::
@@ -8973,7 +8973,7 @@ cdef class Expression(CommutativeRingElement):
             sage: (1/(1+k^2)).sum(k, -oo, oo, algorithm = 'mathematica')     # optional  -- requires mathematica
             pi*coth(pi)
 
-	Use Giac to perform this summation::
+        Use Giac to perform this summation::
 
             sage: (sum(1/(1+k^2), k, -oo, oo, algorithm = 'giac')).factor()       # optional  -- requires giac
             (e^(2*pi) + 1)*pi/((e^pi - 1)*(e^pi + 1))

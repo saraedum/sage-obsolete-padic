@@ -49,7 +49,7 @@ def find_root(f, a, b, xtol=10e-13, rtol=4.5e-16, maxiter=100, full_output=False
         0.124999...
         sage: find_root(f, -20,-10)
         -17.0
-    
+
     In Pomerance's book on primes he asserts that the famous Riemann
     Hypothesis is equivalent to the statement that the function `f(x)`
     defined below is positive for all `x \geq 2.01`::
@@ -187,7 +187,7 @@ def find_minimum_on_interval(f, a, b, tol=1.48e-08, maxfun=500):
 
     Enlarging the interval returns a larger minimum::
 
-        sage: f.find_minimum_on_interval(-2.5, 2) 
+        sage: f.find_minimum_on_interval(-2.5, 2)
         (-1.3076194129914434, 1.3552111405712108)
 
     One work-around is to plot the function and grab the minimum from
@@ -197,10 +197,10 @@ def find_minimum_on_interval(f, a, b, tol=1.48e-08, maxfun=500):
 
         sage: plot(f, (x,-2.5, -1)).ymin()
         -2.1827...
-        sage: plot(f, (x,-2.5, 2)).ymin() 
+        sage: plot(f, (x,-2.5, 2)).ymin()
         -2.1827...
 
-    ALGORITHM: 
+    ALGORITHM:
 
     Uses `scipy.optimize.fminbound
     <http://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.fminbound.html>`_
