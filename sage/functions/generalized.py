@@ -143,8 +143,8 @@ class FunctionDiracDelta(BuiltinFunction):
                     return None
                 else:
                     return 0
-        except:                     # x is symbolic
-            pass    
+        except StandardError:                     # x is symbolic
+            pass
         return None
 
 dirac_delta = FunctionDiracDelta()
@@ -249,8 +249,8 @@ class FunctionHeaviside(BuiltinFunction):
                     return 1
                 else:
                     return 0
-        except:                     # x is symbolic
-            pass    
+        except StandardError:                     # x is symbolic
+            pass
         return None
 
     def _derivative_(self, x, diff_param=None):
@@ -358,8 +358,8 @@ class FunctionUnitStep(BuiltinFunction):
                     return 1
                 else:
                     return 0
-        except:                     # x is symbolic
-            pass    
+        except StandardError:                     # x is symbolic
+            pass
         return None
 
     def _derivative_(self, x, diff_param=None):
@@ -493,8 +493,8 @@ class FunctionSignum(BuiltinFunction):
                     return ZZ(1)
                 else:
                     return ZZ(-1)
-        except:                     # x is symbolic
-            pass    
+        except StandardError:                     # x is symbolic
+            pass
         return None
 
     def _derivative_(self, x, diff_param=None):
@@ -598,8 +598,8 @@ class FunctionKroneckerDelta(BuiltinFunction):
                     return 0
             else:
                 return 0            # x is complex
-        except:                     # x is symbolic
-            pass    
+        except StandardError:                     # x is symbolic
+            pass
         return None
 
     def _derivative_(self, *args, **kwds):
