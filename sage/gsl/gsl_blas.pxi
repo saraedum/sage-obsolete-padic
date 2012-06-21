@@ -56,11 +56,11 @@ cdef extern from "gsl/gsl_blas.h":
   int  gsl_blas_dtrsv(CBLAS_UPLO_t Uplo, CBLAS_TRANSPOSE_t TransA, CBLAS_DIAG_t Diag, gsl_matrix * A, gsl_vector * x)
 
   int  gsl_blas_zgemv (CBLAS_TRANSPOSE_t TransA,  gsl_complex alpha,  gsl_matrix_complex * A,  gsl_vector_complex * X,  gsl_complex beta, gsl_vector_complex * Y) 
- 
+
   int  gsl_blas_ztrmv (CBLAS_UPLO_t Uplo, CBLAS_TRANSPOSE_t TransA, CBLAS_DIAG_t Diag,  gsl_matrix_complex * A, gsl_vector_complex * X)
-  
+
   int  gsl_blas_ztrsv (CBLAS_UPLO_t Uplo, CBLAS_TRANSPOSE_t TransA, CBLAS_DIAG_t Diag,  gsl_matrix_complex * A, gsl_vector_complex *X)
-								 
+
   int  gsl_blas_dsymv(CBLAS_UPLO_t Uplo, double alpha, gsl_matrix * A, gsl_vector * x, double beta, gsl_vector * y)
 
   int  gsl_blas_dger(double alpha, gsl_vector * x, gsl_vector * y, gsl_matrix * A)

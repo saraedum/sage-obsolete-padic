@@ -109,7 +109,7 @@ cdef extern from "gsl/gsl_fft_halfcomplex.h":
   int gsl_fft_halfcomplex_inverse (double data[],  size_t stride,  size_t n,  gsl_fft_halfcomplex_wavetable * wavetable, gsl_fft_real_workspace * work)
 
   int gsl_fft_halfcomplex_transform (double data[],  size_t stride,  size_t n,  gsl_fft_halfcomplex_wavetable * wavetable, gsl_fft_real_workspace * work)
-									
+
   int  gsl_fft_halfcomplex_unpack(double halfcomplex_coefficient[], gsl_complex_packed_array complex_coefficient, size_t stride, size_t n)
 
   int gsl_fft_halfcomplex_radix2_unpack ( double halfcomplex_coefficient[], double complex_coefficient[],  size_t stride,  size_t n)

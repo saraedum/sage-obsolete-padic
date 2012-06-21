@@ -7,7 +7,7 @@ cdef extern from "gsl/gsl_matrix_double.h":
     double * data
     gsl_block * block
     int owner
-	      
+
   ctypedef struct gsl_matrix_view:
     gsl_matrix matrix
 
@@ -22,11 +22,11 @@ cdef extern from "gsl/gsl_matrix_double.h":
     size_t offset, size_t n1, size_t n2, size_t d2)
 
   gsl_matrix * gsl_matrix_alloc_from_matrix (gsl_matrix * m,  size_t k1,  size_t k2,  size_t n1,  size_t n2)
- 
+
   gsl_vector * gsl_vector_alloc_row_from_matrix (gsl_matrix * m,  size_t i)
 
   gsl_vector * gsl_vector_alloc_col_from_matrix (gsl_matrix * m,  size_t j)
- 
+
   void  gsl_matrix_free(gsl_matrix * m)
 
   # Views
@@ -61,7 +61,7 @@ cdef extern from "gsl/gsl_matrix_double.h":
   gsl_vector_const_view  gsl_matrix_const_subdiagonal(gsl_matrix * m, size_t k)
 
   gsl_vector_const_view  gsl_matrix_const_superdiagonal(gsl_matrix * m, size_t k)
-  
+
   gsl_matrix_const_view  gsl_matrix_const_view_array(double * base, size_t n1, size_t n2)
 
   gsl_matrix_const_view  gsl_matrix_const_view_array_with_tda(double * base, size_t n1, size_t n2, size_t tda)
@@ -70,7 +70,7 @@ cdef extern from "gsl/gsl_matrix_double.h":
 
   gsl_matrix_const_view  gsl_matrix_const_view_vector_with_tda(gsl_vector * v, size_t n1, size_t n2, size_t tda)
 
-  
+
   # Operations
   double  gsl_matrix_get(gsl_matrix * m, size_t i, size_t j)
 
@@ -137,9 +137,9 @@ cdef extern from "gsl/gsl_matrix_double.h":
   int  gsl_matrix_scale(gsl_matrix * a, double x)
 
   int  gsl_matrix_add_constant(gsl_matrix * a, double x)
-  
+
   int gsl_matrix_add_diagonal (gsl_matrix * a,  double x)
-  
+
   # The functions below are obsolete
   int  gsl_matrix_get_row(gsl_vector * v, gsl_matrix * m, size_t i)
 

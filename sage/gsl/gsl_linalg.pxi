@@ -1,33 +1,33 @@
 cdef extern from "gsl/gsl_linalg.h":
-  
+
   cdef enum gsl_linalg_matrix_mod_t:
     GSL_LINALG_MOD_NONE = 0
     GSL_LINALG_MOD_TRANSPOSE = 1
     GSL_LINALG_MOD_CONJUGATE = 2
-	    
+
   int gsl_linalg_matmult ( gsl_matrix * A,  gsl_matrix * B, gsl_matrix * C)
 
   int gsl_linalg_matmult_mod ( gsl_matrix * A, gsl_linalg_matrix_mod_t modA,  gsl_matrix * B, gsl_linalg_matrix_mod_t modB, gsl_matrix * C)
- 
+
   int gsl_linalg_exponential_ss(gsl_matrix * A, gsl_matrix * eA, gsl_mode_t mode)
 
   # Householder Transformations
   double gsl_linalg_householder_transform (gsl_vector * v)
-  
+
   gsl_complex gsl_linalg_complex_householder_transform (gsl_vector_complex * v)
-  
+
   int gsl_linalg_householder_hm (double tau,  gsl_vector * v, gsl_matrix * A)
- 
+
   int gsl_linalg_householder_mh (double tau,  gsl_vector * v, gsl_matrix * A)
-								
+
   int gsl_linalg_householder_hv (double tau,  gsl_vector * v, gsl_vector * w)
-								
+
   int gsl_linalg_householder_hm1 (double tau, gsl_matrix * A)
-				 
+
   int gsl_linalg_complex_householder_hm (gsl_complex tau,  gsl_vector_complex * v, gsl_matrix_complex * A)
 
   int gsl_linalg_complex_householder_hv (gsl_complex tau,  gsl_vector_complex * v, gsl_vector_complex * w)
-										
+
   # Singular Value Decomposition
   int  gsl_linalg_SV_decomp(gsl_matrix * A, gsl_matrix * V, gsl_vector * S, gsl_vector * work)
 

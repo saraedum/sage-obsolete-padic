@@ -895,7 +895,7 @@ map interchanges nodes `n-1` and `n`. Here is how to achieve this in Sage::
     sage: B = CrystalOfTableaux(['A',3],shape=[2,1])
     sage: b = B(rows=[[1,2],[3]])
     sage: b.lusztig_involution()
-    [[2, 4], [3]]	
+    [[2, 4], [3]]
 
 For type `A_n`, the Lusztig involution is the same as the Schuetzenberger involution (which in Sage is
 defined on tableaux)::
