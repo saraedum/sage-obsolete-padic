@@ -35,11 +35,11 @@ complicated.  So we end up writing an interpreter generator.
 
 We want to share as much code as possible across all of these
 interpreters, while still maintaining the freedom to make drastic
-changes in the interpretation strategy (which may change the 
+changes in the interpretation strategy (which may change the
 generated code, the calling convention for the interpreter, etc.)
 
 To make this work, the interpreter back-end is divided into three
-parts: 
+parts:
 
   1. The interpreter itself, in C or C++.
 
@@ -76,8 +76,8 @@ that stack-based expression interpreters may be better.  However,
 we'll implement both varieties and see what's best.
 
 The relative costs of stack- and register-based interpreters will
-depend on the costs of moving values.  For complicated types (like 
-mpz_t), a register-based interpreter will quite likely be better, 
+depend on the costs of moving values.  For complicated types (like
+mpz_t), a register-based interpreter will quite likely be better,
 since it will avoid moving values.
 
 We will NOT support any sort of storage of bytecode; instead, the
@@ -108,7 +108,7 @@ from distutils.extension import Extension
 # use any other Sage modules.  (In particular, it MUST NOT use any
 # Cython modules -- they won't be built yet!)
 # Also, we have some trivial dependency tracking, where we don't
-# rebuild the interpreters if this file hasn't changed; if 
+# rebuild the interpreters if this file hasn't changed; if
 # interpreter configuration is split out into a separate file,
 # that will have to be changed.
 ##############################
@@ -570,12 +570,12 @@ ty_double = StorageTypeSimple('double')
 
 class StorageTypeDoubleComplex(StorageTypeSimple):
     r"""
-    This is specific to the complex double type. It behaves exactly 
-    like a StorageTypeSimple in C, but needs a little help to do 
+    This is specific to the complex double type. It behaves exactly
+    like a StorageTypeSimple in C, but needs a little help to do
     conversions in Cython.
     
-    This uses functions defined in CDFInterpreter, and is for use in 
-    that context. 
+    This uses functions defined in CDFInterpreter, and is for use in
+    that context.
     """
     def assign_c_from_py(self, c, py):
         """
@@ -1299,7 +1299,7 @@ for i from 0 <= i < len(args):
             sage: mc.pass_argument()
             'c_args'
         """
-        return 'c_args'    
+        return 'c_args'
 
 class MemoryChunkScratch(MemoryChunkLonglivedArray):
     r"""
@@ -1379,7 +1379,7 @@ class MemoryChunkScratch(MemoryChunkLonglivedArray):
             sage: print mc.handle_cleanup()
             for i in range(self._n_registers):
                 Py_CLEAR(self._registers[i])
-            <BLANKLINE> 
+            <BLANKLINE>
         """
         # XXX This is a lot slower than it needs to be, because
         # we don't have a "cdef int i" in scope here.
@@ -1421,7 +1421,7 @@ class MemoryChunkRRRetval(MemoryChunk):
         return je("""
         cdef RealNumber {{ myself.name }} = (self.domain)()
 """, myself=self)
-        
+
     def pass_argument(self):
         r"""
         Returns the string to pass the argument corresponding to this
@@ -1681,7 +1681,7 @@ def params_gen(**chunks):
         sage: pg('SSS@D', 'A[D]S@D')
         ([({MC:stack}, None, None), ({MC:stack}, None, None), ({MC:stack}, None, {MC:code})], [({MC:args}, {MC:code}, None), ({MC:stack}, None, {MC:code})])
     """
-    
+
     def make_params(s):
         p = []
         s = s.strip()
@@ -1757,7 +1757,7 @@ class InstrSpec(object):
     For instance, fast_callable assumes that if the interpreter has an
     instruction named 'cos', then it will take a single argument,
     return a single result, and implement the cos() function.
-    
+
     The print representation of an instruction (which will probably
     only be used when doctesting this file) consists of the name,
     a simplified stack effect, and the code (truncated if it's long).
@@ -1829,7 +1829,7 @@ class InstrSpec(object):
             uses_error_handler -- True if the instruction calls Python
                                   and jumps to error: on a Python error
             handles_own_decref -- True if the instruction handles Python
-                                  objects and includes its own 
+                                  objects and includes its own
                                   reference-counting
 
         EXAMPLES:
@@ -2012,7 +2012,7 @@ class InterpreterSpec(object):
         extra_class_members -- Class members for the wrapper that
                                don't correspond to memory chunks
         extra_members_initialize -- Code to initialize extra_class_members
-                     
+
         EXAMPLES:
             sage: from sage.ext.gen_interpreters import *
             sage: interp = RDFInterpreter()
@@ -2070,7 +2070,7 @@ class StackInterpreter(InterpreterSpec):
         INPUTS:
             type -- A StorageType; the basic type that this interpreter
                     operates on
-            mc_retval -- default None; if not None, a special-purpose 
+            mc_retval -- default None; if not None, a special-purpose
                          MemoryChunk to use as a return value
 
         Initializes the fields described in the documentation for
@@ -2080,7 +2080,7 @@ class StackInterpreter(InterpreterSpec):
         return_type -- the type returned by the C interpreter (None for int,
                        where 1 means success and 0 means error)
         mc_retval -- None, or the MemoryChunk to use as a return value
-        ipow_range -- the range of exponents supported by the ipow 
+        ipow_range -- the range of exponents supported by the ipow
                       instruction (default is False, meaning never use ipow)
         adjust_retval -- None, or a string naming a function to call
                          in the wrapper's __call__ to modify the return
@@ -2255,7 +2255,7 @@ else {
         self.extra_class_members = "cdef object _domain\n"
         self.extra_members_initialize = "self._domain = args['domain']\n"
         self.adjust_retval = 'self._domain'
-        
+
 
 class CDFInterpreter(StackInterpreter):
     r"""
@@ -2318,7 +2318,7 @@ cdef extern from "pari/pari.h":
 cdef extern from "pari/paripriv.h":
     pass
 
-# Cython does not (yet) support complex numbers natively, so this is a bit hackish.  
+# Cython does not (yet) support complex numbers natively, so this is a bit hackish.
 cdef extern from "complex.h":
     ctypedef double double_complex "double complex"
 """
@@ -2329,7 +2329,7 @@ cdef object CDF = sage.rings.complex_double.CDF
 
 cdef extern from "solaris_fixes.h": pass
 
-# Cython does not (yet) support complex numbers natively, so this is a bit hackish.  
+# Cython does not (yet) support complex numbers natively, so this is a bit hackish.
 cdef extern from "complex.h":
     ctypedef double double_complex "double complex"
     cdef double creal(double_complex)
@@ -2399,7 +2399,7 @@ class RRInterpreter(StackInterpreter):
     A subclass of StackInterpreter, specifying an interpreter over
     MPFR arbitrary-precision floating-point numbers.
     """
-    
+
     def __init__(self):
         r"""
         Initialize an RDFInterpreter.
@@ -2648,7 +2648,7 @@ Py_DECREF(py_args);
         # (the default implementation doesn't work, because of
         # object vs. PyObject* confusion)
         self.implement_call_c = False
-        
+
 class ElementInterpreter(PythonInterpreter):
     r"""
     A subclass of PythonInterpreter, specifying an interpreter over
@@ -2853,7 +2853,6 @@ class InterpreterGenerator(object):
                 else:
                     w("        %s o%d = %s + ao%d;\n" %
                       (chst.c_ptr_type(), i, ch.name, i))
-                      
             else:
                 if not chst.cheap_copies():
                     if ch.is_stack():
@@ -2864,7 +2863,6 @@ class InterpreterGenerator(object):
                           (chst.c_local_type(), i, ch.name, i))
                 else:
                     w("        %s o%d;\n" % (chst.c_local_type(), i))
-                
         w(indent_lines(8, d.code.rstrip('\n') + '\n'))
 
         stack_offsets = defaultdict(int)
@@ -2888,7 +2886,7 @@ class InterpreterGenerator(object):
             chst = ch.storage_type
             if chst.python_refcounted():
                 # We don't yet support code chunks
-                # that produce multiple Python values, because of 
+                # that produce multiple Python values, because of
                 # the way it complicates error handling.
                 assert i == 0
                 w("        if (!CHECK(o%d)) {\n" % i)
@@ -3043,7 +3041,7 @@ interp_{{ s.name }}(args
 # Automatically generated by ext/gen_interpreters.py.  Do not edit!
 
 include "../stdsage.pxi"
-from python_object cimport PyObject
+from cpython cimport PyObject
 cdef extern from "Python.h":
     void Py_DECREF(PyObject *o)
     void Py_INCREF(PyObject *o)
@@ -3183,7 +3181,7 @@ metadata = InterpreterMetadata(by_opname={
         w(je("""
 # Automatically generated by ext/gen_interpreters.py.  Do not edit!
 
-from python_object cimport PyObject
+from cpython cimport PyObject
 
 from sage.ext.fast_callable cimport Wrapper
 {% print s.pxd_header %}
@@ -3283,7 +3281,7 @@ cdef class Wrapper_{{ s.name }}(Wrapper):
 
         Here we see that the input and output variables are actually
         just pointers into the stack.  But due to the auto-reference
-        trick, the actual code snippet, ``mpfr_net(o0, i0, GMP_RNDN);``, 
+        trick, the actual code snippet, ``mpfr_net(o0, i0, GMP_RNDN);``,
         is exactly the same as if i0 and o0 were declared as local
         mpfr_t variables.
 
@@ -3344,7 +3342,7 @@ cdef class Wrapper_{{ s.name }}(Wrapper):
             sage: print rdf_wrapper
             # Automatically generated by ext/gen_interpreters.py.  Do not edit!
             include "../stdsage.pxi"
-            from python_object cimport PyObject
+            from cpython cimport PyObject
             cdef extern from "Python.h":
                 void Py_DECREF(PyObject *o)
                 void Py_INCREF(PyObject *o)
@@ -3470,7 +3468,7 @@ cdef class Wrapper_{{ s.name }}(Wrapper):
                     if self._constants:
                         sage_free(self._constants)
             ...
-            
+
         The RRInterpreter code is more complicated again because it has
         to call mpfr_clear.
             sage: print rr_wrapper
@@ -3628,11 +3626,10 @@ cdef class Wrapper_{{ s.name }}(Wrapper):
         And then the ipow range:
             sage: print rdf_wrapper
             # ...
-            metadata = InterpreterMetadata(...,  
+            metadata = InterpreterMetadata(...,
               ipow_range=(-2147483648, 2147483647))
-            
 
-        And that's it for the wrapper.            
+        And that's it for the wrapper.
         """
         import cStringIO
         buff = cStringIO.StringIO()
@@ -3663,7 +3660,7 @@ cdef class Wrapper_{{ s.name }}(Wrapper):
         elided below):
             sage: print rdf_pxd
             # Automatically generated by ext/gen_interpreters.py.  Do not edit!
-            from python_object cimport PyObject
+            from cpython cimport PyObject
             from sage.ext.fast_callable cimport Wrapper
             ...
             sage: print rr_pxd
@@ -3851,7 +3848,7 @@ modules = [
               sources = ['sage/ext/interpreters/wrapper_rdf.pyx',
                          'sage/ext/interpreters/interp_rdf.c'],
               libraries = ['gsl']),
-              
+
     Extension('sage.ext.interpreters.wrapper_cdf',
               sources = ['sage/ext/interpreters/wrapper_cdf.pyx',
                          'sage/ext/interpreters/interp_cdf.c'],
