@@ -93,7 +93,7 @@
 
 ::
 
-       sage: f = sin	
+       sage: f = sin
        sage: f.derivative()
        Traceback (most recent call last):
        ...
@@ -116,9 +116,9 @@
 
        sage: def h(x):
        ...       if x<2:
-       ...	     return 0
+       ...           return 0
        ...       else:
-       ...	     return x-2
+       ...           return x-2
 
 Проблема: ``plot(h(x), 0, 4)`` построит кривую `y=x-2`. 
 Причина: В команде ``plot(h(x), 0, 4)`` сначала оценивается ``h(x)``, 
