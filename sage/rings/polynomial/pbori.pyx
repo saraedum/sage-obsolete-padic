@@ -3795,7 +3795,7 @@ cdef class BooleanPolynomial(MPolynomial):
             sage: P.<a,b,c> = BooleanPolynomialRing(3,order='lex') 
             sage: f = a + c*b 
             sage: f.monomials() 
-            [a, b*c] 
+            [a, b*c]
         
         ::
         
@@ -3803,6 +3803,8 @@ cdef class BooleanPolynomial(MPolynomial):
             sage: f = a + c*b 
             sage: f.monomials() 
             [c*b, a]
+            sage: P.zero().monomials()
+            []
         """ 
         return list(self) 
 
