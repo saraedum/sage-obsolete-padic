@@ -5151,6 +5151,12 @@ class GenericGraph(GenericGraph_pyx):
             ...           not lp.is_connected()):
             ...           print("Error!")
             ...           break
+
+        :trac:`13019`::
+
+            sage: g = graphs.CompleteGraph(5).to_directed()
+            sage: g.longest_path(s=1,t=2)
+            Subgraph of (Complete graph): Digraph on 5 vertices
         """
         if use_edge_labels:
             algorithm = "MILP"
@@ -5185,14 +5191,14 @@ class GenericGraph(GenericGraph_pyx):
         if (self.order() <= 1 or
             (s is not None and (
                     (s not in self) or
-                    (self._directed and self.degree_out(s) == 0) or
+                    (self._directed and self.out_degree(s) == 0) or
                     (not self._directed and self.degree(s) == 0))) or
             (t is not None and (
                     (t not in self) or
-                    (self._directed and self.degree_in(t) == 0) or
+                    (self._directed and self.in_degree(t) == 0) or
                     (not self._directed and self.degree(t) == 0))) or
             (self._directed and (s is not None) and (t is not None) and
-             len(self.shortest_path(s, t) == 0))):
+             len(self.shortest_path(s, t)) == 0)):
             if self._directed:
                 from sage.graphs.all import DiGraph
                 return [0, DiGraph()] if use_edge_labels else DiGraph()
@@ -11785,8 +11791,10 @@ class GenericGraph(GenericGraph_pyx):
 
     def all_paths(self, start, end):
         """
-        Returns a list of all paths (also lists) between a pair of vertices
-        (start, end) in the (di)graph.
+        Returns a list of all paths (also lists) between a pair of
+        vertices (start, end) in the (di)graph. If ``start`` is the same
+        vertex as ``end``, then ``[[start]]`` is returned -- a list
+        containing the 1-vertex, 0-edge path "``start``".
         
         EXAMPLES::
         
@@ -11832,11 +11840,18 @@ class GenericGraph(GenericGraph_pyx):
             sage: ug = dg.to_undirected()
             sage: sorted(ug.all_paths(0,3))
             [[0, 1, 3], [0, 2, 3], [0, 3]]
+
+        Starting and ending at the same vertex (see :trac:`13006`)::
+
+            sage: graphs.CompleteGraph(4).all_paths(2,2)
+            [[2]]
         """
         if self.is_directed():
             iterator=self.neighbor_out_iterator
         else:
             iterator=self.neighbor_iterator
+        if start == end:
+            return [[start]]
         all_paths = []      # list of
         act_path = []       # the current path
         act_path_iter = []  # the neighbor/successor-iterators of the current path
@@ -12459,7 +12474,7 @@ class GenericGraph(GenericGraph_pyx):
         Multiple starting vertices can be specified in a list::
 
             sage: D = DiGraph( { 0: [1,2,3], 1: [4,5], 2: [5], 3: [6], 5: [7], 6: [7], 7: [0]})
-            sage: list(D.breadth_first_search([0]))                                    
+            sage: list(D.breadth_first_search([0]))
             [0, 1, 2, 3, 4, 5, 6, 7]
             sage: list(D.breadth_first_search([0,6]))
             [0, 6, 1, 2, 3, 7, 4, 5]
@@ -12469,17 +12484,17 @@ class GenericGraph(GenericGraph_pyx):
             [0, 6, 1, 2, 3, 7]
             sage: list(D.breadth_first_search(6,ignore_direction=True,distance=2))
             [6, 3, 7, 0, 5]
-        
+
         More generally, you can specify a ``neighbors`` function.  For
         example, you can traverse the graph backwards by setting
-        ``neighbors`` to be the :meth:`.predecessor` function of the graph::
-            
+        ``neighbors`` to be the :meth:`.neighbors_in` function of the graph::
+
             sage: D = DiGraph( { 0: [1,2,3], 1: [4,5], 2: [5], 3: [6], 5: [7], 6: [7], 7: [0]})
             sage: list(D.breadth_first_search(5,neighbors=D.neighbors_in, distance=2))
             [5, 1, 2, 0]
-            sage: list(D.breadth_first_search(5,neighbors=D.neighbors_out, distance=2))  
+            sage: list(D.breadth_first_search(5,neighbors=D.neighbors_out, distance=2))
             [5, 7, 0]
-            sage: list(D.breadth_first_search(5,neighbors=D.neighbors, distance=2)) 
+            sage: list(D.breadth_first_search(5,neighbors=D.neighbors, distance=2))
             [5, 1, 2, 7, 0, 4, 6]
 
 
@@ -12492,14 +12507,14 @@ class GenericGraph(GenericGraph_pyx):
             [0, 1, 2]
 
         """
-        # Preferably use the Cython implementation 
-        if neighbors is None and not isinstance(start,list) and distance is None and hasattr(self._backend,"breadth_first_search"): 
-            for v in self._backend.breadth_first_search(start, ignore_direction = ignore_direction): 
-                yield v 
-        else: 
+        # Preferably use the Cython implementation
+        if neighbors is None and not isinstance(start,list) and distance is None and hasattr(self._backend,"breadth_first_search"):
+            for v in self._backend.breadth_first_search(start, ignore_direction = ignore_direction):
+                yield v
+        else:
             if neighbors is None:
                 if not self._directed or ignore_direction:
-                    neighbors=self.neighbor_iterator            
+                    neighbors=self.neighbor_iterator
                 else:
                     neighbors=self.neighbor_out_iterator
             seen=set([])
@@ -12598,7 +12613,7 @@ class GenericGraph(GenericGraph_pyx):
         
         More generally, you can specify a ``neighbors`` function.  For
         example, you can traverse the graph backwards by setting
-        ``neighbors`` to be the :meth:`.predecessor` function of the graph::
+        ``neighbors`` to be the :meth:`.neighbors_in` function of the graph::
         
             sage: D = DiGraph( { 0: [1,2,3], 1: [4,5], 2: [5], 3: [6], 5: [7], 6: [7], 7: [0]})
             sage: list(D.depth_first_search(5,neighbors=D.neighbors_in, distance=2))
@@ -13171,6 +13186,8 @@ class GenericGraph(GenericGraph_pyx):
             sage: C = graphs.CycleGraph(5)
             sage: T = C.tensor_product(Z); T
             Graph on 10 vertices
+            sage: T.size()
+            10
             sage: T.plot() # long time
 
         ::
@@ -13179,6 +13196,8 @@ class GenericGraph(GenericGraph_pyx):
             sage: P = graphs.PetersenGraph()
             sage: T = D.tensor_product(P); T
             Graph on 200 vertices
+            sage: T.size()
+            900
             sage: T.plot() # long time
 
         TESTS:
@@ -13189,7 +13208,7 @@ class GenericGraph(GenericGraph_pyx):
             sage: H = Graph([('a','b')])
             sage: T = G.tensor_product(H)
             sage: T.edges(labels=None)
-            [((0, 'a'), (1, 'b')), ((1, 'a'), (2, 'b'))]
+            [((0, 'a'), (1, 'b')), ((0, 'b'), (1, 'a')), ((1, 'a'), (2, 'b')), ((1, 'b'), (2, 'a'))]
             sage: T.is_isomorphic( H.tensor_product(G) )
             True
 
@@ -13223,6 +13242,8 @@ class GenericGraph(GenericGraph_pyx):
         for u,w in self.edges(labels=None):
             for v,x in other.edges(labels=None):
                 G.add_edge((u,v), (w,x))
+                if not G._directed:
+                    G.add_edge((u,x), (w,v))
         return G
 
     categorical_product = tensor_product
@@ -13778,7 +13799,7 @@ class GenericGraph(GenericGraph_pyx):
         :meth:`.layout_graphviz` for installation instructions.
 
         A subclass may implement another layout algorithm `blah`, by
-        implementing a method :meth:`.layout_blah`. It may override
+        implementing a method ``.layout_blah``. It may override
         the default layout by overriding :meth:`.layout_default`, and
         similarly override the predefined layouts.
 
@@ -15198,7 +15219,7 @@ class GenericGraph(GenericGraph_pyx):
         INPUT:
 
         -  ``laplacian`` - if ``True``, use the Laplacian matrix
-           (see :meth:`~sage.graphs.graph.GenericGraph.kirchhoff_matrix()`)
+           (see :meth:`kirchhoff_matrix`)
 
         OUTPUT:
 
@@ -15306,7 +15327,7 @@ class GenericGraph(GenericGraph_pyx):
         INPUT:
 
         -  ``laplacian`` - if True, use the Laplacian matrix
-           (see :meth:`~sage.graphs.graph.GenericGraph.kirchhoff_matrix()`)
+           (see :meth:`kirchhoff_matrix`)
 
         OUTPUT:
 
@@ -15397,7 +15418,7 @@ class GenericGraph(GenericGraph_pyx):
         INPUT:
 
         -  ``laplacian`` - if True, use the Laplacian matrix
-           (see :meth:`~sage.graphs.graph.GenericGraph.kirchhoff_matrix()`)
+           (see :meth:`kirchhoff_matrix`)
 
         OUTPUT:
 

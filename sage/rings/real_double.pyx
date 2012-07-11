@@ -395,7 +395,7 @@ cdef class RealDoubleField_class(Field):
             sage: RDF.characteristic()
             0
         """
-        return 0
+        return Integer(0)
 
     cdef _new_c(self, double value):
         cdef RealDoubleElement x
@@ -599,17 +599,56 @@ cdef class RealDoubleElement(FieldElement):
         
         EXAMPLES::
  
-            sage: a = RDF(1)
+            sage: a = RDF(pi)
+            sage: a.ulp()
+            4.4408920985e-16
+            sage: b = a + a.ulp()
+
+        Adding or subtracting an ulp always gives a different number::
+
+            sage: a + a.ulp() == a
+            False
             sage: a - a.ulp() == a
             False
-            sage: a - a.ulp()/2 == a
+            sage: b + b.ulp() == b
+            False
+            sage: b - b.ulp() == b
+            False
+
+        Adding or subtracting something less than half an ulp never
+        gives the same number (unless the number is exactly a power of
+        2 and subtracting an ulp decreases the ulp)::
+
+            sage: a - a.ulp()/3 == a
             True
-            
-            sage: a = RDF.pi()
-            sage: b = a + a.ulp()
-            sage: (a+b)/2 in [a,b]
+            sage: a + a.ulp()/3 == a
             True
+            sage: b - b.ulp()/3 == b
+            True
+            sage: b + b.ulp()/3 == b
+            True
+            sage: c = RDF(1)
+            sage: c - c.ulp()/3 == c
+            False
+            sage: c.ulp()
+            2.22044604925e-16
+            sage: (c - c.ulp()).ulp()
+            1.11022302463e-16
             
+        The ulp is always positive::
+
+            sage: RDF(-1).ulp()
+            2.22044604925e-16
+
+        The ulp of zero is the smallest positive number in RDF::
+
+            sage: RDF(0).ulp()
+            4.94065645841e-324
+            sage: RDF(0).ulp()/2
+            0.0
+            
+        Some special values::
+
             sage: a = RDF(1)/RDF(0); a
             +infinity
             sage: a.ulp()
@@ -620,18 +659,18 @@ cdef class RealDoubleElement(FieldElement):
             sage: a.ulp() is a
             True
         """
-        cdef int e, v = gsl_isinf(self._value)
+        # First, check special values
+        if self._value == 0:
+            return RealDoubleElement(ldexp(1.0, -1074))
         if gsl_isnan(self._value):
             return self
-        elif self._value == 0:
-            return RealDoubleElement(ldexp(1.0, e-1082))
-        elif v == 1:
-            return self
-        elif v == -1:
-            return -self
-        else:
-            frexp(self._value, &e)
-            return RealDoubleElement(ldexp(1.0, e-54))
+        if gsl_isinf(self._value):
+            return self.abs()
+
+        # Normal case
+        cdef int e
+        frexp(self._value, &e)
+        return RealDoubleElement(ldexp(1.0, e-53))
 
     def real(self):
         """
@@ -1681,15 +1720,10 @@ cdef class RealDoubleElement(FieldElement):
 
 
     cdef _log_base(self, double log_of_base):
-        if self._value < 2:
-            if self._value == 0:
-                return RDF(-1)/RDF(0)
-            if self._value < 0:
-                return RDF(0)/RDF(0)
-            sig_on()
-            a = self._new_c(gsl_sf_log_1plusx(self._value - 1) / log_of_base)
-            sig_off()
-            return a
+        if self._value == 0:
+            return RDF(-1)/RDF(0)
+        elif self._value < 0:
+            return RDF.NaN()
         sig_on()
         a = self._new_c(gsl_sf_log(self._value) / log_of_base)
         sig_off()
@@ -1697,6 +1731,21 @@ cdef class RealDoubleElement(FieldElement):
 
     def log(self, base=None):
         """
+        Return the logarithm.
+
+        INPUT:
+
+        - ``base`` -- integer or ``None`` (default). The base of the
+          logarithm. If none is specified, the base is `e` (the so-called
+          natural logarithm).
+
+        OUTPUT:
+
+        The logarithm of ``self``.  If ``self`` is positive, a double
+        floating point number. Infinity if ``self`` is zero. A
+        imaginary complex floating point number if ``self`` is
+        negative.
+
         EXAMPLES::
         
             sage: RDF(2).log()
@@ -1715,6 +1764,35 @@ cdef class RealDoubleElement(FieldElement):
             3.14159265359*I
             sage: RDF(-1).log(2)
             4.53236014183*I
+
+        TESTS:
+
+        Make sure that we can take the log of small numbers accurately
+        and the fix doesn't break preexisting values (:trac:`12557`)::
+
+            sage: R = RealField(128)
+            sage: def check_error(x):
+            ...     x = RDF(x)
+            ...     log_RDF = x.log()
+            ...     log_RR = R(x).log()
+            ...     diff = R(log_RDF) - log_RR
+            ...     if abs(diff) <= log_RDF.ulp():
+            ...         return True
+            ...     print "logarithm check failed for %s (diff = %s ulp)"% \
+            ...         (x, diff/log_RDF.ulp())
+            ...     return False
+            sage: all( check_error(2^x) for x in range(-100,100) )
+            True
+            sage: all( check_error(x) for x in sxrange(0.01, 2.00, 0.01) )
+            True
+            sage: all( check_error(x) for x in sxrange(0.99, 1.01, 0.001) )
+            True
+            sage: RDF(1.000000001).log()
+            1.00000008224e-09
+            sage: RDF(1e-17).log()
+            -39.1439465809
+            sage: RDF(1e-50).log()
+            -115.12925465
         """
         if self < 0:
             from sage.rings.complex_double import CDF

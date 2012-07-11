@@ -54,7 +54,7 @@ numpy_include_dirs = [SAGE_LOCAL + '/lib/python/site-packages/numpy/core/include
 numpy_depends = [SAGE_LOCAL + '/lib/python/site-packages/numpy/core/include/numpy/_numpyconfig.h']
 
 flint_depends = [SAGE_INC + 'FLINT/flint.h']
-singular_depends = [SAGE_INC + 'libsingular.h']
+singular_depends = [SAGE_INC + 'libsingular.h', SAGE_INC + 'givaro/givconfig.h']
 ginac_depends = [SAGE_INC + 'pynac/ginac.h']
 
 #########################################################
@@ -225,6 +225,9 @@ ext_modules = [
               sources=['sage/combinat/combinat_cython.pyx'],
               libraries=['gmp']),
 
+    Extension('sage.combinat.enumeration_mod_permgroup',
+              sources=['sage/combinat/enumeration_mod_permgroup.pyx']),
+
     ################################
     ## 
     ## sage.crypto
@@ -317,8 +320,8 @@ ext_modules = [
                           'sage/geometry/triangulation/triangulations.cc'],
                language="c++"),
 
-    ################################ 
-    ##  
+    ################################
+    ##
     ## sage.graphs
     ##
     ################################
@@ -337,6 +340,9 @@ ext_modules = [
 
     Extension('sage.graphs.convexity_properties',
               sources = ['sage/graphs/convexity_properties.pyx']),
+
+    Extension('sage.graphs.comparability',
+              sources = ['sage/graphs/comparability.pyx']),
 
     Extension('sage.graphs.generic_graph_pyx',
               sources = ['sage/graphs/generic_graph_pyx.pyx'],
@@ -597,12 +603,12 @@ ext_modules = [
 
     Extension('sage.libs.linbox.linbox',
               sources = ['sage/libs/linbox/linbox.pyx'],
-              # For this to work on cygwin, linboxwrap *must* be
+              # For this to work on cygwin, linboxsage *must* be
               # before ntl.
               libraries = ['linboxsage', 'ntl', 'linbox', 
                            'stdc++', 'givaro', 'gmp', 'gmpxx', BLAS, BLAS2],
-              language = 'c++'),
-
+              language = 'c++',
+              depends = [SAGE_INC + 'givaro/givconfig.h']),
 
     Extension('sage.libs.lcalc.lcalc_Lfunction',
               sources = ['sage/libs/lcalc/lcalc_Lfunction.pyx'],
@@ -1684,10 +1690,6 @@ ext_modules = [
               include_dirs = [SAGE_INC + 'FLINT/'],
               libraries = ['flint', 'gmp', 'ratpoints']),
 
-    Extension('sage.schemes.generic.toric_divisor_class',
-              sources = ['sage/schemes/generic/toric_divisor_class.pyx'],
-              libraries = ['gmp']),
-              
     Extension('sage.schemes.hyperelliptic_curves.hypellfrob',
               sources = ['sage/schemes/hyperelliptic_curves/hypellfrob.pyx',
                          'sage/schemes/hyperelliptic_curves/hypellfrob/hypellfrob.cpp',
@@ -1700,6 +1702,10 @@ ext_modules = [
               language = 'c++',
               include_dirs = ['sage/libs/ntl/',
                               'sage/schemes/hyperelliptic_curves/hypellfrob/']),
+
+    Extension('sage.schemes.toric.divisor_class',
+              sources = ['sage/schemes/toric/divisor_class.pyx'],
+              libraries = ['gmp']),              
 
     ################################
     ## 
@@ -1816,11 +1822,6 @@ ext_modules = [
               depends = ginac_depends + numpy_depends,
               libraries = ["pynac", "gmp"]),
 
-    Extension('sage.symbolic.power_helper',
-              sources = ['sage/symbolic/power_helper.pyx'],
-              depends = ginac_depends,
-              language = 'c++'),
-    
     Extension('sage.symbolic.pynac',
               sources = ['sage/symbolic/pynac.pyx'],
               language = 'c++',

@@ -1089,7 +1089,39 @@ def _plot(funcs, xrange, parametric=False,
         sage: from sage.plot.plot import _plot
         sage: P = _plot(e^(-x^2),(-3,3),fill=True,color='red',plot_points=50,adaptive_tolerance=2,adaptive_recursion=True,exclude=None)
         sage: P.show(aspect_ratio='automatic')
+
+    TESTS:
+
+    Make sure that we get the right number of legend entries as the number of
+    functions varies (:trac:`10514`)::
+
+        sage: p1 = plot(1*x, legend_label='1x')
+        sage: p2 = plot(2*x, legend_label='2x', color='green')
+        sage: p1+p2
+
+    ::
+
+        sage: len(p1.matplotlib().axes[0].legend().texts)
+        1
+        sage: len((p1+p2).matplotlib().axes[0].legend().texts)
+        2
+        sage: q1 = plot([sin(x), tan(x)], legend_label='trig')
+        sage: len((q1).matplotlib().axes[0].legend().texts) # used to raise AttributeError
+        1
+        sage: q1
+
+    ::
+
+    Make sure that we don't get multiple legend labels for plot segments
+    (:trac:`11998`)::
+
+        sage: p1 = plot(1/(x^2-1),(x,-2,2),legend_label="foo",detect_poles=True)
+        sage: len(p1.matplotlib().axes[0].legend().texts)
+        1
+        sage: p1.show(ymin=-10,ymax=10) # should be one legend
+
     """
+
     from sage.plot.misc import setup_for_eval_on_grid
     if funcs == []:
         return Graphics()
@@ -1129,7 +1161,8 @@ def _plot(funcs, xrange, parametric=False,
 
             options_temp = options.copy()
             fillcolor_temp = options_temp.pop('fillcolor', 'automatic')
-            legend_label=options_temp.pop('legend_label', None) # legend_label popped so the label isn't repeated for nothing
+            if i >= 1:
+                legend_label=options_temp.pop('legend_label', None) # legend_label popped so the label isn't repeated for nothing
             if fillcolor_temp == 'automatic':
                 fillcolor_temp = rainbow_colors[i]
 
@@ -1242,6 +1275,7 @@ def _plot(funcs, xrange, parametric=False,
     from sage.plot.all import line, text
 
     detect_poles = options.pop('detect_poles', False)
+    legend_label = options.pop('legend_label', None)
     if exclude is not None or detect_poles != False:
         start_index = 0
         # setup for pole detection
@@ -1285,9 +1319,9 @@ def _plot(funcs, xrange, parametric=False,
                     # all excluded points were considered
                     exclude = None
 
-        G += line(data[start_index:], **options)
+        G += line(data[start_index:], legend_label=legend_label, **options)
     else:
-        G += line(data, **options)
+        G += line(data, legend_label=legend_label, **options)
 
     # Label?
     if label:

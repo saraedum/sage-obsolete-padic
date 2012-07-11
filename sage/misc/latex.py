@@ -172,18 +172,31 @@ def list_function(x):
     return "\\left[" + ", ".join([latex(v) for v in x]) + "\\right]"
 
 
-def tuple_function(x):
+def tuple_function(x, combine_all=False):
     r"""
     Returns the LaTeX code for a tuple ``x``.
 
-    INPUT: ``x`` - a tuple
+    INPUT:
+
+    - ``x`` - a tuple
+
+    - ``combine_all`` - boolean (Default: False) If combine_all is True,
+      then it does not return a tuple and instead returns a string with all
+      the elements separated by a single space. It does not collapse tuples
+      which are inside tuples.
 
     EXAMPLES::
 
         sage: from sage.misc.latex import tuple_function
         sage: tuple_function((1,2,3))
         '\\left(1, 2, 3\\right)'
+        sage: tuple_function((1,2,3), combine_all=True) # trac 11775
+        '1 2 3'
+        sage: tuple_function(((1,2),3), combine_all=True) # trac 11775
+        '\\left(1, 2\\right) 3'
     """
+    if combine_all:
+        return " ".join([latex(v) for v in x])
     return "\\left(" + ", ".join([latex(v) for v in x]) + "\\right)"
 
 
@@ -593,7 +606,7 @@ def latex_extra_preamble():
 
         sage: from sage.misc.latex import latex_extra_preamble
         sage: print latex_extra_preamble()
-        <BLANKLINE>
+        ...
         \newcommand{\ZZ}{\Bold{Z}}
         \newcommand{\NN}{\Bold{N}}
         \newcommand{\RR}{\Bold{R}}
@@ -676,14 +689,34 @@ def _run_latex_(filename, debug=False, density=150, engine=None, png=False, do_i
     if engine is None:
         engine = _Latex_prefs._option["engine"]
 
-    if not engine and not have_latex():
-        print "Error: LaTeX does not seem to be installed.  Download it from"
-        print "ctan.org and try again."
-        return "Error"
-    if engine and not have_pdflatex() and not have_xelatex():
-        print "Error: %s does not seem to be installed.  Download it from" % _Latex_prefs._option["engine_name"]
-        print "ctan.org and try again."
-        return "Error"
+    if not engine or engine == "latex":
+        if not have_latex():
+            print "Error: LaTeX does not seem to be installed.  Download it from"
+            print "ctan.org and try again."
+            return "Error"
+        command = "latex"
+        # 'suffix' is used in the 'convert' command list
+        suffix = "ps"
+        return_suffix = "dvi"
+    elif engine == "pdflatex":
+        if not have_pdflatex():
+            print "Error: PDFLaTeX does not seem to be installed.  Download it from"
+            print "ctan.org and try again."
+            return "Error"
+        command = "pdflatex"
+        suffix = "pdf"
+        return_suffix = "pdf"
+    elif engine == "xelatex":
+        if not have_xelatex():
+            print "Error: XeLaTeX does not seem to be installed.  Download it from"
+            print "ctan.org and try again."
+            return "Error"
+        command = "xelatex"
+        suffix = "pdf"
+        return_suffix = "pdf"
+    else:
+        raise ValueError, "Unsupported LaTeX engine."
+
     # if png output + latex, check to see if dvipng or convert is installed.
     if png:
         if (not engine or engine == "latex") and not (have_dvipng() or have_convert()):
@@ -735,22 +768,6 @@ def _run_latex_(filename, debug=False, density=150, engine=None, png=False, do_i
     #     background = ' &'
     # else:
     #     background = ''
-
-    if not engine or engine == "latex":
-        command = "latex"
-        # 'suffix' is used in the 'convert' command list
-        suffix = "ps"
-        return_suffix = "dvi"
-    elif engine == "pdflatex":
-        command = "pdflatex"
-        suffix = "pdf"
-        return_suffix = "pdf"
-    elif engine == "xelatex":
-        command = "xelatex"
-        suffix = "pdf"
-        return_suffix = "pdf"
-    else:
-        raise ValueError, "Unsupported LaTeX engine."
 
     # Define the commands to be used:
     lt = ['sage-native-execute', command, r'\nonstopmode', r'\input{' + filename + '.tex}']
@@ -886,13 +903,18 @@ class Latex:
         self.__engine = engine
         self.__density = density
 
-    def __call__(self, x):
+    def __call__(self, x, combine_all=False):
         r"""
         Return a :class:`LatexExpr` built out of the argument ``x``.
 
         INPUT:
 
         - ``x`` - a Sage object
+
+        - ``combine_all`` - boolean (Default: False) If combine_all is True
+          and the input is a tuple, then it does not return a tuple and
+          instead returns a string with all the elements separated by
+          a single space.
 
         OUTPUT: a LatexExpr built from ``x``
 
@@ -904,11 +926,15 @@ class Latex:
             \mathrm{False}
             sage: print latex([x,2])
             \left[x, 2\right]
+            sage: latex((x,2), combine_all=True) # trac 11775
+            x 2
         """
         if has_latex_attr(x):
             return LatexExpr(x._latex_())
         try:
             f = latex_table[type(x)]
+            if type(x) == tuple:
+                return LatexExpr(f(x, combine_all=combine_all))
             return LatexExpr(f(x))
         except KeyError:
             return LatexExpr(str_function(str(x)))
@@ -1758,13 +1784,18 @@ class JSMath:
         <html><div class="math">\newcommand{\Bold}[1]{\mathbf{#1}}\Bold{Z}</div></html>
     """
 
-    def __call__(self, x):
+    def __call__(self, x, combine_all=False):
         r"""
         Render LaTeX input using JSMath.  This returns a :class:`JSMathExpr`.
 
         INPUT:
 
         - ``x`` - a Sage object
+
+        - ``combine_all`` - boolean (Default: False): If combine_all is
+          True and the input is a tuple, then it does not return a tuple
+          and instead returns a string with all the elements separated by
+          a single space.
 
         OUTPUT: a JSMathExpr
 
@@ -1776,9 +1807,10 @@ class JSMath:
             sage: str(JSMath().eval(ZZ[x], mode='display')) == str(JSMath()(ZZ[x]))
             True
         """
-        return self.eval(x)
+        return self.eval(x, combine_all=combine_all)
 
-    def eval(self, x, globals=None, locals=None, mode='display'):
+    def eval(self, x, globals=None, locals=None, mode='display',
+            combine_all=False):
         r"""
         Render LaTeX input using JSMath.  This returns a :class:`JSMathExpr`.
 
@@ -1786,13 +1818,18 @@ class JSMath:
 
         - ``x`` - a Sage object
 
-        -  ``globals`` -- a globals dictionary
+        -  ``globals`` - a globals dictionary
 
         -  ``locals`` - extra local variables used when
            evaluating Sage code in ``x``.
 
         -  ``mode`` - string (optional, default 'display): 'display'
            for displaymath or 'inline' for inline math
+
+        - ``combine_all`` - boolean (Default: False): If combine_all is
+          True and the input is a tuple, then it does not return a tuple
+          and instead returns a string with all the elements separated by
+          a single space.
 
         OUTPUT: a JSMathExpr
 
@@ -1805,9 +1842,11 @@ class JSMath:
             <html><span class="math">\newcommand{\Bold}[1]{\mathbf{#1}}3</span></html>
             sage: JSMath().eval(type(3), mode='inline')
             <html>...\verb|&lt;type|\phantom{x}\verb|'sage.rings.integer.Integer'&gt;|</span></html>
+            sage: JSMath().eval((1,3), mode='display', combine_all=True)
+            <html><div class="math">\newcommand{\Bold}[1]{\mathbf{#1}}1 3</div></html>
         """
         # Get a regular LaTeX representation of x...
-        x = latex(x)
+        x = latex(x, combine_all=combine_all)
         # ... and make it suitable for jsMath, which has issues with < and >.
         x = x.replace('<', '&lt;').replace('>', '&gt;')
         # In jsMath:
@@ -1885,7 +1924,9 @@ def jsmath(x, mode='display'):
         x = str(x)
     return html(delimiter + x + delimiter)
 
-def view(objects, title='SAGE', debug=False, sep='', tiny=False, pdflatex=None, engine=None, viewer = None, tightpage = None, mode='inline', **kwds):
+def view(objects, title='SAGE', debug=False, sep='', tiny=False,
+        pdflatex=None, engine=None, viewer = None, tightpage = None,
+        mode='inline', combine_all=False, **kwds):
     r"""nodetex
     Compute a latex representation of each object in objects, compile,
     and display typeset. If used from the command line, this requires
@@ -1911,14 +1952,18 @@ def view(objects, title='SAGE', debug=False, sep='', tiny=False, pdflatex=None, 
 
     -  ``engine`` - 'latex', 'pdflatex', or 'xelatex'
 
-    -  ``viewer`` -- string or None (default: None): specify a viewer to
+    -  ``viewer`` - string or None (default: None): specify a viewer to
        use; currently the only options are None and 'pdf'.
 
     -  ``tightpage`` - bool (default: False): use the LaTeX package
        'preview' with the 'tightpage' option.
 
-    - ``mode`` -- string (default: 'inline'): 'display' for
+    - ``mode`` - string (default: 'inline'): 'display' for
       displaymath or 'inline' for inline math
+
+    - ``combine_all`` - bool (default: False): If combine_all is True and
+      the input is a tuple, then it does not return a tuple and instead
+      returns a string with all the elements separated by a single space.
 
 
     OUTPUT: Display typeset objects.
@@ -1985,6 +2030,8 @@ def view(objects, title='SAGE', debug=False, sep='', tiny=False, pdflatex=None, 
         <html><span class="math">\newcommand{\Bold}[1]{\mathbf{#1}}3</span></html>
         sage: view(3, mode='display')
         <html><div class="math">\newcommand{\Bold}[1]{\mathbf{#1}}3</div></html>
+        sage: view((x,2), combine_all=True) # trac 11775
+        <html><span class="math">\newcommand{\Bold}[1]{\mathbf{#1}}x 2</span></html>
         sage: sage.misc.latex.EMBEDDED_MODE = False
 
     TESTS::
@@ -1997,6 +2044,18 @@ def view(objects, title='SAGE', debug=False, sep='', tiny=False, pdflatex=None, 
         sage: _run_latex_(file, engine="pdflatex") # optional - latex
         'pdf'
 
+        sage: latex.extra_preamble('') # reset the preamble
+
+        sage: view(4, engine="garbage")
+        Traceback (most recent call last):
+        ...
+        ValueError: Unsupported LaTeX engine.
+        sage: sage.misc.latex.EMBEDDED_MODE = True
+        sage: view(4, engine="garbage", viewer="pdf")
+        Traceback (most recent call last):
+        ...
+        ValueError: Unsupported LaTeX engine.
+
     """
     if tightpage == True:
         latex_options = {'extra_preamble':'\\usepackage[tightpage,active]{preview}\\PreviewEnvironment{page}',
@@ -2004,6 +2063,10 @@ def view(objects, title='SAGE', debug=False, sep='', tiny=False, pdflatex=None, 
     else:
         latex_options = {}
     s = _latex_file_(objects, title=title, sep=sep, tiny=tiny, debug=debug, **latex_options)
+    if engine is None:
+        engine = _Latex_prefs._option["engine"]
+    if pdflatex or (viewer == "pdf" and engine == "latex"):
+        engine = "pdflatex"
     # notebook
     if EMBEDDED_MODE and viewer is None:
         jsMath_okay = True
@@ -2012,13 +2075,9 @@ def view(objects, title='SAGE', debug=False, sep='', tiny=False, pdflatex=None, 
                 jsMath_okay = False
             if not jsMath_okay:
                 break
-        if jsMath_okay:
-            print JSMath().eval(objects, mode=mode)  # put comma at end of line?
+        if jsMath_okay:  # put comma at end of line in print below?
+            print JSMath().eval(objects, mode=mode, combine_all=combine_all)
         else:
-            if pdflatex is True:
-                engine = "pdflatex"
-            else:
-                engine = _Latex_prefs._option["engine"]
             base_dir = os.path.abspath("")
             png_file = graphics_filename(ext='png')
             png_link = "cell://" + png_file
@@ -2027,12 +2086,6 @@ def view(objects, title='SAGE', debug=False, sep='', tiny=False, pdflatex=None, 
             print '<html><img src="%s"></html>'%png_link  # put comma at end of line?
         return
     # command line or notebook with viewer
-    if pdflatex:
-        engine = "pdflatex"
-    else:
-        engine = _Latex_prefs._option["engine"]
-        if viewer == "pdf" and engine == "latex":
-            engine = "pdflatex"
     tmp = tmp_dir('sage_viewer')
     tex_file = os.path.join(tmp, "sage.tex")
     open(tex_file,'w').write(s)
@@ -2240,9 +2293,9 @@ def print_or_typeset(object):
     else:
         print(object)
 
-def pretty_print (object):
+def pretty_print (*args):
     r"""
-    Try to pretty print an object in an intelligent way.  For graphics
+    Try to pretty print the arguments in an intelligent way.  For graphics
     objects, this returns their default representation.  For other
     objects, in the notebook, this calls the :func:`view` command,
     while from the command line, this produces an html string suitable
@@ -2250,7 +2303,8 @@ def pretty_print (object):
 
     INPUT:
 
-    - ``object`` -- a Sage object
+    - ``objects`` - The input can be any Sage object, a list or tuple of
+      Sage objects, or Sage objects passed in as separate arguments.
 
     This function is used in the notebook when the "Typeset" button is
     checked.
@@ -2259,28 +2313,42 @@ def pretty_print (object):
 
         sage: pretty_print(ZZ)  # indirect doctest
         <html><span class="math">\newcommand{\Bold}[1]{\mathbf{#1}}\Bold{Z}</span></html>
+        sage: pretty_print("Integers = ", ZZ) # trac 11775
+        <html><span class="math">\newcommand{\Bold}[1]{\mathbf{#1}}\verb|Integers|\phantom{x}\verb|=| \Bold{Z}</span></html>
 
     To typeset LaTeX code as-is, use :class:`LatexExpr`::
 
         sage: pretty_print(LatexExpr(r"\frac{x^2 + 1}{x - 2}"))
         <html><span class="math">\newcommand{\Bold}[1]{\mathbf{#1}}\frac{x^2 + 1}{x - 2}</span></html>
     """
-    if object is None:
-        return
-    import __builtin__
-    __builtin__._=object
+    # view s if it is not empty. Used twice.
+    def _show_s(s):
+        if s != []:
+            if EMBEDDED_MODE:
+                view(tuple(s), combine_all=True)
+            else:
+                print JSMath().eval(tuple(s), mode='inline',
+                        combine_all=True)
 
-    from sage.plot.all import Graphics
-    from sage.plot.plot3d.base import Graphics3d
-    if isinstance(object, (Graphics, Graphics3d)):
-        print repr(object)
-        return
-    else:
-        if EMBEDDED_MODE:
-            view(object)
+    s = []
+    for object in args:
+        if object is None:
+            continue
+        import __builtin__
+        __builtin__._=object
+
+        from sage.plot.plot import Graphics
+        from sage.plot.plot3d.base import Graphics3d
+        if isinstance(object, (Graphics, Graphics3d)):
+            _show_s(s)
+            s = []
+            print repr(object)
+
         else:
-            print JSMath().eval(object, mode='inline')
-        return
+            s.append(object)
+
+    _show_s(s)
+    return
 
 def pretty_print_default(enable=True):
     r"""

@@ -128,6 +128,31 @@ sum command, which also uses Maxima in the background::
     sage: sum(binomial(m,k), k, 0, m)
     2^m
 
+Symbolic matrices can be used as well in various ways,
+including exponentiation::
+
+    sage: M = matrix([[x,x^2],[1/x,x]])
+    sage: M^2
+    [x^2 + x   2*x^3]
+    [      2 x^2 + x]
+    sage: e^M
+    [          1/2*(e^(2*sqrt(x)) + 1)*e^(x - sqrt(x)) 1/2*(x*e^(2*sqrt(x)) - x)*sqrt(x)*e^(x - sqrt(x))]
+    [  1/2*(e^(2*sqrt(x)) - 1)*e^(x - sqrt(x))/x^(3/2)           1/2*(e^(2*sqrt(x)) + 1)*e^(x - sqrt(x))]
+
+And complex exponentiation works now::
+
+    sage: M = i*matrix([[pi]])
+    sage: e^M
+    [-1]
+    sage: M = i*matrix([[pi,0],[0,2*pi]])
+    sage: e^M
+    [-1  0]
+    [ 0  1]
+    sage: M = matrix([[0,pi],[-pi,0]])
+    sage: e^M
+    [-1  0]
+    [ 0 -1]
+
 Substitution works similarly. We can substitute with a python
 dict::
 
@@ -339,7 +364,7 @@ Doubly ensure that Trac #7479 is working::
 
     sage: f(x)=x
     sage: integrate(f,x,0,1)
-    x |--> 1/2
+    1/2
 
 Check that the problem with Taylor expansions of the gamma function
 (Trac #9217) is fixed::
@@ -353,7 +378,7 @@ Ensure that ticket #8582 is fixed::
 
     sage: k = var("k")
     sage: sum(1/(1+k^2), k, -oo, oo)
-    1/2*I*psi(-I) - 1/2*I*psi(I) + 1/2*I*psi(-I + 1) - 1/2*I*psi(I + 1)
+    -1/2*I*psi(I + 1) - 1/2*I*psi(I) + 1/2*I*psi(-I) + 1/2*I*psi(-I + 1)
 
 Ensure that ticket #8624 is fixed::
 
@@ -533,13 +558,10 @@ def symbolic_sum(expression, v, a, b, algorithm='maxima'):
 
     .. note::
 
-       #. Sage can currently only understand a subset of the output of Maxima,
-
-          Maple and Mathematica, so even if the chosen backend can perform
-
-          the summation the result might not be convertable into a Sage
-
-          expression.
+       Sage can currently only understand a subset of the output of Maxima,
+       Maple and Mathematica, so even if the chosen backend can perform
+       the summation the result might not be convertable into a Sage
+       expression.
     """
     if not is_SymbolicVariable(v):
         if isinstance(v, str):
@@ -1671,6 +1693,19 @@ def symbolic_expression_from_maxima_string(x, equals_sub=False, maxima=maxima):
         \overline{x}
         sage: latex(t._maxima_()._sage_())
         \overline{x}
+
+    Check that we can understand maxima's not-equals (:trac:`8969`)::
+    
+        sage: from sage.calculus.calculus import symbolic_expression_from_maxima_string as sefms
+        sage: sefms("x != 3") == SR(x != 3)
+        True
+        sage: sefms("x # 3") == SR(x != 3) 
+        True
+        sage: solve([x != 5], x)
+        [[x - 5 != 0]]
+        sage: solve([2*x==3, x != 5], x)
+        [[x == (3/2), (-7/2) != 0]]
+    
     """
     syms = sage.symbolic.pynac.symbol_table.get('maxima', {}).copy()
 
@@ -1711,6 +1746,8 @@ def symbolic_expression_from_maxima_string(x, equals_sub=False, maxima=maxima):
 
     if equals_sub:
         s = s.replace('=','==')
+        # unfortunately, this will turn != into !==, which we correct
+        s = s.replace("!==", "!=")
 
     #replace %union from to_poly_solve with a list
     if s[0:5]=='union':

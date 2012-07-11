@@ -1437,12 +1437,21 @@ class Graphics(SageObject):
         Via matplotlib, Sage allows setting of custom ticks.  See above
         for more details.
 
-        ::
+        Here the labels are not so useful::
 
-            sage: plot(sin(pi*x), (x, -8, 8)) # Labels not so helpful
-            sage: plot(sin(pi*x), (x, -8, 8), ticks=2) # Multiples of 2
-            sage: plot(sin(pi*x), (x, -8, 8), ticks=[[-7,-3,0,3,7],[-1/2,0,1/2]]) # Your choices
-            sage: plot(sin(pi*x), (x, -8, 8), ticks=[[],[]]) # No ticks at all!
+            sage: plot(sin(pi*x), (x, -8, 8))
+
+        Now put ticks at multiples of 2::
+
+            sage: plot(sin(pi*x), (x, -8, 8), ticks=2)
+
+        Or just choose where you want the ticks::
+
+            sage: plot(sin(pi*x), (x, -8, 8), ticks=[[-7,-3,0,3,7],[-1/2,0,1/2]])
+
+        Or no ticks at all::
+
+            sage: plot(sin(pi*x), (x, -8, 8), ticks=[[],[]])
 
         This can be very helpful in showing certain features of plots. ::
 
@@ -1662,13 +1671,22 @@ class Graphics(SageObject):
 
         We verify that :trac:`10291` is fixed::
 
-          sage: p = plot(sin(x), (x, -2*pi, 2*pi))
-          sage: figure = p.matplotlib()
-          sage: axes_range = p.get_axes_range()
-          sage: figure = p.matplotlib()
-          sage: axes_range2 = p.get_axes_range()
-          sage: axes_range == axes_range2
-          True
+            sage: p = plot(sin(x), (x, -2*pi, 2*pi))
+            sage: figure = p.matplotlib()
+            sage: axes_range = p.get_axes_range()
+            sage: figure = p.matplotlib()
+            sage: axes_range2 = p.get_axes_range()
+            sage: axes_range == axes_range2
+            True
+
+        We verify that legend options are properly handled (:trac:`12960`).
+        First, we test with no options, and next with an incomplete set of
+        options.::
+
+            sage: p = plot(x, legend_label='aha')
+            sage: p.legend(True)
+            sage: pm = p.matplotlib()
+            sage: pm = p.matplotlib(legend_options={'font_size':'small'})
         """
         if not isinstance(ticks, (list, tuple)):
             ticks = (ticks, None)
@@ -1738,9 +1756,14 @@ class Graphics(SageObject):
             lopts = dict()
             lopts.update(legend_options)
             lopts.update(self.__legend_opts)
-            prop = FontProperties(family=lopts.pop('font_family'), weight=lopts.pop('font_weight'), \
-                    size=lopts.pop('font_size'), style=lopts.pop('font_style'), variant=lopts.pop('font_variant'))
-            color = lopts.pop('back_color')
+            prop = FontProperties(
+                    family  = lopts.pop('font_family', 'sans-serif'),
+                    size    = lopts.pop('font_size', 'medium'),
+                    style   = lopts.pop('font_style', 'normal'),
+                    weight  = lopts.pop('font_weight', 'medium'),
+                    variant = lopts.pop('font_variant', 'normal')
+                   )
+            color = lopts.pop('back_color', (0.9, 0.9, 0.9))
             leg = subplot.legend(prop=prop, **lopts)
             if leg is None:
                 sage.misc.misc.warn("legend requested but no items are labeled")

@@ -1,5 +1,5 @@
 """
-Field of Arbitrary Precision Real Intervals
+Arbitrary Precision Real Intervals
 
 AUTHORS:
 
@@ -230,12 +230,14 @@ cdef class RealIntervalFieldElement(sage.structure.element.RingElement)
 printing_style = 'question'
 printing_error_digits = 0
 
+cdef double LOG_TEN_TWO_PLUS_EPSILON = 3.321928094887363 # a small overestimate of log(10,2)
+
 #*****************************************************************************
 #
 #       Real Field
 #
 #*****************************************************************************
-# The real field is in Pyrex, so mpfi elements will have access to
+# The real field is in Cython, so mpfi elements will have access to
 # their parent via direct C calls, which will be faster.
 
 RealIntervalField_cache = {}
@@ -268,7 +270,8 @@ def RealIntervalField(prec=53, sci_not=False):
         sage: RealIntervalField(200) is RealIntervalField(200)
         True
 
-    See the documentation for :class:`RealIntervalField_class` for many more
+    See the documentation for :class:`RealIntervalField_class
+    <sage.rings.real_mpfi.RealIntervalField_class>` for many more
     examples.
     """
     try:
@@ -754,7 +757,7 @@ cdef class RealIntervalField_class(sage.rings.ring.Field):
             sage: RealIntervalField(10).characteristic()
             0
         """
-        return 0
+        return Integer(0)
     
     def name(self):
         return "IntervalRealIntervalField%s"%(self.__prec)
@@ -2122,20 +2125,22 @@ cdef class RealIntervalFieldElement(sage.structure.element.RingElement):
             sage: a.fp_rank_diameter()
             30524
             sage: (RIF(sqrt(2)) - RIF(sqrt(2))).fp_rank_diameter()
-            9671406088542672151117826
-        
+            9671406088542672151117826            # 32-bit
+            41538374868278620559869609387229186  # 64-bit
+
         Just because we have the best possible interval, doesn't mean the
         interval is actually small::
-        
-            sage: a = RIF(pi)^1234567890; a
-            [2.0985787164673874e323228496 .. +infinity]
+
+            sage: a = RIF(pi)^12345678901234567890; a
+            [2.0985787164673874e323228496 .. +infinity]            # 32-bit
+            [5.8756537891115869e1388255822130839282 .. +infinity]  # 64-bit
             sage: a.fp_rank_diameter()
             1
         """
         return self.lower().fp_rank_delta(self.upper())
 
     def is_exact(self):
-        return mpfr_equal_p(&self.value.left, &self.value.right)            
+        return mpfr_equal_p(&self.value.left, &self.value.right)
 
     def magnitude(self):
         """
@@ -4398,13 +4403,31 @@ def RealInterval(s, upper=None, int base=10, int pad=0, min_prec=53):
         1.23456789012345678901234567890123450?
         sage: RealInterval(29308290382930840239842390482, 3^20).str(style='brackets')
         '[3.48678440100000000000000000000e9 .. 2.93082903829308402398423904820e28]'
+
+    TESTS:
+
+    Make sure we've rounded up log(10,2) enough to guarantee
+    sufficient precision (trac #10164).  This is a little tricky
+    because at the time of writing, we don't support intervals long
+    enough to trip the error.  However, at least we can make sure
+    that we either do it correctly or fail noisily::
+
+        sage: ks = 5*10**5, 10**6
+        sage: for k in ks:
+        ...      try:
+        ...          z = RealInterval("1." + "1"*k)
+        ...          assert len(str(z))-4 >= k
+        ...      except TypeError:
+        ...          pass
+
     """
     if not isinstance(s, str):
         s = str(s)
     if base == 10:
-        bits = int(3.32192*len(s))
+        # hard-code the common case
+        bits = int(LOG_TEN_TWO_PLUS_EPSILON*len(s))
     else:
-        bits = int(math.log(base,2)*len(s))
+        bits = int(math.log(base,2)*1.00001*len(s))
     R = RealIntervalField(prec=max(bits+pad, min_prec))
     return R(s, upper, base)
 

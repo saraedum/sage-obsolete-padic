@@ -8,7 +8,6 @@ cdef class Action(Functor):
     cdef S
     cdef bint _is_left
     cdef op
-    cdef underlying_set(self)
     cpdef _call_(self, a, b)
     
     

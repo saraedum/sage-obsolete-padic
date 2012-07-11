@@ -476,7 +476,7 @@ cdef class Integer(sage.structure.element.EuclideanDomainElement):
             8
         """
         
-    def __init__(self, x=None, unsigned int base=0):
+    def __init__(self, x=None, base=0):
         """
         EXAMPLES::
         
@@ -605,6 +605,15 @@ cdef class Integer(sage.structure.element.EuclideanDomainElement):
             Traceback (most recent call last):
             ...
             TypeError: Cannot convert p-adic with negative valuation to an integer
+
+        Test converting a list with a very large base::
+
+            sage: a=ZZ(randint(0,2^128-1))
+            sage: L = a.digits(2^64)
+            sage: a == sum([x * 2^(64*i) for i,x in enumerate(L)])
+            True
+            sage: a == ZZ(L,base=2^64)
+            True
         """
         # TODO: All the code below should somehow be in an external
         # cdef'd function.  Then e.g., if a matrix or vector or
@@ -621,6 +630,7 @@ cdef class Integer(sage.structure.element.EuclideanDomainElement):
         cdef int paritype
         cdef Py_ssize_t j
         cdef object otmp
+        cdef unsigned int ibase
         
         cdef Element lift
         
@@ -685,11 +695,11 @@ cdef class Integer(sage.structure.element.EuclideanDomainElement):
             elif PyString_Check(x) or PY_TYPE_CHECK(x,unicode):
                 if base < 0 or base > 36:
                     raise ValueError, "`base` (=%s) must be between 2 and 36."%base
-                
+                ibase = base
                 xs = x
                 if xs[0] == c'+':
                     xs += 1
-                if mpz_set_str(self.value, xs, base) != 0:
+                if mpz_set_str(self.value, xs, ibase) != 0:
                     raise TypeError, "unable to convert x (=%s) to an integer"%x
 
             elif PyObject_HasAttrString(x, "_integer_"):
@@ -3293,8 +3303,8 @@ cdef class Integer(sage.structure.element.EuclideanDomainElement):
     def factor(self, algorithm='pari', proof=None, limit=None, int_=False,
                      verbose=0):
         """
-        Return the prime factorization of this integer as a list of pairs
-        `(p, e)`, where `p` is prime and `e` is a positive integer.
+        Return the prime factorization of this integer as a
+        formal Factorization object.
         
         INPUT:
         
@@ -3312,10 +3322,35 @@ cdef class Integer(sage.structure.element.EuclideanDomainElement):
            given it must fit in a signed int, and the factorization is done
            using trial division and primes up to limit.
         
+        OUTPUT:
+        
+        -  a Factorization object containing the prime factors and
+           their multiplicities
+
         EXAMPLES::
         
             sage: n = 2^100 - 1; n.factor()
             3 * 5^3 * 11 * 31 * 41 * 101 * 251 * 601 * 1801 * 4051 * 8101 * 268501
+
+        This factorization can be converted into a list of pairs `(p,
+        e)`, where `p` is prime and `e` is a positive integer.  Each
+        pair can also be accessed directly by its index (ordered by
+        increasing size of the prime)::
+        
+            sage: f = 60.factor()
+            sage: list(f)
+            [(2, 2), (3, 1), (5, 1)]
+            sage: f[2]
+            (5, 1)
+        
+        Similarly, the factorization can be converted to a dictionary
+        so the exponent can be extracted for each prime::
+
+            sage: f = (3^6).factor()
+            sage: dict(f)
+            {3: 6}
+            sage: dict(f)[3]
+            6
         
         We use proof=False, which doesn't prove correctness of the primes
         that appear in the factorization::

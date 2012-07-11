@@ -1448,39 +1448,251 @@ cdef class Matrix_double_dense(matrix_dense.Matrix_dense):
 
     right_eigenspaces = eigenspaces_right
 
-    def eigenvalues(self):
+    def eigenvalues(self, algorithm='default', tol=None):
         r"""
-        Returns a list of the eigenvalues (with multiplicity)
-        of this matrix.  The returned eigenvalues are elements of CDF.
+        Returns a list of eigenvalues.
+
+
+        INPUT:
+
+        - ``self`` - a square matrix
+
+        - ``algorithm`` - default: ``'default'``
+
+          - ``'default'`` - applicable to any matrix
+            with double-precision floating point entries.
+            Uses the :meth:`~scipy.linalg.eigvals` method from SciPy.
+
+          - ``'symmetric'`` - converts the matrix into a real matrix
+            (i.e. with entries from :class:`~sage.rings.real_double.RDF`),
+            then applies the algorithm for Hermitian matrices.  This
+            algorithm can be significantly faster than the
+            ``'default'`` algorithm.
+
+          - ``'hermitian'`` - uses the :meth:`~scipy.linalg.eigh` method
+            from SciPy, which applies only to real symmetric or complex
+            Hermitian matrices.  Since Hermitian is defined as a matrix
+            equaling its conjugate-transpose, for a matrix with real
+            entries this property is equivalent to being symmetric.
+            This algorithm can be significantly faster than the
+            ``'default'`` algorithm.
+
+        - ``'tol'`` - default: ``None`` - if set to a value other than
+          ``None`` this is interpreted as a small real number used to aid in
+          grouping eigenvalues that are numerically similar.  See the output
+          description for more information.
+
+        .. WARNING::
+       
+           When using the ``'symmetric'`` or ``'hermitian'`` algorithms,
+           no check is made on the input matrix, and only the entries below,
+           and on, the main diagonal are employed in the computation.
+
+           Methods such as :meth:`is_symmetric` and :meth:`is_hermitian`
+           could be used to verify this beforehand.
+
+        OUTPUT:
+
+        Default output for a square matrix of size $n$ is a list of $n$
+        eigenvalues from the complex double field,
+        :class:`~sage.rings.complex_double.CDF`.  If the ``'symmetric'``
+        or ``'hermitian'`` algorithms are chosen, the returned eigenvalues
+        are from the real double field,
+        :class:`~sage.rings.real_double.RDF`.
+
+        If a tolerance is specified, an attempt is made to group eigenvalues
+        that are numerically similar.  The return is then a list of pairs,
+        where each pair is an eigenvalue followed by its multiplicity.
+        The eigenvalue reported is the mean of the eigenvalues computed,
+        and these eigenvalues are contained in an interval (or disk) whose
+        radius is less than ``5*tol`` for $n < 10,000$ in the worst case.
+
+        More precisely, for an $n\times n$ matrix, the diameter of the
+        interval containing similar eigenvalues could be as large as sum
+        of the reciprocals of the first $n$ integers times ``tol``.
+
+        .. WARNING::
+
+            Use caution when using the  ``tol`` parameter to group
+            eigenvalues.  See the examples below to see how this can go wrong.
 
         EXAMPLES::
 
             sage: m = matrix(RDF, 2, 2, [1,2,3,4])
-            sage: m.eigenvalues()
-            [-0.372281323269, 5.37228132327]
-            sage: parent(m.eigenvalues()[0])
+            sage: ev = m.eigenvalues(); ev
+            [-0.372281323..., 5.37228132...]
+            sage: ev[0].parent()
             Complex Double Field
 
             sage: m = matrix(RDF, 2, 2, [0,1,-1,0])
-            sage: m.eigenvalues()
+            sage: m.eigenvalues(algorithm='default')
             [1.0*I, -1.0*I]
 
             sage: m = matrix(CDF, 2, 2, [I,1,-I,0])
             sage: m.eigenvalues()
-            [-0.624810533844 + 1.30024259022*I, 0.624810533844 - 0.30024259022*I]
+            [-0.624810533... + 1.30024259...*I, 0.624810533... - 0.30024259...*I]
+
+        The adjacency matrix of a graph will be symmetric, and the
+        eigenvalues will be real.  ::
+
+            sage: A = graphs.PetersenGraph().adjacency_matrix()
+            sage: A = A.change_ring(RDF)
+            sage: ev = A.eigenvalues(algorithm='symmetric'); ev
+            [-2.0, -2.0, -2.0, -2.0, 1.0, 1.0, 1.0, 1.0, 1.0, 3.0]
+            sage: ev[0].parent()
+            Real Double Field
+
+        The matrix ``A`` is "random", but the construction of ``B``
+        provides a positive-definite Hermitian matrix.  Note that
+        the eigenvalues of a Hermitian matrix are real, and the
+        eigenvalues of a positive-definite matrix will be positive.  ::
+
+            sage: A = matrix([[ 4*I + 5,  8*I + 1,  7*I + 5, 3*I + 5],
+            ...               [ 7*I - 2, -4*I + 7, -2*I + 4, 8*I + 8],
+            ...               [-2*I + 1,  6*I + 6,  5*I + 5,  -I - 4],
+            ...               [ 5*I + 1,  6*I + 2,    I - 4, -I + 3]])
+            sage: B = (A*A.conjugate_transpose()).change_ring(CDF)
+            sage: ev = B.eigenvalues(algorithm='hermitian'); ev
+            [2.68144025..., 49.5167998..., 274.086188..., 390.71557...]
+            sage: ev[0].parent()
+            Real Double Field
+
+        A tolerance can be given to aid in grouping eigenvalues that
+        are similar numerically.  However, if the parameter is too small
+        it might split too finely.  Too large, and it can go wrong very
+        badly.  Use with care.  ::
+
+            sage: G = graphs.PetersenGraph()
+            sage: G.spectrum()
+            [3, 1, 1, 1, 1, 1, -2, -2, -2, -2]
+
+            sage: A = G.adjacency_matrix().change_ring(RDF)
+            sage: A.eigenvalues(algorithm='symmetric', tol=1.0e-5)
+            [(-2.0, 4), (1.0, 5), (3.0, 1)]
+
+            sage: A.eigenvalues(algorithm='symmetric', tol=2.5)
+            [(-2.0, 4), (1.33333333333, 6)]
+
+        An (extreme) example of properly grouping similar eigenvalues.  ::
+
+            sage: G = graphs.HigmanSimsGraph()
+            sage: A = G.adjacency_matrix().change_ring(RDF)
+            sage: A.eigenvalues(algorithm='symmetric', tol=1.0e-5)
+            [(-8.0, 22), (2.0, 77), (22.0, 1)]
+
+        TESTS:
+
+        Testing bad input.  ::
+
+            sage: A = matrix(CDF, 2, range(4))
+            sage: A.eigenvalues(algorithm='junk')
+            Traceback (most recent call last):
+            ...
+            ValueError: algorithm must be 'default', 'symmetric', or 'hermitian', not junk
+
+            sage: A = matrix(CDF, 2, 3, range(6))
+            sage: A.eigenvalues()
+            Traceback (most recent call last):
+            ...
+            ValueError: matrix must be square, not 2 x 3
+
+            sage: A = matrix(CDF, 2, [1, 2, 3, 4*I])
+            sage: A.eigenvalues(algorithm='symmetric')
+            Traceback (most recent call last):
+            ...
+            TypeError: cannot apply symmetric algorithm to matrix with complex entries
+
+            sage: A = matrix(CDF, 2, 2, range(4))
+            sage: A.eigenvalues(tol='junk')
+            Traceback (most recent call last):
+            ...
+            TypeError: tolerance parameter must be a real number, not junk
+
+            sage: A = matrix(CDF, 2, 2, range(4))
+            sage: A.eigenvalues(tol=-0.01)
+            Traceback (most recent call last):
+            ...
+            ValueError: tolerance parameter must be positive, not -0.01
+
+        A very small matrix.  ::
 
             sage: matrix(CDF,0,0).eigenvalues()
             []
         """
+        import sage.rings.real_double
+        import sage.rings.complex_double
+        import numpy
+        if not algorithm in ['default', 'symmetric', 'hermitian']:
+            msg = "algorithm must be 'default', 'symmetric', or 'hermitian', not {0}"
+            raise ValueError(msg.format(algorithm))
         if not self.is_square():
-            raise ArithmeticError("self must be a square matrix")
+            msg = 'matrix must be square, not {0} x {1}'
+            raise ValueError(msg.format(self.nrows(), self.ncols()))
+        if algorithm == 'symmetric' and self.base_ring() == sage.rings.complex_double.CDF:
+            try:
+                self = self.change_ring(sage.rings.real_double.RDF)  # check side effect
+            except TypeError:
+                raise TypeError('cannot apply symmetric algorithm to matrix with complex entries')
+        if algorithm == 'symmetric':
+            algorithm = 'hermitian'
+        multiplicity = not tol is None
+        if multiplicity:
+            try:
+                tol = float(tol)
+            except (ValueError, TypeError):
+                msg = 'tolerance parameter must be a real number, not {0}'
+                raise TypeError(msg.format(tol))
+            if tol < 0:
+                msg = 'tolerance parameter must be positive, not {0}'
+                raise ValueError(msg.format(tol))
+
         if self._nrows == 0:
             return []
         global scipy
         if scipy is None:
             import scipy
         import scipy.linalg
-        return [sage.rings.complex_double.CDF(x) for x in scipy.linalg.eigvals(self._matrix_numpy)]
+        if self._nrows == 0:
+            return []
+        global scipy
+        if scipy is None:
+            import scipy
+        import scipy.linalg
+        global numpy
+        if numpy is None:
+            import numpy
+        # generic eigenvalues, or real eigenvalues for Hermitian
+        if algorithm == 'default':
+            return_class = sage.rings.complex_double.CDF
+            evalues = scipy.linalg.eigvals(self._matrix_numpy)
+        elif algorithm=='hermitian':
+            return_class = sage.rings.real_double.RDF
+            evalues = scipy.linalg.eigh(self._matrix_numpy, eigvals_only=True)
+        if not multiplicity:
+            return [return_class(e) for e in evalues]
+        else:
+            # pairs in ev_group are
+            #   slot 0: the sum of "equal" eigenvalues, "s"
+            #   slot 1: number of eigenvalues in this sum, "m"
+            #   slot 2: average of these eigenvalues, "avg"
+            # we test if "new" eigenvalues are close to the group average
+            ev_group = []
+            for e in evalues:
+                location = None
+                best_fit = tol
+                for i in range(len(ev_group)):
+                    s, m, avg = ev_group[i]
+                    d = numpy.abs(avg - e)
+                    if d < best_fit:
+                        best_fit = d
+                        location = i
+                if location is None:
+                    ev_group.append([e, 1, e])
+                else:
+                    ev_group[location][0] += e
+                    ev_group[location][1] += 1
+                    ev_group[location][2] = ev_group[location][0]/ev_group[location][1]
+            return [(return_class(avg), m) for _, m, avg in ev_group]
 
     def left_eigenvectors(self):
         r"""
@@ -3192,33 +3404,148 @@ cdef class Matrix_double_dense(matrix_dense.Matrix_dense):
 
     def cholesky(self):
         r"""
-        Return the cholesky factorization of this matrix.  The input
-        matrix must be symmetric and positive definite or an exception
-        will be raised.
+        Returns the Cholesky factorization of a matrix that
+        is real symmetric, or complex Hermitian.
 
-        .. WARNING::
+        INPUT:
 
-            This is deprecated!  Use :func:`~sage.matrix.matrix2.Matrix.cholesky_decomposition` instead.
+        Any square matrix with entries from ``RDF`` that is symmetric, or
+        with entries from ``CDF`` that is Hermitian.  The matrix must
+        be positive definite for the Cholesky decomposition to exist.
 
-        EXAMPLES::
+        OUTPUT:
 
-            sage: M = MatrixSpace(RDF,5)
-            sage: r = matrix(RDF,[[   0.,    0.,    0.,    0.,    1.],[   1.,    1.,    1.,    1.,    1.],[  16.,    8.,    4.,    2.,    1.],[  81.,   27.,    9.,    3.,    1.],[ 256.,   64.,   16.,    4.,    1.]])
+        For a matrix `A` the routine returns a lower triangular
+        matrix `L` such that,
 
-            sage: m = r*M.identity_matrix()*r.transpose()
-            sage: L = m.cholesky()
-            doctest... DeprecationWarning: cholesky is deprecated for matrices over RDF; use cholesky_decomposition instead.
-            sage: L*L.transpose()
+        .. math::
+
+            A = LL^\ast
+
+        where `L^\ast` is the conjugate-transpose in the complex case,
+        and just the transpose in the real case.  If the matrix fails
+        to be positive definite (perhaps because it is not symmetric
+        or Hermitian), then this function raises a ``ValueError``.
+        
+        EXAMPLES:
+
+        A real matrix that is symmetric and positive definite.  ::
+
+            sage: M = matrix(RDF,[[ 1,  1,    1,     1,     1],
+            ...                   [ 1,  5,   31,   121,   341],
+            ...                   [ 1, 31,  341,  1555,  4681],
+            ...                   [ 1,121, 1555,  7381, 22621],
+            ...                   [ 1,341, 4681, 22621, 69905]])
+            sage: M.is_symmetric()
+            True
+            sage: L = M.cholesky()
+            sage: L.round(6).zero_at(10^-10)
+            [   1.0    0.0         0.0        0.0     0.0]
+            [   1.0    2.0         0.0        0.0     0.0]
+            [   1.0   15.0   10.723805        0.0     0.0]
+            [   1.0   60.0   60.985814   7.792973     0.0]
+            [   1.0  170.0  198.623524  39.366567  1.7231]
+            sage: (L*L.transpose()).round(6).zero_at(10^-10)
             [ 1.0     1.0     1.0     1.0     1.0]
             [ 1.0     5.0    31.0   121.0   341.0]
             [ 1.0    31.0   341.0  1555.0  4681.0]
             [ 1.0   121.0  1555.0  7381.0 22621.0]
             [ 1.0   341.0  4681.0 22621.0 69905.0]
+
+        A complex matrix that is Hermitian and positive definite.  ::
+
+            sage: A = matrix(CDF, [[        23,  17*I + 3,  24*I + 25,     21*I],
+            ...                    [ -17*I + 3,        38, -69*I + 89, 7*I + 15],
+            ...                    [-24*I + 25, 69*I + 89,        976, 24*I + 6],
+            ...                    [     -21*I, -7*I + 15,  -24*I + 6,       28]])
+            sage: A.is_hermitian()
+            True
+            sage: L = A.cholesky()
+            sage: L.round(6).zero_at(10^-10)
+            [               4.795832                     0.0                    0.0       0.0]
+            [  0.625543 - 3.544745*I                5.004346                    0.0       0.0]
+            [   5.21286 - 5.004346*I 13.588189 + 10.721116*I              24.984023       0.0]
+            [            -4.378803*I  -0.104257 - 0.851434*I  -0.21486 + 0.371348*I  2.811799]
+            sage: (L*L.conjugate_transpose()).round(6).zero_at(10^-10)
+            [         23.0  3.0 + 17.0*I 25.0 + 24.0*I        21.0*I]
+            [ 3.0 - 17.0*I          38.0 89.0 - 69.0*I  15.0 + 7.0*I]
+            [25.0 - 24.0*I 89.0 + 69.0*I         976.0  6.0 + 24.0*I]
+            [      -21.0*I  15.0 - 7.0*I  6.0 - 24.0*I          28.0]
+            
+        This routine will recognize when the input matrix is not
+        positive definite.  The negative eigenvalues are an
+        equivalent indicator.  (Eigenvalues of a Hermitian matrix
+        must be real, so there is no loss in ignoring the imprecise
+        imaginary parts).  ::
+            
+            sage: A = matrix(RDF, [[ 3,  -6,   9,   6,  -9],
+            ...                    [-6,  11, -16, -11,  17],
+            ...                    [ 9, -16,  28,  16, -40],
+            ...                    [ 6, -11,  16,   9, -19],
+            ...                    [-9,  17, -40, -19,  68]])
+            sage: A.is_symmetric()
+            True
+            sage: A.eigenvalues()
+            [108.07..., 13.02..., -0.02..., -0.70..., -1.37...]
+            sage: A.cholesky()
+            Traceback (most recent call last):
+            ...
+            ValueError: matrix is not positive definite
+            
+            sage: B = matrix(CDF, [[      2, 4 - 2*I, 2 + 2*I],
+            ...                    [4 + 2*I,       8,    10*I],
+            ...                    [2 - 2*I,   -10*I,      -3]])
+            sage: B.is_hermitian()
+            True
+            sage: [ev.real() for ev in B.eigenvalues()]
+            [15.88..., 0.08..., -8.97...]
+            sage: B.cholesky()
+            Traceback (most recent call last):
+            ...
+            ValueError: matrix is not positive definite
+
+        TESTS:
+
+        A trivial case. ::
+
+            sage: A = matrix(RDF, 0, [])
+            sage: A.cholesky()
+            []
+
+        The Cholesky factorization is only defined for square matrices.  ::
+
+            sage: A = matrix(RDF, 4, 5, range(20))
+            sage: A.cholesky()
+            Traceback (most recent call last):
+            ...
+            ValueError: Cholesky decomposition requires a square matrix, not a 4 x 5 matrix
         """
-        # deprecation added 2009-05 
-        from sage.misc.misc import deprecation 
-        deprecation("cholesky is deprecated for matrices over RDF; use cholesky_decomposition instead.") 
-        return self.cholesky_decomposition()
+        from sage.rings.real_double import RDF
+        from sage.rings.complex_double import CDF
+
+        cdef Matrix_double_dense L
+
+        if not self.is_square():
+            msg = "Cholesky decomposition requires a square matrix, not a {0} x {1} matrix"
+            raise ValueError(msg.format(self.nrows(), self.ncols()))
+        if self._nrows == 0:   # special case
+            return self.__copy__()
+
+        L = self.fetch('cholesky')
+        if L is None:
+            L = self._new()
+            global scipy
+            if scipy is None:
+                import scipy
+            import scipy.linalg
+            from numpy.linalg import LinAlgError
+            try:
+                L._matrix_numpy = scipy.linalg.cholesky(self._matrix_numpy, lower=1)
+            except LinAlgError:
+                raise ValueError("matrix is not positive definite")
+            L.set_immutable()
+            self.cache('cholesky', L)
+        return L
 
     cdef Vector _vector_times_matrix_(self,Vector v):
         if self._nrows == 0 or self._ncols == 0:
@@ -3229,7 +3556,7 @@ cdef class Matrix_double_dense(matrix_dense.Matrix_dense):
 
         v_numpy = numpy.array([self._python_dtype(i) for i in v])
         
-        M=self._row_ambient_module()
+        M = self._row_ambient_module()
         ans = numpy.dot(v_numpy,self._matrix_numpy)
         return M(ans)
 
@@ -3243,7 +3570,7 @@ cdef class Matrix_double_dense(matrix_dense.Matrix_dense):
 
         v_numpy = numpy.array([self._python_dtype(i) for i in v], dtype=self._numpy_dtype)
         
-        M=self._column_ambient_module()
+        M = self._column_ambient_module()
         ans = numpy.dot(self._matrix_numpy, v_numpy)
         return M(ans)
 

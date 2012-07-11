@@ -50,7 +50,7 @@ from sage.modules.free_module_element import vector
 from sage.libs.all import pari_gen, pari
 from sage.libs.pari.gen import PariError
 from sage.structure.element cimport Element, generic_power_c
-from sage.structure.element import canonical_coercion
+from sage.structure.element import canonical_coercion, parent
 
 QQ = sage.rings.rational_field.QQ
 ZZ = sage.rings.integer_ring.ZZ
@@ -1304,17 +1304,29 @@ cdef class NumberFieldElement(FieldElement):
             sage: RR(a)
             Traceback (most recent call last):
             ...
-            TypeError: cannot convert a to real number
-
+            TypeError: Unable to coerce a to a rational
             sage: (a^2)._mpfr_(RR)
             -1.00000000000000
+        
+        Verify that :trac:`#13005` has been fixed::
+
+            sage: K.<a> = NumberField(x^2-5)
+            sage: RR(K(1))
+            1.00000000000000
+            sage: RR(a)
+            Traceback (most recent call last):
+            ...
+            TypeError: Unable to coerce a to a rational
+            sage: K.<a> = NumberField(x^3+2, embedding=-1.25)
+            sage: RR(a)
+            -1.25992104989487
+            sage: RealField(prec=100)(a)
+            -1.2599210498948731647672106073
         """
-        C = R.complex_field()
-        tres = C(self)
-        try:
-            return R(tres)
-        except TypeError:
-            raise TypeError, "cannot convert %s to real number"%(self)
+        if self.parent().coerce_embedding() is None:
+            return R(self.base_ring()(self))
+        else:
+            return R(R.complex_field()(self))
 
     def __float__(self):
         """
@@ -1326,16 +1338,22 @@ cdef class NumberFieldElement(FieldElement):
             sage: float(a)
             Traceback (most recent call last):
             ...
-            TypeError: cannot convert a to real number
-
+            TypeError: Unable to coerce a to a rational
             sage: (a^2).__float__()
             -1.0
+            sage: k.<a> = NumberField(x^2 + 1,embedding=I)
+            sage: float(a)
+            Traceback (most recent call last):
+            ...
+            TypeError: unable to coerce to a real number
         """
-        tres = CC(self)
-        try:
-            return float(tres)
-        except TypeError:
-            raise TypeError, "cannot convert %s to real number"%(self)
+        if self.parent().coerce_embedding() is None:
+            return float(self.base_ring()(self))
+        else:
+            c = complex(self)
+            if c.imag == 0:
+                return c.real
+            raise TypeError('unable to coerce to a real number')
 
     def _complex_double_(self, CDF):
         """
@@ -1625,16 +1643,26 @@ cdef class NumberFieldElement(FieldElement):
             cbase, cexp = canonical_coercion(base, exp)
             if not isinstance(cbase, NumberFieldElement):
                 return cbase ** cexp
-            from sage.symbolic.power_helper import try_symbolic_power
+            # Return a symbolic expression.
+            # We use the hold=True keyword argument to prevent the
+            # symbolics library from trying to simplify this expression
+            # again. This would lead to infinite loops otherwise.
+            from sage.symbolic.ring import SR
             try:
-                return try_symbolic_power(base, exp)
-            except ValueError:
-                if isinstance(exp, Rational):
-                    # pynac can handle this case
-                    return None
-                else:
-                    raise
-
+                res = QQ(base)**exp
+            except TypeError:
+                pass
+            else:
+                if res.parent() is not SR:
+                    return parent(cbase)(res)
+                return res
+            sbase = SR(base)
+            if sbase.operator() is operator.pow:
+                nbase, pexp = sbase.operands()
+                return nbase.power(pexp * exp, hold=True)
+            else:
+                return sbase.power(exp, hold=True)
+            
     cdef void _reduce_c_(self):
         """
         Pull out common factors from the numerator and denominator!

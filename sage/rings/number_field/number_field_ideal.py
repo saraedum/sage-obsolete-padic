@@ -233,6 +233,12 @@ class NumberFieldIdeal(Ideal_generic):
             sage: K.<a> = NumberField(x^4 + 3*x^2 - 17)
             sage: K.ideal([17*a,17,17,17*a])._latex_()
             '\\left(17\\right)'
+        
+        TESTS:
+        
+        Reset SMALL_DISC for continued testing::
+        
+            sage: sage.rings.number_field.number_field_ideal.SMALL_DISC = 1000000
         """
         return '\\left(%s\\right)'%(", ".join(map(latex.latex, self._gens_repr())))
 
@@ -1043,7 +1049,7 @@ class NumberFieldIdeal(Ideal_generic):
         OUTPUT:
 
         None.  This function simply caches the results: it sets
-        ``_ideal_class_log`` (see :meth:`_ideal_class_log`),
+        ``_ideal_class_log`` (see :meth:`ideal_class_log`),
         ``_is_principal`` (see :meth:`is_principal`) and
         ``_reduced_generators``.
         """
@@ -1155,7 +1161,7 @@ class NumberFieldIdeal(Ideal_generic):
 
     def S_ideal_class_log(self, S):
         r"""
-        S-class group version of :meth:`_ideal_class_log`.
+        S-class group version of :meth:`ideal_class_log`.
 
         EXAMPLES::
 

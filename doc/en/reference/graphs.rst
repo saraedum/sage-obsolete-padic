@@ -10,7 +10,6 @@ Graph objects and methods
 
    sage/graphs/generic_graph
    sage/graphs/graph
-   sage/graphs/graph_plot
    sage/graphs/digraph
    sage/graphs/bipartite_graph
 
@@ -48,9 +47,14 @@ Libraries of algorithms
 
    sage/graphs/graph_coloring
    sage/graphs/cliquer
+   sage/graphs/comparability
    sage/graphs/spanning_tree
    sage/graphs/pq_trees
+   sage/graphs/trees
    sage/graphs/matchpoly
+   sage/graphs/linearextensions
+   sage/graphs/schnyder
+   sage/graphs/graph_plot
    sage/graphs/graph_decompositions/vertex_separation
    sage/graphs/graph_decompositions/rankwidth
    sage/graphs/modular_decomposition/modular_decomposition

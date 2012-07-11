@@ -8435,8 +8435,11 @@ cdef class Matrix(matrix1.Matrix):
         In the case of exact rings, this method does not compute any 
         generalized form of the Jordan normal form, but is only able to 
         compute the result if the characteristic polynomial of the matrix 
-        splits over the specific base ring.
-        
+        splits over the specific base ring.  
+
+        Note that the base ring must be a field or a ring with an implemented
+        fraction field.
+               
         EXAMPLES::
         
             sage: a = matrix(ZZ,4,[1, 0, 0, 0, 0, 1, 0, 0, 1, \
@@ -8464,7 +8467,7 @@ cdef class Matrix(matrix1.Matrix):
             sage: b.jordan_form()
             Traceback (most recent call last):
             ...
-            RuntimeError: Some eigenvalue does not exist in Integer Ring.
+            RuntimeError: Some eigenvalue does not exist in Rational Field.
             sage: b.jordan_form(RealField(15))
             Traceback (most recent call last):
             ...
@@ -8658,6 +8661,41 @@ cdef class Matrix(matrix1.Matrix):
             True
             sage: T.rank()
             10
+
+        Verify that we smoothly move to QQ from ZZ (:trac:`12693`), i.e.
+        we work in the vector space over the field::
+
+            sage: M = matrix(((2,2,2),(0,0,0),(-2,-2,-2)))
+            sage: J, P = M.jordan_form(transformation=True)
+            sage: J; P
+            [0 1|0]
+            [0 0|0]
+            [---+-]
+            [0 0|0]
+            [ 2  1  0]
+            [ 0  0  1]
+            [-2  0 -1]
+            sage: J - ~P * M * P
+            [0 0 0]
+            [0 0 0]
+            [0 0 0]
+            sage: parent(M)
+            Full MatrixSpace of 3 by 3 dense matrices over Integer Ring
+            sage: parent(J) == parent(P) == MatrixSpace(QQ, 3)
+            True
+            sage: M.jordan_form(transformation=True) == (M/1).jordan_form(transformation=True)
+            True
+
+        TESTS:
+
+        The base ring for the matrix needs to have a fraction field
+        and it needs to be implemented.  ::
+
+            sage: A = matrix(Integers(6), 2, 2, range(4))
+            sage: A.jordan_form()
+            Traceback (most recent call last):
+            ...
+            ValueError: Matrix entries must be from a field, not Ring of integers modulo 6
         """
         from sage.matrix.constructor import block_diagonal_matrix, jordan_block, diagonal_matrix
         from sage.combinat.partition import Partition
@@ -8681,14 +8719,21 @@ cdef class Matrix(matrix1.Matrix):
         
         if (base_ring is None and not self.base_ring().is_exact()) or \
             (not base_ring is None and not base_ring.is_exact()):
-            raise ValueError, "Jordan normal form not implemented over inexact rings."
+            raise ValueError("Jordan normal form not implemented over inexact rings.")
         
         if base_ring is None:
             A = self
             base_ring = self.base_ring()
-        else:
-            A = self.change_ring(base_ring)
-        
+
+        # make sure we're working with a field..
+        if not base_ring.is_field():
+            try:
+                base_field = base_ring.fraction_field()
+            except (NotImplementedError, TypeError, AttributeError):
+                raise ValueError("Matrix entries must be from a field, not {0}".
+                                 format(base_ring))
+            A = self.change_ring(base_field)
+
         # Compute the eigenvalues of the matrix, with multiplicities.  Here, 
         # ``evals`` is a list of pairs, each first entry a root and each 
         # second entry the corresponding multiplicity.
@@ -9295,6 +9340,11 @@ cdef class Matrix(matrix1.Matrix):
         r"""
         Return the Cholesky decomposition of ``self``.
 
+        .. WARNING::
+
+            ``cholesky_decomposition()`` is deprecated,
+            please use :meth:`cholesky` instead.
+
         The computed decomposition is cached and returned on
         subsequent calls. Methods such as :meth:`solve_left` may also
         take advantage of the cached decomposition depending on the
@@ -9344,6 +9394,8 @@ cdef class Matrix(matrix1.Matrix):
             [    1.0   121.0  1555.0  7381.0 22621.0]
             [    1.0   341.0  4681.0 22621.0 69905.0]
             sage: L = m.cholesky_decomposition(); L
+            doctest:...: DeprecationWarning: (Since Sage Version 5.1)
+            cholesky_decomposition() is deprecated; please use cholesky() instead.
             [          1.0           0.0           0.0           0.0           0.0]
             [          1.0           2.0           0.0           0.0           0.0]
             [          1.0          15.0 10.7238052948           0.0           0.0]
@@ -9460,7 +9512,35 @@ cdef class Matrix(matrix1.Matrix):
             sage: L*L.conjugate().transpose()
             [   1.0 -2.0*I]
             [ 2.0*I    8.0]
+
+        This test verifies that the caching of the two variants
+        of the Cholesky decomposition have been cleanly separated.
+        It can be safely removed as part of removing this method
+        at the end of the deprecation period.
+        (From :trac:`13045`.)  ::
+
+            sage: r = matrix(CDF, 2, 2, [ 0, -2*I, 2*I, 0 ]); r
+            [   0.0 -2.0*I]
+            [ 2.0*I    0.0]
+            sage: r.cholesky_decomposition()
+            [        0.0         0.0]
+            [NaN + NaN*I NaN + NaN*I]
+            sage: r.cholesky()
+            Traceback (most recent call last):
+            ...
+            ValueError: matrix is not positive definite
+            sage: r[0,0] = 0  # clears cache
+            sage: r.cholesky()
+            Traceback (most recent call last):
+            ...
+            ValueError: matrix is not positive definite
+            sage: r.cholesky_decomposition()
+            [        0.0         0.0]
+            [NaN + NaN*I NaN + NaN*I]
         """
+        # deprecation added 2012-05-27
+        from sage.misc.misc import deprecation
+        deprecation("cholesky_decomposition() is deprecated; please use cholesky() instead.", "Sage Version 5.1")
         assert self._nrows == self._ncols, "Can only Cholesky decompose square matrices"
         if self._nrows == 0:
             return self.__copy__()
@@ -9472,7 +9552,7 @@ cdef class Matrix(matrix1.Matrix):
 
         This generic implementation uses a standard recursion.
         """
-        L = self.fetch('cholesky')
+        L = self.fetch('cholesky_broken')
         if L is None:
             A = self.__copy__()
             L = A.parent()(0)
@@ -9489,9 +9569,324 @@ cdef class Matrix(matrix1.Matrix):
                     for i in range(j, n):
                         A[i, j] -= L[i, k]*L[j, k].conjugate()
             L.set_immutable()
-            self.cache('cholesky', L)
+            self.cache('cholesky_broken', L)
         return L
 
+    def cholesky(self):
+        r"""
+        Returns the Cholesky decomposition of a symmetric or Hermitian matrix.
+
+        INPUT:
+
+        A square matrix that is real, symmetric and positive definite.
+        Or a square matrix that is complex, Hermitian and positive
+        definite.  Generally, the base ring for the entries of the
+        matrix needs to be a subfield of the algebraic numbers
+        (``QQbar``).  Examples include the rational numbers (``QQ``),
+        some number fields, and real algebraic numbers and the
+        algebraic numbers themselves.
+
+        OUTPUT:
+
+        For a matrix `A` the routine returns a lower triangular
+        matrix `L` such that,
+
+        .. math::
+
+            A = LL^\ast
+
+        where `L^\ast` is the conjugate-transpose in the complex case,
+        and just the transpose in the real case.  If the matrix
+        fails to be positive definite (perhaps because it is not
+        symmetric or Hermitian), then a ``ValueError`` results.
+
+        ALGORITHM:
+
+        Whether or not the matrix is positive definite is checked
+        first in every case.  This is accomplished with an
+        indefinite factorization (see :meth:`indefinite_factorization`)
+        which caches its result.  This algorithm is of an order `n^3/3`.
+        If the matrix is positive definite, this computation always
+        succeeds, using just field operations.  The transistion to a
+        Cholesky decomposition "only" requires computing square roots
+        of the positive (real) entries of the diagonal matrix produced in
+        the indefinite factorization.  Hence, there is no real penalty
+        in the positive definite check (here, or prior to calling this
+        routine), but a field extension with square roots may not be
+        implemented in all reasonable cases.
+
+        EXAMPLES:
+
+        This simple example has a result with entries that remain
+        in the field of rational numbers.  ::
+        
+            sage: A = matrix(QQ, [[ 4, -2,  4,  2],
+            ...                   [-2, 10, -2, -7],
+            ...                   [ 4, -2,  8,  4],
+            ...                   [ 2, -7,  4,  7]])
+            sage: A.is_symmetric()
+            True
+            sage: L = A.cholesky()
+            sage: L
+            [ 2  0  0  0]
+            [-1  3  0  0]
+            [ 2  0  2  0]
+            [ 1 -2  1  1]
+            sage: L.parent()
+            Full MatrixSpace of 4 by 4 dense matrices over Rational Field
+            sage: L*L.transpose() == A
+            True
+
+        This seemingly simple example requires first moving to
+        the rational numbers for field operations, and then square
+        roots necessitate that the result has entries in the field
+        of algebraic numbers.  ::
+
+            sage: A = matrix(ZZ, [[ 78, -30, -37,  -2],
+            ...                   [-30, 102, 179, -18],
+            ...                   [-37, 179, 326, -38],
+            ...                   [ -2, -18, -38,  15]])
+            sage: A.is_symmetric()
+            True
+            sage: L = A.cholesky()
+            sage: L
+            [   8.83176086632785?                    0                    0                    0]
+            [ -3.396831102433787?    9.51112708681461?                    0                    0]
+            [ -4.189425026335004?   17.32383862241232?   2.886751345948129?                    0]
+            [-0.2264554068289192?  -1.973397116652010?  -1.649572197684645?   2.886751345948129?]
+            sage: L.parent()
+            Full MatrixSpace of 4 by 4 dense matrices over Algebraic Field
+            sage: L*L.transpose() == A
+            True
+
+        Some subfields of the complex numbers, such as this number
+        field of complex numbers with rational real and imaginary parts,
+        allow for this computation.  ::
+
+            sage: C.<I> = QuadraticField(-1)
+            sage: A = matrix(C, [[        23,  17*I + 3,  24*I + 25,     21*I],
+            ...                  [ -17*I + 3,        38, -69*I + 89, 7*I + 15],
+            ...                  [-24*I + 25, 69*I + 89,        976, 24*I + 6],
+            ...                  [     -21*I, -7*I + 15,  -24*I + 6,       28]])
+            sage: A.is_hermitian()
+            True
+            sage: L = A.cholesky()
+            sage: L
+            [                4.79...?                         0                       0        0]
+            [   0.62...? - 3.54...?*I                  5.00...?                       0        0]
+            [   5.21...? - 5.00...?*I   13.58...? + 10.72...?*I               24.98...?        0]
+            [             -4.37...?*I   -0.10...? -  0.85...?*I  -0.21...? + 0.37...?*I 2.81...?]
+            sage: L.parent()
+            Full MatrixSpace of 4 by 4 dense matrices over Algebraic Field
+            sage: (L*L.conjugate_transpose() - A.change_ring(QQbar)).norm() < 10^-10
+            True
+
+        The field of algebraic numbers is an ideal setting for this
+        computation.  ::
+
+            sage: A = matrix(QQbar, [[        2,   4 + 2*I,   6 - 4*I],
+            ...                      [ -2*I + 4,        11, 10 - 12*I],
+            ...                      [  4*I + 6, 10 + 12*I,        37]])
+            sage: A.is_hermitian()
+            True
+            sage: L = A.cholesky()
+            sage: L
+            [                       1.414213562373095?         0                   0]
+            [2.828427124746190? - 1.414213562373095?*I         1                   0]
+            [4.242640687119285? + 2.828427124746190?*I  -2*I + 2  1.732050807568878?]
+            sage: L.parent()
+            Full MatrixSpace of 3 by 3 dense matrices over Algebraic Field
+            sage: (L*L.conjugate_transpose() - A.change_ring(QQbar)).norm() < 10^-10
+            True
+
+            
+        Results are cached, hence immutable.  Use the ``copy`` function
+        if you need to make a change.  ::
+
+            sage: A = matrix(QQ, [[ 4, -2,  4,  2],
+            ...                   [-2, 10, -2, -7],
+            ...                   [ 4, -2,  8,  4],
+            ...                   [ 2, -7,  4,  7]])
+            sage: L = A.cholesky()
+            sage: L.is_immutable()
+            True
+
+            sage: from copy import copy
+            sage: LC = copy(L)
+            sage: LC[0,0] = 1000
+            sage: LC
+            [1000    0    0    0]
+            [  -1    3    0    0]
+            [   2    0    2    0]
+            [   1   -2    1    1]
+        
+        There are a variety of situations which will prevent the computation of a Cholesky decomposition.
+
+        The base ring must be exact.  For numerical work, create a
+        matrix with a base ring of ``RDF`` or ``CDF`` and use the
+        :meth:`~sage.matrix.matrix_double_dense.Matrix_double_dense.cholesky`
+        method for matrices of that type. ::
+
+            sage: F = RealField(100)
+            sage: A = matrix(F, [[1.0, 3.0], [3.0, -6.0]])
+            sage: A.cholesky()
+            Traceback (most recent call last):
+            ...
+            TypeError: base ring of the matrix must be exact, not Real Field with 100 bits of precision
+
+        The base ring may not have a fraction field.  ::
+
+            sage: A = matrix(Integers(6), [[2, 0], [0, 4]])
+            sage: A.cholesky()
+            Traceback (most recent call last):
+            ...
+            ValueError: unable to check positive definiteness because
+            Unable to create the fraction field of Ring of integers modulo 6
+            
+        The base field may not have elements that are comparable to zero.  ::
+
+            sage: F.<a> = FiniteField(5^4)
+            sage: A = matrix(F, [[2+a^3, 3], [3, 3]])
+            sage: A.cholesky()
+            Traceback (most recent call last):
+            ...
+            ValueError: unable to check positive definiteness because
+            cannot convert computations from Finite Field in a of size 5^4 into real numbers
+            
+        The algebraic closure of the fraction field of the base ring may not be implemented.  ::
+
+            sage: F = Integers(7)
+            sage: A = matrix(F, [[4, 0], [0, 3]])
+            sage: A.cholesky()
+            Traceback (most recent call last):
+            ...
+            TypeError: base field needs an algebraic closure with square roots,
+            not Ring of integers modulo 7
+            
+        The matrix may not be positive definite.  ::
+
+            sage: C.<I> = QuadraticField(-1)
+            sage: B = matrix(C, [[      2, 4 - 2*I, 2 + 2*I],
+            ...                  [4 + 2*I,       8,    10*I],
+            ...                  [2 - 2*I,   -10*I,      -3]])
+            sage: B.is_positive_definite()
+            False
+            sage: B.cholesky()
+            Traceback (most recent call last):
+            ...
+            ValueError: matrix is not positive definite,
+            so cannot compute Cholesky decomposition
+            
+        The matrix could be positive semi-definite, and thus
+        lack a Cholesky decomposition.  ::
+
+            sage: A = matrix(QQ, [[21, 15, 12, -3],
+            ...                   [15, 12,  9,  12],
+            ...                   [12,  9,  7,  3],
+            ...                   [-3,  12,  3,  8]])
+            sage: A.is_positive_definite()
+            False
+            sage: [A[:i,:i].determinant() for i in range(1,A.nrows()+1)]
+            [21, 27, 0, 0]
+            sage: A.cholesky()
+            Traceback (most recent call last):
+            ...
+            ValueError: matrix is not positive definite,
+            so cannot compute Cholesky decomposition            
+
+        Even in light of the above, you can sometimes get lucky
+        and arrive at a situation where a particular matrix has
+        a Cholesky decomposition when the general characteristics
+        of the matrix suggest this routine would fail. In this
+        example, the indefinite factorization produces a
+        diagonal matrix whose elements from the finite field
+        convert naturally to positive integers and are also
+        perfect squares.  ::
+
+            sage: F.<a> = FiniteField(5^3)
+            sage: A = matrix(F, [[         4,       2*a^2 + 3,         4*a + 1],
+            ...                  [ 2*a^2 + 3,         2*a + 2, 4*a^2 + 4*a + 4],
+            ...                  [   4*a + 1, 4*a^2 + 4*a + 4,       a^2 + 4*a]])
+            sage: A.is_symmetric()
+            True
+            sage: L = A.cholesky()
+            sage: L
+            [            3             0             0]
+            [    4*a^2 + 1             1             0]
+            [      3*a + 2 a^2 + 2*a + 3             3]
+            sage: L*L.transpose() == A
+            True
+
+        TESTS:
+
+        This verifies that :trac:`11274` is resolved.  ::
+
+            sage: E = matrix(QQ, [[2, 1], [1, 1]])
+            sage: E.is_symmetric()
+            True
+            sage: E.eigenvalues()
+            [0.38...?, 2.61...?]
+            sage: E.det()
+            1
+            sage: E.cholesky()
+            [ 1.414213562373095?                   0]
+            [0.7071067811865475? 0.7071067811865475?]
+            
+        AUTHOR:
+
+        - Rob Beezer (2012-05-27)
+        """
+        from copy import copy
+        C = self.fetch('cholesky')
+        if C is None:
+            if not self.is_square():
+                msg = "matrix must be square, not {0} x {1}"
+                raise ValueError(msg.format(self.nrows(), self.ncols()))
+            if not self.base_ring().is_exact():
+                msg = 'base ring of the matrix must be exact, not {0}'
+                raise TypeError(msg.format(self.base_ring()))
+            try:
+                posdef = self.is_positive_definite()
+            except (ValueError, TypeError) as e:
+                msg = "unable to check positive definiteness because {0}"
+                raise ValueError(msg.format(e))
+            if not posdef:
+                msg = "matrix is not positive definite, so cannot compute Cholesky decomposition"
+                raise ValueError(msg)
+            # the successful positive definite check will cache a Hermitian
+            # or symmetric indefinite factorization, as appropriate
+            factors = self.fetch('indefinite_factorization_hermitian')
+            if factors is None:
+                factors = self.fetch('indefinite_factorization_symmetric')
+            L = factors[0]
+            d = factors[1]
+            F = L.base_ring()  # field really
+            splits = []        # square roots of diagonal entries
+            for x in d:
+                try:
+                    sqrt = F(x.sqrt())
+                except (TypeError, ValueError):
+                    try:
+                        F = F.algebraic_closure()
+                    except (NotImplementedError, AttributeError):
+                        msg = "base field needs an algebraic closure with square roots, not {0}"
+                        raise TypeError(msg.format(F))
+                    # try again
+                    sqrt = F(x.sqrt())
+                splits.append(sqrt)
+            # move square root of the diagonal matrix
+            # into the lower triangular matrix
+            # We need a copy, to break immutability
+            # and the field may have changed as well
+            C = copy(L)
+            if F != C.base_ring():
+                C = C.change_ring(F)
+            for c in range(C.ncols()):
+                C.rescale_col(c, splits[c])
+            C.set_immutable()
+            self.cache('cholesky', C)
+        return C
+        
     def LU(self, pivot=None, format='plu'):
         r"""
         Finds a decomposition into a lower-triangular matrix and
@@ -9971,6 +10366,614 @@ cdef class Matrix(matrix1.Matrix):
                     M[i,k] = zero
             return P, L, M
 
+    def _indefinite_factorization(self, algorithm, check=True):
+        r"""
+        Utility function to decomposes a symmetric or
+        Hermitian matrix into a lower triangular matrix
+        and tuple of elements for the diagonal of a diagonal matrix.
+
+        INPUT:
+
+        - ``self`` - a matrix that is symmetric or Hermitian,
+          over a ring that has a fraction field implemented.
+          
+        - ``algorithm`` - ``'symmetric'`` or ``'hermitian'``,
+          according to the corresponding property of the matrix.
+
+        - ``check`` - default: ``True`` - if ``True`` then
+          performs the check that the matrix is consistent with the
+          ``algorithm`` keyword.
+
+        OUTPUT:
+
+        Given a square matrix ``A``, the routine returns a
+        pair: a matrix ``L`` and a list ``d``.
+
+        ``L`` is a unit lower-triangular matrix.  ``d`` is
+        the entries of a diagonal matrix.  Suppose this diagonal
+        matrix is ``D``.  Then, for a symmetric matrix, these items
+        are related as:
+
+        .. math::
+
+            A = LDL^T
+
+        For a Hermitian matrix, the transpose can be replaced by
+        the conjugate-transpose.
+
+        If any leading principal submatrix is singular, then the
+        computation cannot be performed and a ``ValueError`` results.
+
+        Results are cached, and hence are immutable.  Caching
+        eliminates redundant computations across
+        :meth:`indefinite_factorization_`, :meth:`is_positive_definite`
+        and :meth:`cholesky_decomposition`.
+
+        EXAMPLES:
+
+        A simple symmetric matrix. ::
+
+            sage: A = matrix(QQ, [[ 4, -2,  4,  2],
+            ...                   [-2, 10, -2, -7],
+            ...                   [ 4, -2,  8,  4],
+            ...                   [ 2, -7,  4,  7]])
+            sage: A.is_symmetric()
+            True
+            sage: L, d = A._indefinite_factorization('symmetric')
+            sage: L
+            [   1    0    0    0]
+            [-1/2    1    0    0]
+            [   1    0    1    0]
+            [ 1/2 -2/3  1/2    1]
+            sage: d
+            (4, 9, 4, 1)
+            sage: A == L*diagonal_matrix(QQ, d)*L.transpose()
+            True
+
+        A Hermitian matrix. ::
+
+            sage: x = var('x')
+            sage: C.<I> = NumberField(x^2 + 1)
+            sage: A = matrix(C, [[        23,  17*I + 3,  24*I + 25,     21*I],
+            ...                  [ -17*I + 3,        38, -69*I + 89, 7*I + 15],
+            ...                  [-24*I + 25, 69*I + 89,        976, 24*I + 6],
+            ...                  [     -21*I, -7*I + 15,  -24*I + 6,       28]])
+            sage: A.is_hermitian()
+            True
+            sage: L, d = A._indefinite_factorization('hermitian')
+            sage: L
+            [                1                    0                         0  0]
+            [  -17/23*I + 3/23                    1                         0  0]
+            [ -24/23*I + 25/23  617/288*I + 391/144                         1  0]
+            [         -21/23*I     -49/288*I - 1/48  1336/89885*I - 773/89885  1]
+            sage: d
+            (23, 576/23, 89885/144, 142130/17977)
+            sage: A == L*diagonal_matrix(C, d)*L.conjugate_transpose()
+            True
+
+        A matrix may have a singular submatrix in the upper-left
+        corner ("a leading principal submatrix") which will unavoidably
+        lead to division by zero.  This is the only situation when this
+        algorithm fails.  ::
+
+            sage: A = matrix(QQ, [[4, 6, 1], [6, 9, 5], [1, 5, 2]])
+            sage: B = A[0:2, 0:2]; B.determinant()
+            0
+            sage: A._indefinite_factorization('symmetric')
+            Traceback (most recent call last):
+            ...
+            ValueError: 2x2 leading principal submatrix is singular,
+            so cannot create indefinite factorization
+
+        TESTS:
+
+        The matrix must be square.  ::
+
+            sage: A = matrix(QQ, 3, 2, range(6))
+            sage: A._indefinite_factorization('symmetric')
+            Traceback (most recent call last):
+            ...
+            ValueError: matrix must be square, not 3 x 2
+
+        The lone argument must describe the matrix.  ::
+
+            sage: A = matrix(QQ, [[1, 5], [5, 8]])
+            sage: A._indefinite_factorization('junk')
+            Traceback (most recent call last):
+            ...
+            ValueError: 'algorithm' must be 'symmetric' or 'hermitian',
+            not junk
+
+        The matrix must contain entries from an exact ring.  ::
+
+            sage: F = RealField(100)
+            sage: A = matrix(F, [[1.0, 3.0], [3.0, -6.0]])
+            sage: A._indefinite_factorization('symmetric')
+            Traceback (most recent call last):
+            ...
+            TypeError: entries of the matrix must be in an exact ring,
+            not Real Field with 100 bits of precision
+
+        The base ring must have a fraction field.  ::
+
+            sage: A = matrix(Integers(6), [[1, 5], [5, 8]])
+            sage: A._indefinite_factorization('symmetric')
+            Traceback (most recent call last):
+            ...
+            TypeError: Unable to create the fraction field of
+            Ring of integers modulo 6
+
+        When ``check`` is ``True`` (the default), the matrix is
+        checked to see if it conforms with the ``algorithm``
+        keyword.  ::
+
+            sage: A = matrix(QQ, 4, 4, range(16))
+            sage: A._indefinite_factorization('symmetric', check=True)
+            Traceback (most recent call last):
+            ...
+            ValueError: matrix is not symmetric (maybe try the 'hermitian' keyword)
+
+            sage: A = matrix([[3, 2+3*I], [5+6*I, 12]])
+            sage: A._indefinite_factorization('hermitian', check=True)
+            Traceback (most recent call last):
+            ...
+            ValueError: matrix is not hermitian
+
+        Results are cached and hence immutable, according
+        to the ``algorithm``.  ::
+
+            sage: A = matrix(QQ, [[ 4, -2,  4,  2],
+            ...                   [-2, 10, -2, -7],
+            ...                   [ 4, -2,  8,  4],
+            ...                   [ 2, -7,  4,  7]])
+            sage: Ls, ds = A._indefinite_factorization('symmetric')
+            sage: Lh, dh = A._indefinite_factorization('hermitian')
+            sage: Ls.is_immutable(), Lh.is_immutable()
+            (True, True)
+            sage: isinstance(ds, tuple), isinstance(dh, tuple)
+            (True, True)
+            
+        AUTHOR:
+
+        - Rob Beezer (2012-05-24)
+        """
+        # Implementation note:  L begins as a copy of self.
+        # Entries below the diagonal are replaced as the loops proceed.
+        # Entries above the diagonal are used to store entries of D*L^T,
+        #   which halves the number of multiplications needed otherwise.
+        # The list d_inv holds reciprocals of the diagonal entries
+        # So, below the diagonal, the main computation is:
+        # A_ij = A_ij - (1/d_j)*sum(d_k*L_ik*L_jk, 0 <= k < j)
+
+        cdef Py_ssize_t m, i, j, k
+        cdef Matrix L
+
+        if not algorithm in ['symmetric', 'hermitian']:
+            msg = "'algorithm' must be 'symmetric' or 'hermitian', not {0}"
+            raise ValueError(msg.format(algorithm))
+        cache_string = 'indefinite_factorization_' + algorithm
+        factors = self.fetch(cache_string)
+        if factors is None:
+            R = self.base_ring()
+            if not self.is_square():
+                msg = "matrix must be square, not {0} x {1}"
+                raise ValueError(msg.format(self.nrows(), self.ncols()))
+            if not algorithm in ['symmetric', 'hermitian']:
+                msg = "'algorithm' must be 'symmetric' or 'hermitian', not {0}"
+                raise ValueError(msg.format(algorithm))
+            if not R.is_exact():
+                msg = "entries of the matrix must be in an exact ring, not {0}"
+                raise TypeError(msg.format(R))
+            try:
+                F = R.fraction_field()
+            except (NotImplementedError, TypeError):
+                msg = 'Unable to create the fraction field of {0}'
+                raise TypeError(msg.format(R))
+            if check and algorithm == 'symmetric':
+                if not self.is_symmetric():
+                    msg = "matrix is not symmetric (maybe try the 'hermitian' keyword)"
+                    raise ValueError(msg)
+            if check and algorithm == 'hermitian':
+                if not self.is_hermitian():
+                    raise ValueError('matrix is not hermitian')
+            conjugate = (algorithm == 'hermitian')
+            # we need a copy no matter what, so we
+            # (potentially) change to fraction field at the same time
+            L = self.change_ring(F)
+            m = L._nrows
+            zero = F(0)
+            one = F(1)
+            d = []
+            d_inv = []
+            for i in range(m):
+                for j in range(i+1):
+                    t = L.get_unsafe(i, j)
+                    if conjugate:
+                        for k in range(j):
+                            t -= L.get_unsafe(k,i)*L.get_unsafe(j,k).conjugate()
+                    else:
+                        for k in range(j):
+                            t -= L.get_unsafe(k,i)*L.get_unsafe(j,k)
+                    if i == j:
+                        if t == zero:
+                            msg = "{0}x{0} leading principal submatrix is singular, so cannot create indefinite factorization"
+                            raise ValueError(msg.format(i+1))
+                        d.append(t)
+                        d_inv.append(one/t)
+                        L.set_unsafe(i, i, one)
+                    else:
+                        L.set_unsafe(j, i, t)
+                        L.set_unsafe(i, j, (d_inv[j] * t))
+            # Triangularize output matrix
+            for i in range(m):
+                for j in range(i+1, m):
+                    L.set_unsafe(i, j, zero)
+            L.set_immutable()
+            d = tuple(d)
+            factors = (L, d)
+            self.cache(cache_string, factors)
+        return factors
+        
+    def indefinite_factorization(self, algorithm='symmetric', check=True):
+        r"""
+        Decomposes a symmetric or Hermitian matrix into a
+        lower triangular matrix and a diagonal matrix.
+
+        INPUT:
+
+        - ``self`` - a square matrix over a ring.  The base ring
+          must have an implemented fraction field.
+
+        - ``algorithm`` - default: ``'symmetric'``.  Either
+          ``'symmetric'`` or ``'hermitian'``, according to if
+          the input matrix is symmetric or hermitian.
+
+        - ``check`` - default: ``True`` - if ``True`` then
+          performs the check that the matrix is consistent with the
+          ``algorithm`` keyword.
+
+        OUTPUT:
+
+        A lower triangular matrix `L` with each diagonal element
+        equal to `1` and a vector of entries that form a
+        diagonal matrix `D`.  The vector of diagonal entries
+        can be easily used to form the matrix, as demonstrated
+        below in the examples.
+
+        For a symmetric matrix, `A`, these will be related by
+
+        .. math::
+
+            A = LDL^T
+ 
+        If `A` is Hermitian matrix, then the transpose of `L`
+        should be replaced by the conjugate-transpose of `L`.
+
+        If any leading principal submatrix (a square submatrix
+        in the upper-left corner) is singular then this method will
+        fail with a ``ValueError``.
+
+        ALGORITHM:
+
+        The algorithm employed only uses field operations,
+        but the compuation of each diagonal entry has the potential
+        for division by zero.  The number of operations is of order
+        `n^3/3`, which is half the count for an LU decomposition.
+        This makes it an appropriate candidate for solving systems
+        with symmetric (or Hermitian) coefficient matrices.
+        
+        EXAMPLES:
+
+        There is no requirement that a matrix be positive definite, as
+        indicated by the negative entries in the resulting diagonal
+        matrix.  The default is that the input matrix is symmetric. ::
+
+            sage: A = matrix(QQ, [[ 3,  -6,   9,   6,  -9],
+            ...                   [-6,  11, -16, -11,  17],
+            ...                   [ 9, -16,  28,  16, -40],
+            ...                   [ 6, -11,  16,   9, -19],
+            ...                   [-9,  17, -40, -19,  68]])
+            sage: A.is_symmetric()
+            True
+            sage: L, d = A.indefinite_factorization()
+            sage: D = diagonal_matrix(d)
+            sage: L
+            [ 1  0  0  0  0]
+            [-2  1  0  0  0]
+            [ 3 -2  1  0  0]
+            [ 2 -1  0  1  0]
+            [-3  1 -3  1  1]
+            sage: D
+            [ 3  0  0  0  0]
+            [ 0 -1  0  0  0]
+            [ 0  0  5  0  0]
+            [ 0  0  0 -2  0]
+            [ 0  0  0  0 -1]
+            sage: A == L*D*L.transpose()
+            True
+
+        Optionally, Hermitian matrices can be factored
+        and the result has a similar property (but not
+        identical).  Here, the field is all complex numbers
+        with rational real and imaginary parts.  As theory
+        predicts, the diagonal entries will be real numbers.  ::
+
+            sage: C.<I> = QuadraticField(-1)
+            sage: B = matrix(C, [[      2, 4 - 2*I, 2 + 2*I],
+            ...                  [4 + 2*I,       8,    10*I],
+            ...                  [2 - 2*I,   -10*I,      -3]])
+            sage: B.is_hermitian()
+            True
+            sage: L, d = B.indefinite_factorization(algorithm='hermitian')
+            sage: D = diagonal_matrix(d)
+            sage: L
+            [      1       0       0]
+            [  I + 2       1       0]
+            [ -I + 1 2*I + 1       1]
+            sage: D
+            [ 2  0  0]
+            [ 0 -2  0]
+            [ 0  0  3]
+            sage: B == L*D*L.conjugate_transpose()
+            True
+
+        If a leading principal submatrix is zero this algorithm
+        will fail.  This will never happen with a positive definite
+        matrix.  ::
+
+            sage: A = matrix(QQ, [[21, 15, 12, -2],
+            ...                   [15, 12,  9,  6],
+            ...                   [12,  9,  7,  3],
+            ...                   [-2,  6,  3,  8]])
+            sage: A.is_symmetric()
+            True
+            sage: A[0:3,0:3].det() == 0
+            True
+            sage: A.indefinite_factorization()
+            Traceback (most recent call last):
+            ...
+            ValueError: 3x3 leading principal submatrix is singular,
+            so cannot create indefinite factorization            
+
+        This algorithm only depends on field operations, so
+        outside of the singular submatrix situation, any matrix
+        may be factored.  This provides a reasonable alternative
+        to the Cholesky decomposition.  ::
+
+            sage: F.<a> = FiniteField(5^3)
+            sage: A = matrix(F,
+            ...       [[      a^2 + 2*a, 4*a^2 + 3*a + 4,       3*a^2 + a, 2*a^2 + 2*a + 1],
+            ...        [4*a^2 + 3*a + 4,       4*a^2 + 2,             3*a, 2*a^2 + 4*a + 2],
+            ...        [      3*a^2 + a,             3*a,       3*a^2 + 2, 3*a^2 + 2*a + 3],
+            ...        [2*a^2 + 2*a + 1, 2*a^2 + 4*a + 2, 3*a^2 + 2*a + 3, 3*a^2 + 2*a + 4]])
+            sage: A.is_symmetric()
+            True
+            sage: L, d = A.indefinite_factorization()
+            sage: D = diagonal_matrix(d)
+            sage: L
+            [              1               0               0               0]
+            [4*a^2 + 4*a + 3               1               0               0]
+            [              3   4*a^2 + a + 2               1               0]
+            [      4*a^2 + 4 2*a^2 + 3*a + 3 2*a^2 + 3*a + 1               1]
+            sage: D
+            [      a^2 + 2*a               0               0               0]
+            [              0 2*a^2 + 2*a + 4               0               0]
+            [              0               0 3*a^2 + 4*a + 3               0]
+            [              0               0               0       a^2 + 3*a]
+            sage: A == L*D*L.transpose()
+            True
+
+        AUTHOR:
+
+        - Rob Beezer (2012-05-24)
+        """
+        from sage.modules.free_module_element import vector
+        L, d = self._indefinite_factorization(algorithm, check=check)
+        return L, vector(L.base_ring(), d)
+
+    def is_positive_definite(self):
+        r"""
+        Determines if a real or symmetric matrix is positive definite.
+
+        A square matrix `A` is postive definite if it is
+        symmetric with real entries or Hermitan with complex entries,
+        and for every non-zero vector `\vec{x}`
+
+        .. math::
+
+            \vec{x}^\ast A\vec{x} > 0
+
+        Here `\vec{x}^\ast` is the conjugate-transpose, which can be
+        simplified to just the transpose in the real case.
+
+        ALGORITHM:
+
+        A matrix is positive definite if and only if the
+        diagonal entries from the indefinite factorization
+        are all positive (see :meth:`indefinite_factorization`).
+        So this algorithm is of order ``n^3/3`` and may be applied
+        to matrices with elements of any ring that has a fraction
+        field contained within the reals or complexes.
+        
+        INPUT:
+
+        Any square matrix.
+
+        OUTPUT:
+
+        This routine will return ``True`` if the matrix is square,
+        symmetric or Hermitian, and meets the condition above
+        for the quadratic form.
+
+        The base ring for the elements of the matrix needs to
+        have a fraction field implemented and the computations
+        that result from the indefinite factorization must be
+        convertable to real numbers that are comparable to zero.
+
+        EXAMPLES:
+
+        A real symmetric matrix that is positive definite,
+        as evidenced by the positive entries for the diagonal
+        matrix of the indefinite factorization and the postive
+        determinants of the leading principal submatrices. ::
+
+            sage: A = matrix(QQ, [[ 4, -2,  4,  2],
+            ...                   [-2, 10, -2, -7],
+            ...                   [ 4, -2,  8,  4],
+            ...                   [ 2, -7,  4,  7]])
+            sage: A.is_positive_definite()
+            True
+            sage: _, d = A.indefinite_factorization(algorithm='symmetric')
+            sage: d
+            (4, 9, 4, 1)
+            sage: [A[:i,:i].determinant() for i in range(1,A.nrows()+1)]
+            [4, 36, 144, 144]
+
+        A real symmetric matrix which is not positive definite, along
+        with a vector that makes the quadratic form negative. ::
+
+            sage: A = matrix(QQ, [[ 3,  -6,   9,   6,  -9],
+            ...                   [-6,  11, -16, -11,  17],
+            ...                   [ 9, -16,  28,  16, -40],
+            ...                   [ 6, -11,  16,   9, -19],
+            ...                   [-9,  17, -40, -19,  68]])
+            sage: A.is_positive_definite()
+            False
+            sage: _, d = A.indefinite_factorization(algorithm='symmetric')
+            sage: d
+            (3, -1, 5, -2, -1)
+            sage: [A[:i,:i].determinant() for i in range(1,A.nrows()+1)]
+            [3, -3, -15, 30, -30]
+            sage: u = vector(QQ, [2, 2, 0, 1, 0])
+            sage: u.row()*A*u
+            (-3)
+            
+        A real symmetric matrix with a singular leading
+        principal submatrix, that is therefore not positive definite.
+        The vector ``u`` makes the quadratic form zero.  ::
+
+            sage: A = matrix(QQ, [[21, 15, 12, -2],
+            ...                   [15, 12,  9,  6],
+            ...                   [12,  9,  7,  3],
+            ...                   [-2,  6,  3,  8]])
+            sage: A.is_positive_definite()
+            False
+            sage: [A[:i,:i].determinant() for i in range(1,A.nrows()+1)]
+            [21, 27, 0, -75]
+            sage: u = vector(QQ, [1,1,-3,0])
+            sage: u.row()*A*u
+            (0)
+            
+        An Hermitian matrix that is positive definite.  ::
+
+            sage: C.<I> = NumberField(x^2 + 1)
+            sage: A = matrix(C, [[        23,  17*I + 3,  24*I + 25,     21*I],
+            ...                  [ -17*I + 3,        38, -69*I + 89, 7*I + 15],
+            ...                  [-24*I + 25, 69*I + 89,        976, 24*I + 6],
+            ...                  [     -21*I, -7*I + 15,  -24*I + 6,       28]])
+            sage: A.is_positive_definite()
+            True
+            sage: _, d = A.indefinite_factorization(algorithm='hermitian')
+            sage: d
+            (23, 576/23, 89885/144, 142130/17977)
+            sage: [A[:i,:i].determinant() for i in range(1,A.nrows()+1)]
+            [23, 576, 359540, 2842600]
+            
+        An Hermitian matrix that is not positive definite.
+        The vector ``u`` makes the quadratic form negative.  ::
+        
+            sage: C.<I> = QuadraticField(-1)
+            sage: B = matrix(C, [[      2, 4 - 2*I, 2 + 2*I],
+            ...                  [4 + 2*I,       8,    10*I],
+            ...                  [2 - 2*I,   -10*I,      -3]])
+            sage: B.is_positive_definite()
+            False
+            sage: _, d = B.indefinite_factorization(algorithm='hermitian')
+            sage: d
+            (2, -2, 3)
+            sage: [B[:i,:i].determinant() for i in range(1,B.nrows()+1)]
+            [2, -4, -12]
+            sage: u = vector(C, [-5 + 10*I, 4 - 3*I, 0])
+            sage: u.row().conjugate()*B*u
+            (-50)
+            
+        A positive definite matrix over an algebraically closed field.  ::
+
+            sage: A = matrix(QQbar, [[        2,   4 + 2*I,   6 - 4*I],
+            ...                      [ -2*I + 4,        11, 10 - 12*I],
+            ...                      [  4*I + 6, 10 + 12*I,        37]])
+            sage: A.is_positive_definite()
+            True
+            sage: [A[:i,:i].determinant() for i in range(1,A.nrows()+1)]
+            [2, 2, 6]
+            
+        TESTS:
+
+        If the base ring lacks a ``conjugate`` method, it
+        will be assumed to not be Hermitian and thus symmetric.
+        If the base ring does not make sense as a subfield of
+        the reals, then this routine will fail since comparison
+        to zero is meaningless.  ::
+
+            sage: F.<a> = FiniteField(5^3)
+            sage: a.conjugate()
+            Traceback (most recent call last):
+            ...
+            AttributeError: 'sage.rings.finite_rings.element_givaro.FiniteField_givaroElement'
+            object has no attribute 'conjugate'
+            sage: A = matrix(F,
+            ...       [[      a^2 + 2*a, 4*a^2 + 3*a + 4,       3*a^2 + a, 2*a^2 + 2*a + 1],
+            ...        [4*a^2 + 3*a + 4,       4*a^2 + 2,             3*a, 2*a^2 + 4*a + 2],
+            ...        [      3*a^2 + a,             3*a,       3*a^2 + 2, 3*a^2 + 2*a + 3],
+            ...        [2*a^2 + 2*a + 1, 2*a^2 + 4*a + 2, 3*a^2 + 2*a + 3, 3*a^2 + 2*a + 4]])
+            sage: A.is_positive_definite()
+            Traceback (most recent call last):
+            ...
+            TypeError: cannot convert computations from
+            Finite Field in a of size 5^3 into real numbers
+        
+        AUTHOR:
+
+        - Rob Beezer (2012-05-24)
+        """
+        from sage.rings.all import RR
+        # check to see if the Hermitian routine is usable
+        # otherwise we will assume the symmetric case
+        imaginary = True
+        a = self.base_ring().an_element()
+        try:
+            a.conjugate()
+        except AttributeError:
+            imaginary = False
+        if imaginary:
+            if not self.is_hermitian():
+                return False
+        else:
+            if not self.is_symmetric():
+                return False
+        try:
+            if imaginary:
+                _, d = self._indefinite_factorization('hermitian', check=False)
+            else:
+                _, d = self._indefinite_factorization('symmetric', check=False)
+        except ValueError as e:
+            # a zero singular leading principal submatrix is one
+            # indicator that the matrix is not positive definite
+            if str(e).find('leading principal submatrix is singular') != -1:
+                return False
+            else:
+                raise ValueError(e)
+        # Now have diagonal entries (hopefully real) and so can
+        # test with a generator (which will short-circuit)
+        # positive definite iff all entries of d are positive
+        try:
+            posdef = all( RR(x) > 0 for x in d )
+        except TypeError:
+            universe = Sequence(d).universe()
+            msg = "cannot convert computations from {0} into real numbers"
+            raise TypeError(msg.format(universe))
+        return posdef
+        
     def hadamard_bound(self):
         r"""
         Return an int n such that the absolute value of the determinant of

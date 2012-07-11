@@ -403,7 +403,6 @@ cdef class MPolynomialRing_libsingular(MPolynomialRing_generic):
             sage: import gc
             sage: from sage.rings.polynomial.multi_polynomial_libsingular import MPolynomialRing_libsingular
             sage: from sage.libs.singular.ring import ring_refcount_dict
-            sage: gc.collect()  # random output
             sage: n = len(ring_refcount_dict)
             sage: R = MPolynomialRing_libsingular(GF(547), 2, ('x', 'y'), TermOrder('degrevlex', 2))
             sage: len(ring_refcount_dict) == n + 1
@@ -768,6 +767,19 @@ cdef class MPolynomialRing_libsingular(MPolynomialRing_generic):
             0
             sage: P.<x,y> = Zmod(2^10)[]; P(0)
             0
+
+        And trac #7597 is fixed if this doesn't segfault::
+
+            sage: F2 = GF(2)
+            sage: F.<x> = GF(2^8)
+            sage: R4.<a,b> = PolynomialRing(F)
+            sage: R.<u,v> = PolynomialRing(F2)
+            sage: P = a
+            sage: (P(0,0).polynomial()[0])*u
+            0
+            sage: P(a,b)
+            a
+
         """
         cdef poly *_p, *mon, *El_poly
         cdef ring *_ring = self._ring

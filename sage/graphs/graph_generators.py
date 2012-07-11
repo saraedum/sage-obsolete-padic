@@ -98,28 +98,39 @@ Named Graphs
 - :meth:`Balaban10Cage <GraphGenerators.Balaban10Cage>`
 - :meth:`Balaban11Cage <GraphGenerators.Balaban11Cage>`
 - :meth:`BidiakisCube <GraphGenerators.BidiakisCube>`
+- :meth:`BiggsSmithGraph <GraphGenerators.BiggsSmithGraph>`
 - :meth:`BrinkmannGraph <GraphGenerators.BrinkmannGraph>`
+- :meth:`DoubleStarSnark <GraphGenerators.DoubleStarSnark>`
 - :meth:`ChvatalGraph <GraphGenerators.ChvatalGraph>`
 - :meth:`DesarguesGraph <GraphGenerators.DesarguesGraph>`
 - :meth:`DurerGraph <GraphGenerators.DurerGraph>`
 - :meth:`DyckGraph <GraphGenerators.DyckGraph>`
 - :meth:`ErreraGraph <GraphGenerators.ErreraGraph>`
 - :meth:`FlowerSnark <GraphGenerators.FlowerSnark>`
+- :meth:`FosterGraph <GraphGenerators.FosterGraph>`
 - :meth:`FranklinGraph <GraphGenerators.FranklinGraph>`
 - :meth:`FruchtGraph <GraphGenerators.FruchtGraph>`
 - :meth:`GoldnerHararyGraph <GraphGenerators.GoldnerHararyGraph>`
+- :meth:`GrayGraph <GraphGenerators.GrayGraph>`
 - :meth:`GrotzschGraph <GraphGenerators.GrotzschGraph>`
 - :meth:`HararyGraph <GraphGenerators.HararyGraph>`
+- :meth:`HarriesGraph <GraphGenerators.HarriesGraph>`
+- :meth:`HarriesWongGraph <GraphGenerators.HarriesWongGraph>`
 - :meth:`HeawoodGraph <GraphGenerators.HeawoodGraph>`
 - :meth:`HerschelGraph <GraphGenerators.HerschelGraph>`
 - :meth:`HigmanSimsGraph <GraphGenerators.HigmanSimsGraph>`
 - :meth:`HoffmanSingletonGraph <GraphGenerators.HoffmanSingletonGraph>`
+- :meth:`LjubljanaGraph <GraphGenerators.LjubljanaGraph>`
+- :meth:`McGeeGraph <GraphGenerators.McGeeGraph>`
 - :meth:`MoebiusKantorGraph <GraphGenerators.MoebiusKantorGraph>`
 - :meth:`MoserSpindle <GraphGenerators.MoserSpindle>`
 - :meth:`PappusGraph <GraphGenerators.PappusGraph>`
 - :meth:`PetersenGraph <GraphGenerators.PetersenGraph>`
 - :meth:`ShrikhandeGraph <GraphGenerators.ShrikhandeGraph>`
 - :meth:`ThomsenGraph <GraphGenerators.ThomsenGraph>`
+- :meth:`Tutte12Cage <GraphGenerators.Tutte12Cage>`
+- :meth:`TutteCoxeterGraph <GraphGenerators.TutteCoxeterGraph>`
+- :meth:`WagnerGraph <GraphGenerators.WagnerGraph>`
 
 
 Families of graphs
@@ -140,12 +151,13 @@ Families of graphs
 - :meth:`HyperStarGraph <GraphGenerators.HyperStarGraph>`
 - :meth:`KneserGraph <GraphGenerators.KneserGraph>`
 - :meth:`LCFGraph <GraphGenerators.LCFGraph>`
-- :meth:`MycielskiGraph <GraphGenerators.MycielskiGraph>` 
-- :meth:`MycielskiStep <GraphGenerators.MycielskiStep>` 
+- :meth:`MycielskiGraph <GraphGenerators.MycielskiGraph>`
+- :meth:`MycielskiStep <GraphGenerators.MycielskiStep>`
 - :meth:`NKStarGraph <GraphGenerators.NKStarGraph>`
 - :meth:`NStarGraph <GraphGenerators.NStarGraph>`
 - :meth:`OddGraph <GraphGenerators.OddGraph>`
 - :meth:`line_graph_forbidden_subgraphs <GraphGenerators.line_graph_forbidden_subgraphs>`
+- :meth:`PermutationGraph <GraphGenerators.PermutationGraph>`
 - :meth:`trees <GraphGenerators.trees>`
 
 
@@ -1551,6 +1563,244 @@ class GraphGenerators():
         G.name('Harary graph {0}, {1}'.format(k,n))
         return G
 
+    def HarriesGraph(self, embedding=1):
+        r"""
+        Returns the Harries Graph.
+
+        The Harries graph is a Hamiltonian 3-regular graph on 70
+        vertices. See the :wikipedia:`Wikipedia page on the Harries
+        graph <Harries_graph>`.
+
+        The default embedding here is to emphasize the graph's 4 orbits.
+        This graph actually has a funny construction. The following
+        procedure gives an idea of it, though not all the adjacencies
+        are being properly defined.
+
+        #. Take two disjoint copies of a :meth:`Petersen graph
+           <PetersenGraph>`. Their vertices will form an orbit of the
+           final graph.
+
+        #. Subdivide all the edges once, to create 15+15=30 new
+           vertices, which together form another orbit.
+
+        #. Create 15 vertices, each of them linked to 2 corresponding
+           vertices of the previous orbit, one in each of the two
+           subdivided Petersen graphs. At the end of this step all
+           vertices from the previous orbit have degree 3, and the only
+           vertices of degree 2 in the graph are those that were just
+           created.
+
+        #. Create 5 vertices connected only to the ones from the
+           previous orbit so that the graph becomes 3-regular.
+
+        INPUT:
+
+        - ``embedding`` -- two embeddings are available, and can be
+          selected by setting ``embedding`` to 1 or 2.
+
+        EXAMPLES::
+
+            sage: g = graphs.HarriesGraph()
+            sage: g.order()
+            70
+            sage: g.size()
+            105
+            sage: g.girth()
+            10
+            sage: g.diameter()
+            6
+            sage: g.show(figsize=[10, 10])   # long time
+            sage: graphs.HarriesGraph(embedding=2).show(figsize=[10, 10])   # long time
+
+        TESTS::
+
+            sage: graphs.HarriesGraph(embedding=3)
+            Traceback (most recent call last):
+            ...
+            ValueError: The value of embedding must be 1 or 2.
+
+        """
+        g = graphs.LCFGraph(70, [-29, -19, -13, 13, 21, -27, 27, 33, -13, 13,
+                                 19, -21, -33, 29], 5)
+        g.name("Harries Graph")
+
+        if embedding == 1:
+            gpos = g.get_pos()
+            ppos = graphs.PetersenGraph().get_pos()
+
+            # The graph's four orbits
+            o = [None]*4
+            o[0] = [0, 2, 6, 8, 14, 16, 20, 22, 28, 30, 34, 36, 42, 44, 48, 50,
+                    56, 58, 62, 64]
+            o[1] = [1, 3, 5, 7, 9, 13, 15, 17, 19, 21, 23, 27, 29, 31, 33, 35,
+                    37, 41, 43, 45, 47, 49, 51, 55, 57, 59, 61, 63, 65, 69]
+            o[2] = [60, 10, 12, 4, 24, 26, 18, 38, 40, 32, 52, 54, 46, 66, 68]
+            o[3] = [11, 25, 39, 53, 67]
+
+            # Correspondence between the vertices of one of the two Petersen
+            # graphs on o[0] and the vertices of a standard Petersen graph
+            # object
+            g_to_p = {0: 0, 2: 1, 42: 5, 44: 8, 14: 7, 16: 2, 56: 9, 58: 6,
+                      28: 4, 30: 3}
+
+            # Correspondence between the vertices of the other Petersen graph
+            # on o[0] and the vertices of the first one
+            g_to_g = {64: 44, 34: 0, 36: 28, 6: 2, 8: 58, 48: 16, 50: 30,
+                      20: 14, 22: 56, 62: 42}
+
+            # Position for the vertices from the first copy
+            for v, i in g_to_p.iteritems():
+                gpos[v] = ppos[i]
+
+            # Position for the vertices in the second copy. Moves the first,
+            # too.
+            offset = 3.5
+            for v, i in g_to_g.iteritems():
+                x, y = gpos[i]
+                gpos[v] = (x + offset*0.5, y)
+                gpos[i] = (x - offset*0.5, y)
+
+            # Vertices from o[1]. These are actually the "edges" of the
+            # copies of Petersen.
+            for v in o[1]:
+                p1, p2 = [gpos[x] for x in g.neighbors(v) if x in o[0]]
+                gpos[v] = ((p1[0] + p2[0])/2, (p1[1] + p2[1])/2)
+
+            # 15 vertices from o[2]
+            for i, v in enumerate(o[2]):
+                gpos[v] = (-1.75 + i*.25, 2)
+
+            # 5 vertices from o[3]
+            for i, v in enumerate(o[3]):
+                gpos[v] = (-1 + i*.5, 2.5)
+
+            return g
+
+        elif embedding == 2:
+            return g
+        else:
+            raise ValueError("The value of embedding must be 1 or 2.")
+
+    def HarriesWongGraph(self, embedding=1):
+        r"""
+        Returns the Harries-Wong Graph.
+
+        See the :wikipedia:`Wikipedia page on the Harries-Wong graph
+        <Harries-Wong_graph>`.
+
+        *About the default embedding:*
+
+        The default embedding is an attempt to emphasize the graph's
+        8 (!!!) different orbits. In order to understand this better,
+        one can picture the graph as being built in the following way:
+
+            #. One first creates a 3-dimensional cube (8 vertices, 12
+               edges), whose vertices define the first orbit of the
+               final graph.
+
+            #. The edges of this graph are subdivided once, to create 12
+               new vertices which define a second orbit.
+
+            #. The edges of the graph are subdivided once more, to
+               create 24 new vertices giving a third orbit.
+
+            #. 4 vertices are created and made adjacent to the vertices
+               of the second orbit so that they have degree
+               3. These 4 vertices also define a new orbit.
+
+            #. In order to make the vertices from the third orbit
+               3-regular (they all miss one edge), one creates a binary
+               tree on 1 + 3 + 6 + 12 vertices. The leaves of this new
+               tree are made adjacent to the 12 vertices of the third
+               orbit, and the graph is now 3-regular. This binary tree
+               contributes 4 new orbits to the Harries-Wong graph.
+
+        INPUT:
+
+        - ``embedding`` -- two embeddings are available, and can be
+          selected by setting ``embedding`` to 1 or 2.
+
+        EXAMPLES::
+
+            sage: g = graphs.HarriesWongGraph()
+            sage: g.order()
+            70
+            sage: g.size()
+            105
+            sage: g.girth()
+            10
+            sage: g.diameter()
+            6
+            sage: orbits = g.automorphism_group(orbits=True)[-1]
+            sage: g.show(figsize=[15, 15], partition=orbits)   # long time
+
+        Alternative embedding::
+
+            sage: graphs.HarriesWongGraph(embedding=2).show()
+
+        TESTS::
+
+            sage: graphs.HarriesWongGraph(embedding=3)
+            Traceback (most recent call last):
+            ...
+            ValueError: The value of embedding must be 1 or 2.
+        """
+
+        L = [9, 25, 31, -17, 17, 33, 9, -29, -15, -9, 9, 25, -25, 29, 17, -9,
+             9, -27, 35, -9, 9, -17, 21, 27, -29, -9, -25, 13, 19, -9, -33,
+             -17, 19, -31, 27, 11, -25, 29, -33, 13, -13, 21, -29, -21, 25,
+             9, -11, -19, 29, 9, -27, -19, -13, -35, -9, 9, 17, 25, -9, 9, 27,
+             -27, -21, 15, -9, 29, -29, 33, -9, -25]
+
+        g = graphs.LCFGraph(70, L, 1)
+        g.name("Harries-Wong graph")
+
+        if embedding == 1:
+            d = g.get_pos()
+
+            # Binary tree (left side)
+            d[66] = (-9.5, 0)
+            _line_embedding(g, [37, 65, 67], first=(-8, 2.25),
+                    last=(-8, -2.25))
+            _line_embedding(g, [36, 38, 64, 24, 68, 30], first=(-7, 3),
+                    last=(-7, -3))
+            _line_embedding(g, [35, 39, 63, 25, 59, 29, 11, 5, 55, 23, 69, 31],
+                    first=(-6, 3.5), last=(-6, -3.5))
+
+            # Cube, corners: [9, 15, 21, 27, 45, 51, 57, 61]
+            _circle_embedding(g, [61, 9], center=(0, -1.5), shift=.2,
+                    radius=4)
+            _circle_embedding(g, [27, 15], center=(0, -1.5), shift=.7,
+                    radius=4*.707)
+            _circle_embedding(g, [51, 21], center=(0, 2.5), shift=.2,
+                    radius=4)
+            _circle_embedding(g, [45, 57], center=(0, 2.5), shift=.7,
+                    radius=4*.707)
+
+            # Cube, subdivision
+            _line_embedding(g, [21, 22, 43, 44, 45], first=d[21], last=d[45])
+            _line_embedding(g, [21, 4, 3, 56, 57], first=d[21], last=d[57])
+            _line_embedding(g, [57, 12, 13, 14, 15], first=d[57], last=d[15])
+            _line_embedding(g, [15, 6, 7, 8, 9], first=d[15], last=d[9])
+            _line_embedding(g, [9, 10, 19, 20, 21], first=d[9], last=d[21])
+            _line_embedding(g, [45, 54, 53, 52, 51], first=d[45], last=d[51])
+            _line_embedding(g, [51, 50, 49, 58, 57], first=d[51], last=d[57])
+            _line_embedding(g, [51, 32, 33, 34, 61], first=d[51], last=d[61])
+            _line_embedding(g, [61, 62, 41, 40, 27], first=d[61], last=d[27])
+            _line_embedding(g, [9, 0, 1, 26, 27], first=d[9], last=d[27])
+            _line_embedding(g, [27, 28, 47, 46, 45], first=d[27], last=d[45])
+            _line_embedding(g, [15, 16, 17, 60, 61], first=d[15], last=d[61])
+
+            # Top vertices
+            _line_embedding(g, [2, 18, 42, 48], first=(-1, 7), last=(3, 7))
+
+            return g
+
+        elif embedding == 2:
+            return g
+        else:
+            raise ValueError("The value of embedding must be 1 or 2.")
+
     def HouseGraph(self):
         """
         Returns a house graph with 5 nodes.
@@ -2377,7 +2627,7 @@ class GraphGenerators():
             6
             sage: g.is_hamiltonian()
             True
-            sage: g.show(figsize=[10,10])
+            sage: g.show(figsize=[10,10])   # long time
 
         TESTS::
 
@@ -2472,9 +2722,9 @@ class GraphGenerators():
             sage: g1 = graphs.Balaban11Cage(embedding=1)
             sage: g2 = graphs.Balaban11Cage(embedding=2)
             sage: g3 = graphs.Balaban11Cage(embedding=3)
-            sage: g1.show(figsize=[10,10])
-            sage: g2.show(figsize=[10,10])
-            sage: g3.show(figsize=[10,10])
+            sage: g1.show(figsize=[10,10])   # long time
+            sage: g2.show(figsize=[10,10])   # long time
+            sage: g3.show(figsize=[10,10])   # long time
 
         Proof that the embeddings are the same graph::
 
@@ -2679,6 +2929,93 @@ class GraphGenerators():
             11: [-0.5, 0.866025403784439]}
         return graph.Graph(edge_dict, pos=pos_dict, name="Bidiakis cube")
 
+    def BiggsSmithGraph(self, embedding=1):
+        r"""
+        Returns the Biggs-Smith graph.
+
+        For more information, see this :wikipedia:`Wikipedia article on
+        the Biggs-Smith graph <Biggs-Smith_graph>`.
+
+        INPUT:
+
+        - ``embedding`` -- two embeddings are available, and can be
+          selected by setting ``embedding`` to be 1 or 2.
+
+        EXAMPLES:
+
+        Basic properties::
+
+            sage: g = graphs.BiggsSmithGraph()
+            sage: g.order()
+            102
+            sage: g.size()
+            153
+            sage: g.girth()
+            9
+            sage: g.diameter()
+            7
+            sage: g.automorphism_group().cardinality()
+            2448
+            sage: g.show(figsize=[10, 10])   # long time
+
+        The other embedding::
+
+            sage: graphs.BiggsSmithGraph(embedding=2).show()
+
+        TESTS::
+
+            sage: graphs.BiggsSmithGraph(embedding='xyzzy')
+            Traceback (most recent call last):
+            ...
+            ValueError: The value of embedding must be 1 or 2.
+
+        """
+        L = [16, 24, -38, 17, 34, 48, -19, 41, -35, 47, -20, 34, -36,
+             21, 14, 48, -16, -36, -43, 28, -17, 21, 29, -43, 46, -24,
+             28, -38, -14, -50, -45, 21, 8, 27, -21, 20, -37, 39, -34,
+             -44, -8, 38, -21, 25, 15, -34, 18, -28, -41, 36, 8, -29,
+             -21, -48, -28, -20, -47, 14, -8, -15, -27, 38, 24, -48, -18,
+             25, 38, 31, -25, 24, -46, -14, 28, 11, 21, 35, -39, 43, 36,
+             -38, 14, 50, 43, 36, -11, -36, -24, 45, 8, 19, -25, 38, 20,
+             -24, -14, -21, -8, 44, -31, -38, -28, 37]
+
+        g = graphs.LCFGraph(102, L, 1)
+        g.name("Biggs-Smith graph")
+
+        if embedding == 1:
+
+            orbs = [[1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 0],
+                    [17, 101, 25, 66, 20, 38, 53, 89, 48, 75, 56, 92, 45, 78,
+                     34, 28, 63],
+                    [18, 36, 26, 65, 19, 37, 54, 90, 47, 76, 55, 91, 46, 77,
+                     35, 27, 64],
+                    [21, 39, 52, 88, 49, 74, 57, 93, 44, 79, 33, 29, 62, 83,
+                     100, 24, 67],
+                    [22, 97, 51, 96, 50, 95, 58, 94, 59, 80, 60, 81, 61, 82,
+                     99, 23, 98],
+                    [30, 86, 84, 72, 70, 68, 42, 40, 31, 87, 85, 73, 71, 69,
+                     43, 41, 32]]
+
+            # central orbits
+            _circle_embedding(g, orbs[1], center=(-.4, 0), radius=.2)
+            _circle_embedding(g, orbs[3], center=(.4, 0), radius=.2, shift=4)
+
+            # lower orbits
+            _circle_embedding(g, orbs[0], center=(-.9, -.5), radius=.3,
+                    shift=2)
+            _circle_embedding(g, orbs[2], center=(-.9, .5), radius=.3)
+
+            # upper orbits
+            _circle_embedding(g, orbs[4], center=(.9, -.5), radius=.3, shift=4)
+            _circle_embedding(g, orbs[5], center=(.9, .5), radius=.3, shift=-2)
+
+        elif embedding == 2:
+            pass
+        else:
+            raise ValueError("The value of embedding must be 1 or 2.")
+
+        return g
+
     def BrinkmannGraph(self):
         r"""
         Returns the Brinkmann graph.
@@ -2767,6 +3104,68 @@ class GraphGenerators():
             19: [-0.974927912181824, 0.222520933956315],
             20: [-0.433883739117558, 0.900968867902419]}
         return graph.Graph(edge_dict, pos=pos_dict, name="Brinkmann graph")
+
+    def DoubleStarSnark(self):
+        r"""
+        Returns the double star snark.
+
+        The double star snark is a 3-regular graph on 30 vertices. See
+        the :wikipedia:`Wikipedia page on the double star snark
+        <Double-star_snark>`.
+
+        EXAMPLES::
+
+            sage: g = graphs.DoubleStarSnark()
+            sage: g.order()
+            30
+            sage: g.size()
+            45
+            sage: g.chromatic_number()
+            3
+            sage: g.is_hamiltonian()
+            False
+            sage: g.automorphism_group().cardinality()
+            80
+            sage: g.show()
+        """
+
+        d = { 0: [1, 14, 15]
+            , 1: [0, 2, 11]
+            , 2: [1, 3, 7]
+            , 3: [2, 4, 18]
+            , 4: [3, 5, 14]
+            , 5: [10, 4, 6]
+            , 6: [5, 21, 7]
+            , 7: [8, 2, 6]
+            , 8: [9, 13, 7]
+            , 9: [24, 8, 10]
+            , 10: [9, 11, 5]
+            , 11: [1, 10, 12]
+            , 12: [11, 27, 13]
+            , 13: [8, 12, 14]
+            , 14: [0, 4, 13]
+            , 15: [0, 16, 29]
+            , 16: [15, 20, 23]
+            , 17: [25, 18, 28]
+            , 18: [3, 17, 19]
+            , 19: [18, 26, 23]
+            , 20: [16, 28, 21]
+            , 21: [20, 6, 22]
+            , 22: [26, 21, 29]
+            , 23: [16, 24, 19]
+            , 24: [25, 9, 23]
+            , 25: [24, 17, 29]
+            , 26: [27, 19, 22]
+            , 27: [12, 26, 28]
+            , 28: [17, 27, 20]
+            , 29: [25, 22, 15]
+            }
+
+        g = graph.Graph(d, pos={}, name="Double star snark")
+        _circle_embedding(g, range(15), radius=2)
+        _circle_embedding(g, range(15, 30), radius=1.4)
+
+        return g
 
     def ChvatalGraph(self):
         r"""
@@ -3102,6 +3501,34 @@ class GraphGenerators():
                             12:[13,19],13:[14],15:[19],16:[15,17],18:[17,19]}, \
                             pos=pos_dict, name="Flower Snark")
 
+    def FosterGraph(self):
+        """
+        Returns the Foster graph.
+
+        See the :wikipedia:`Wikipedia page on the Foster Graph
+        <Foster_graph>`.
+
+        EXAMPLE::
+
+            sage: g = graphs.FosterGraph()
+            sage: g.order()
+            90
+            sage: g.size()
+            135
+            sage: g.diameter()
+            8
+            sage: g.girth()
+            10
+            sage: g.automorphism_group().cardinality()
+            4320
+            sage: g.is_hamiltonian()
+            True
+        """
+        g= graphs.LCFGraph(90, [17, -9, 37, -37, 9, -17], 15)
+        g.name("Foster Graph")
+        return g
+
+
     def FranklinGraph(self):
         r"""
         Returns the Franklin graph.
@@ -3283,6 +3710,53 @@ class GraphGenerators():
             10: (0, 0)}
 
         return graph.Graph(edge_dict, pos = pos, name="Goldner-Harary graph")
+
+    def GrayGraph(self, embedding=1):
+        r"""
+        Returns the Gray graph.
+
+        See the :wikipedia:`Wikipedia page on the Gray Graph
+        <Gray_graph>`.
+
+        INPUT:
+
+        - ``embedding`` -- two embeddings are available, and can be
+          selected by setting ``embedding`` to 1 or 2.
+
+        EXAMPLES::
+
+            sage: g = graphs.GrayGraph()
+            sage: g.order()
+            54
+            sage: g.size()
+            81
+            sage: g.girth()
+            8
+            sage: g.diameter()
+            6
+            sage: g.show(figsize=[10, 10])   # long time
+            sage: graphs.GrayGraph(embedding = 2).show(figsize=[10, 10])   # long time
+
+        TESTS::
+
+            sage: graphs.GrayGraph(embedding = 3)
+            Traceback (most recent call last):
+            ...
+            ValueError: The value of embedding must be 1, 2, or 3.
+        """
+
+        g = graphs.LCFGraph(54, [-25,7,-7,13,-13,25], 9)
+        g.name("Gray graph")
+
+        if embedding == 1:
+            o = g.automorphism_group(orbits=True)[-1]
+            _circle_embedding(g, o[0], center=(0, 0), radius=1)
+            _circle_embedding(g, o[1], center=(0, 0), radius=.6, shift=-.5)
+
+        elif embedding != 2:
+            raise ValueError("The value of embedding must be 1, 2, or 3.")
+
+        return g
 
     def GrotzschGraph(self): 
         r""" 
@@ -3734,6 +4208,91 @@ class GraphGenerators():
         H.set_pos(pos_dict)
         return H
 
+    def LjubljanaGraph(self, embedding=1):
+        r"""
+        Returns the Ljubljana Graph.
+
+        The Ljubljana graph is a bipartite 3-regular graph on 112
+        vertices and 168 edges. It is not vertex-transitive as it has
+        two orbits which are also independent sets of size 56. See the
+        :wikipedia:`Wikipedia page on the Ljubljana Graph
+        <Ljubljana_graph>`.
+
+        The default embedding is obtained from the Heawood graph.
+
+        INPUT:
+
+        - ``embedding`` -- two embeddings are available, and can be
+          selected by setting ``embedding`` to 1 or 2.
+
+        EXAMPLES::
+
+            sage: g = graphs.LjubljanaGraph()
+            sage: g.order()
+            112
+            sage: g.size()
+            168
+            sage: g.girth()
+            10
+            sage: g.diameter()
+            8
+            sage: g.show(figsize=[10, 10])   # long time
+            sage: graphs.LjubljanaGraph(embedding=2).show(figsize=[10, 10])   # long time
+
+        TESTS::
+
+            sage: graphs.LjubljanaGraph(embedding=3)
+            Traceback (most recent call last):
+            ...
+            ValueError: The value of embedding must be 1 or 2.
+        """
+
+        L = [47, -23, -31, 39, 25, -21, -31, -41, 25, 15, 29, -41, -19, 15,
+             -49, 33, 39, -35, -21, 17, -33, 49, 41, 31, -15, -29, 41, 31,
+             -15, -25, 21, 31, -51, -25, 23, 9, -17, 51, 35, -29, 21, -51,
+             -39, 33, -9, -51, 51, -47, -33, 19, 51, -21, 29, 21, -31, -39]
+
+        g = graphs.LCFGraph(112, L, 2)
+        g.name("Ljubljana graph")
+
+        if embedding == 1:
+            return g
+
+        elif embedding == 2:
+            dh = graphs.HeawoodGraph().get_pos()
+
+            # Correspondence between the vertices of the Heawood Graph and
+            # 8-sets of the Ljubljana Graph.
+
+            d = {
+                0: [1, 21, 39, 57, 51, 77, 95, 107],
+                1: [2, 22, 38, 58, 50, 78, 94, 106],
+                2: [3, 23, 37, 59, 49, 79, 93, 105],
+                3: [4, 24, 36, 60, 48, 80, 92, 104],
+                4: [5, 25, 35, 61, 15, 81, 91, 71],
+                9: [6, 26, 44, 62, 16, 82, 100, 72],
+                10: [7, 27, 45, 63, 17, 83, 101, 73],
+                11: [8, 28, 46, 64, 18, 84, 102, 74],
+                12: [9, 29, 47, 65, 19, 85, 103, 75],
+                13: [10, 30, 0, 66, 20, 86, 56, 76],
+                8: [11, 31, 111, 67, 99, 87, 55, 43],
+                7: [12, 32, 110, 68, 98, 88, 54, 42],
+                6: [13, 33, 109, 69, 97, 89, 53, 41],
+                5: [14, 34, 108, 70, 96, 90, 52, 40]
+                }
+
+            # The vertices of each 8-set are plotted on a circle, and the
+            # circles are slowly shifted to obtain a symmetric drawing.
+
+            for i, (u, vertices) in enumerate(d.iteritems()):
+                _circle_embedding(g, vertices, center=dh[u], radius=.1,
+                        shift=8.*i/14)
+
+            return g
+
+        else:
+            raise ValueError("The value of embedding must be 1 or 2.")
+
     def KneserGraph(self,n,k):
         r"""
         Returns the Kneser Graph with parameters `n, k`.
@@ -3784,7 +4343,67 @@ class GraphGenerators():
                 g.add_edge(s,t)
 
         return g
-    
+
+    def McGeeGraph(self, embedding=2):
+        r"""
+        Returns the McGee Graph.
+
+        See the :wikipedia:`Wikipedia page on the McGee Graph
+        <McGee_graph>`.
+
+        INPUT:
+
+        - ``embedding`` -- two embeddings are available, and can be
+          selected by setting ``embedding`` to 1 or 2.
+
+        EXAMPLES::
+
+            sage: g = graphs.McGeeGraph()
+            sage: g.order()
+            24
+            sage: g.size()
+            36
+            sage: g.girth()
+            7
+            sage: g.diameter()
+            4
+            sage: g.show()
+            sage: graphs.McGeeGraph(embedding=1).show()
+
+        TESTS::
+
+            sage: graphs.McGeeGraph(embedding=3)
+            Traceback (most recent call last):
+            ...
+            ValueError: The value of embedding must be 1 or 2.
+        """
+
+        L = [47, -23, -31, 39, 25, -21, -31, -41, 25, 15, 29, -41, -19, 15,
+             -49, 33, 39, -35, -21, 17, -33, 49, 41, 31, -15, -29, 41, 31,
+             -15, -25, 21, 31, -51, -25, 23, 9, -17, 51, 35, -29, 21, -51,
+             -39, 33, -9, -51, 51, -47, -33, 19, 51, -21, 29, 21, -31, -39]
+
+        g = graphs.LCFGraph(24, [12, 7, -7], 8)
+        g.name('McGee graph')
+
+        if embedding == 1:
+            return g
+
+        elif embedding == 2:
+
+            o = [[7, 2, 13, 8, 19, 14, 1, 20],
+                 [5, 4, 11, 10, 17, 16, 23, 22],
+                 [3, 12, 9, 18, 15, 0, 21, 6]]
+
+            _circle_embedding(g, o[0], radius=1.5)
+            _circle_embedding(g, o[1], radius=3, shift=-.5)
+            _circle_embedding(g, o[2], radius=2.25, shift=.5)
+
+            return g
+
+        else:
+            raise ValueError("The value of embedding must be 1 or 2.")
+
     def MoebiusKantorGraph(self):
         """
         Returns a Moebius-Kantor Graph.
@@ -3989,6 +4608,53 @@ class GraphGenerators():
         
         return gg
 
+    def NauruGraph(self, embedding=2):
+        """
+        Returns the Nauru Graph.
+
+        See the :wikipedia:`Wikipedia page on the Nauru Graph
+        <Nauru_graph>`.
+
+        INPUT:
+
+        - ``embedding`` -- two embeddings are available, and can be
+          selected by setting ``embedding`` to 1 or 2.
+
+        EXAMPLES::
+
+            sage: g = graphs.NauruGraph()
+            sage: g.order()
+            24
+            sage: g.size()
+            36
+            sage: g.girth()
+            6
+            sage: g.diameter()
+            4
+            sage: g.show()
+            sage: graphs.NauruGraph(embedding=1).show()
+
+        TESTS::
+
+            sage: graphs.NauruGraph(embedding=3)
+            Traceback (most recent call last):
+            ...
+            ValueError: The value of embedding must be 1 or 2.
+            sage: graphs.NauruGraph(embedding=1).is_isomorphic(g)
+            True
+        """
+
+        if embedding == 1:
+            g = graphs.LCFGraph(24, [5, -9, 7, -7, 9, -5], 4)
+            g.name('Nauru Graph')
+            return g
+        elif embedding == 2:
+            g = graphs.GeneralizedPetersenGraph(12, 5)
+            g.name("Nauru Graph")
+            return g
+        else:
+            raise ValueError("The value of embedding must be 1 or 2.")
+
     def PappusGraph(self):
         """
         Returns the Pappus graph, a graph on 18 vertices.
@@ -4153,7 +4819,120 @@ class GraphGenerators():
         import networkx
         G = networkx.complete_bipartite_graph(3,3)
         return graph.Graph(G, pos=pos_dict, name="Thomsen graph")
-        
+
+    def Tutte12Cage(self):
+        r"""
+        Returns Tutte's 12-Cage.
+
+        See the :wikipedia:`Wikipedia page on the Tutte 12-Cage
+        <Tutte_12-cage>`.
+
+        EXAMPLES::
+
+            sage: g = graphs.Tutte12Cage()
+            sage: g.order()
+            126
+            sage: g.size()
+            189
+            sage: g.girth()
+            12
+            sage: g.diameter()
+            6
+            sage: g.show()
+        """
+        L = [17, 27, -13, -59, -35, 35, -11, 13, -53, 53, -27, 21, 57, 11,
+             -21, -57, 59, -17]
+
+        g = graphs.LCFGraph(126, L, 7)
+        g.name("Tutte 12-Cage")
+        return g
+
+    def TutteCoxeterGraph(self, embedding=2):
+        r"""
+        Returns the Tutte-Coxeter graph.
+
+        See the :wikipedia:`Wikipedia page on the Tutte-Coxeter Graph
+        <Tutte-Coxeter_graph>`.
+
+        INPUT:
+
+        - ``embedding`` -- two embeddings are available, and can be
+          selected by setting ``embedding`` to 1 or 2.
+
+        EXAMPLES::
+
+            sage: g = graphs.TutteCoxeterGraph()
+            sage: g.order()
+            30
+            sage: g.size()
+            45
+            sage: g.girth()
+            8
+            sage: g.diameter()
+            4
+            sage: g.show()
+            sage: graphs.TutteCoxeterGraph(embedding=1).show()
+
+        TESTS::
+
+            sage: graphs.TutteCoxeterGraph(embedding=3)
+            Traceback (most recent call last):
+            ...
+            ValueError: The value of embedding must be 1 or 2.
+        """
+
+        g = graphs.LCFGraph(30, [-13, -9, 7, -7, 9, 13], 5)
+        g.name("Tutte-Coxeter graph")
+
+        if embedding == 1:
+            d = {
+                0: [1, 3, 5, 7, 29],
+                1: [2, 4, 6, 28, 0],
+                2: [8, 18, 26, 22, 12],
+                3: [9, 13, 23, 27, 17],
+                4: [11, 15, 21, 25, 19],
+                5: [10, 14, 24, 20, 16]
+                }
+
+            _circle_embedding(g, d[0], center=(-1, 1), radius=.25)
+            _circle_embedding(g, d[1], center=(1, 1), radius=.25)
+            _circle_embedding(g, d[2], center=(-.8, 0), radius=.25, shift=2.5)
+            _circle_embedding(g, d[3], center=(1.2, 0), radius=.25)
+            _circle_embedding(g, d[4], center=(-1, -1), radius=.25, shift=2)
+            _circle_embedding(g, d[5], center=(1, -1), radius=.25)
+
+            return g
+
+        elif embedding == 2:
+            return g
+
+        else:
+            raise ValueError("The value of embedding must be 1 or 2.")
+
+    def WagnerGraph(self):
+        """
+        Returns the Wagner Graph.
+
+        See the :wikipedia:`Wikipedia page on the Wagner Graph
+        <Wagner_graph>`.
+
+        EXAMPLES::
+
+            sage: g = graphs.WagnerGraph()
+            sage: g.order()
+            8
+            sage: g.size()
+            12
+            sage: g.girth()
+            4
+            sage: g.diameter()
+            2
+            sage: g.show()
+        """
+        g = graphs.LCFGraph(8, [4], 8)
+        g.name("Wagner Graph")
+        return g
+
 ###########################################################################
 #   Families of Graphs
 ###########################################################################
@@ -5308,7 +6087,7 @@ class GraphGenerators():
     def OddGraph(self,n):
         r"""
         Returns the Odd Graph with parameter `n`.
-        
+
         The Odd Graph with parameter `n` is defined as the
         Kneser Graph with parameters `2n-1,n-1`.
         Equivalently, the Odd Graph is the graph whose vertices
@@ -5320,7 +6099,7 @@ class GraphGenerators():
         as the Odd Graph with parameter `3`.
 
         EXAMPLE::
-        
+
             sage: OG=graphs.OddGraph(3)
             sage: print OG.vertices()
             [{4, 5}, {1, 3}, {2, 5}, {2, 3}, {3, 4}, {3, 5}, {1, 4}, {1, 5}, {1, 2}, {2, 4}]
@@ -5342,6 +6121,99 @@ class GraphGenerators():
         g.name("Odd Graph with parameter %s" % n)
         return g
 
+
+    def PermutationGraph(self, second_permutation, first_permutation = None):
+        r"""
+        Builds a permutation graph from one (or two) permutations.
+
+        General definition
+
+        A Permutation Graph can be encoded by a permutation `\sigma`
+        of `0, ..., n`. It is then built in the following way :
+
+          Take two horizontal lines in the euclidean plane, and mark points `0,
+          ..., n` from left to right on the first of them. On the second one,
+          still from left to right, mark point in the order in which they appear
+          in `\sigma`. Now, link by a segment the two points marked with 1, then
+          link together the points marked with 2, and so on. The permutation
+          graph defined by the permutation is the intersection graph of those
+          segments : there exists a point in this graph for each element from
+          `1` to `n`, two vertices `i, j` being adjacent if the segments `i` and
+          `j` cross each other.
+
+        The set of edges of the resulting graph is equal to the set of
+        inversions of the inverse of the given permutation.
+
+        INPUT:
+
+        - ``second_permutation`` -- the permutation from which the graph should
+          be built. It corresponds to the ordering of the elements on the second
+          line (see previous definition)
+
+        - ``first_permutation`` (optional) -- the ordering of the elements on
+          the *first* line. This is useful when the elements have no natural
+          ordering, for instance when they are strings, or tuples, or anything
+          else.
+
+          When ``first_permutation == None`` (default), it is set to be equal to
+          ``sorted(second_permutation)``, which just yields the expected
+          ordering when the elements of the graph are integers.
+
+        .. SEEALSO:
+
+          - Recognition of Permutation graphs in the :mod:`comparability module
+            <sage.graphs.comparability>`.
+
+          - Drawings of permutation graphs as intersection graphs of segments is
+            possible through the
+            :meth:`~sage.combinat.permutation.Permutation_class.show` method of
+            :class:`~sage.combinat.permutation.Permutation` objects.
+
+            The correct argument to use in this case is ``show(representation =
+            "braid")``.
+
+          - :meth:`~sage.combinat.permutation.Permutation_class.inversions`
+
+        EXAMPLE::
+
+            sage: p = Permutations(5).random_element()
+            sage: edges = graphs.PermutationGraph(p).edges(labels =False)
+            sage: set(edges) == set(map(lambda (x,y) : (x+1,y+1),p.inverse().inversions()))
+            True
+
+        TESTS::
+
+            sage: graphs.PermutationGraph([1, 2, 3], [4, 5, 6])
+            Traceback (most recent call last):
+            ...
+            ValueError: The two permutations do not contain the same set of elements ...
+        """
+        if first_permutation == None:
+            first_permutation = sorted(second_permutation)
+        else:
+            if set(second_permutation) != set(first_permutation):
+                raise ValueError("The two permutations do not contain the same "+
+                                 "set of elements ! It is going to be pretty "+
+                                 "hard to define a permutation graph from that !")
+
+        vertex_to_index = {}
+        for i, v in enumerate(first_permutation):
+            vertex_to_index[v] = i+1
+
+        from sage.combinat.permutation import Permutation
+        p2 = Permutation(map(lambda x:vertex_to_index[x], second_permutation))
+        p1 = Permutation(map(lambda x:vertex_to_index[x], first_permutation))
+        p2 = p2 * p1.inverse()
+        p2 = p2.inverse()
+
+        g = graph.Graph(name="Permutation graph for "+str(second_permutation))
+        g.add_vertices(second_permutation)
+
+        for u,v in p2.inversions():
+            g.add_edge(first_permutation[u], first_permutation[v])
+
+        return g
+
 ################################################################################
 #   Pseudofractal Graphs
 ################################################################################
@@ -5356,7 +6228,7 @@ class GraphGenerators():
             sage: G = graphs.DorogovtsevGoltsevMendesGraph(8)
             sage: G.size()
             6561
-        
+
         REFERENCE:
 
         - [1] Dorogovtsev, S. N., Goltsev, A. V., and Mendes, J.
@@ -6960,7 +7832,7 @@ class GraphGenerators():
                     0: [1, 2, 3, 4],
                     1: [2, 3, 4],
                     3: [4],
-                    5: [2, 0, 1]                    
+                    5: [2, 0, 1]
                     }))
 
         graphs.append(Graph({
@@ -7693,7 +8565,7 @@ def _circle_embedding(g, vertices, center=(0, 0), radius=1, shift=0):
 
         sage: from sage.graphs.graph_generators import _circle_embedding
         sage: g = graphs.CycleGraph(5)
-        sage: _circle_embedding(g, [0, 2, 4, 1, 3], radius = 2, shift = .5)
+        sage: _circle_embedding(g, [0, 2, 4, 1, 3], radius=2, shift=.5)
         sage: g.show()
     """
     c_x, c_y = center
@@ -7707,3 +8579,31 @@ def _circle_embedding(g, vertices, center=(0, 0), radius=1, shift=0):
         d[v] = (v_x, v_y)
 
     g.set_pos(d)
+
+def _line_embedding(g, vertices, first=(0, 0), last=(0, 1)):
+    r"""
+    Sets some vertices on a line in the embedding of a graph G.
+
+    This method modifies the graph's embedding so that the vertices of
+    ``vertices`` appear on a line, where the position of ``vertices[0]``
+    is the pair ``first`` and the position of ``vertices[-1]`` is
+    ``last``. The vertices are evenly spaced.
+
+    EXAMPLE::
+
+        sage: from sage.graphs.graph_generators import _line_embedding
+        sage: g = graphs.PathGraph(5)
+        sage: _line_embedding(g, [0, 2, 4, 1, 3], first=(-1, -1), last=(1, 1))
+        sage: g.show()
+    """
+    n = len(vertices) - 1.
+
+    fx, fy = first
+    dx = (last[0] - first[0])/n
+    dy = (last[1] - first[1])/n
+
+    d = g.get_pos()
+    for v in vertices:
+        d[v] = (fx, fy)
+        fx += dx
+        fy += dy

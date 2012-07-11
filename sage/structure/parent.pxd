@@ -7,7 +7,6 @@
 ###############################################################################
 
 cimport sage.structure.category_object
-from sage.structure.coerce_dict cimport TripleDict
 
 cdef class AttributeErrorMessage:
     cdef type cls
@@ -78,9 +77,9 @@ cdef class Parent(category_object.CategoryObject):
     # and Parents for which self._rmul_ and/or self._lmul_
     # do the correct thing. 
     # Initialized at ring creation. 
-    cdef list _action_list
+    cdef _action_list
     # Hashtable of everything we've (possibly recursively) discovered so far. 
-    cdef TripleDict _action_hash
+    cdef _action_hash
 
     # List consisting of Morphisms (from anything to self) 
     # and Parents for which the __call__ method of self 

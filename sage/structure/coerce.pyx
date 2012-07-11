@@ -1207,11 +1207,10 @@ cdef class CoercionModel_cache_maps(CoercionModel):
         try:
             return self._action_maps.get(R, S, op)
         except KeyError:
-            pass
-        action = self.discover_action(R, S, op)
-        action = self.verify_action(action, R, S, op)
-        self._action_maps.set(R, S, op, action)
-        return action
+            action = self.discover_action(R, S, op)
+            action = self.verify_action(action, R, S, op)
+            self._action_maps.set(R, S, op, action)
+            return action
             
     cpdef verify_action(self, action, R, S, op, bint fix=True):
         r"""

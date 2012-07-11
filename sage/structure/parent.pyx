@@ -375,18 +375,25 @@ def dir_with_other_class(self, cls):
         False
         sage: sage.structure.parent.dir_with_other_class(x, B)
         [..., 'a', 'b']
+
+    TESTS:
+
+    Check that #13043 is fixed::
+
+        sage: len(dir(RIF))==len(set(dir(RIF)))
+        True
     """
+    ret = set()
     # This tries to emulate the standard dir function
     # Is there a better way to call dir on self, while ignoring this
     # __dir__? Using dir(super(A, self)) does not work since the
     # attributes coming from subclasses of A will be ignored
-    iterator = dir(self.__class__)
+    ret.update(dir(self.__class__))
     if hasattr(self, "__dict__"):
-        iterator = unique_merge(iterator, self.__dict__.keys())
+        ret.update(self.__dict__.keys())
     if not isinstance(self, cls):
-        iterator = unique_merge(iterator, dir(cls))
-    return list(iterator)
-
+        ret.update(dir(cls))
+    return sorted(ret)
 
 ###############################################################################
 #   Sage: System for Algebra and Geometry Experimentation    
@@ -802,7 +809,7 @@ cdef class Parent(category_object.CategoryObject):
             self._coerce_from_list = []
             self._coerce_from_hash = {}
             self._action_list = []
-            self._action_hash = TripleDict(23)
+            self._action_hash = {}
             self._convert_from_list = []
             self._convert_from_hash = {}
             self._embedding = None
@@ -832,6 +839,7 @@ cdef class Parent(category_object.CategoryObject):
             running ._test_an_element() . . . pass
             running ._test_associativity() . . . pass
             running ._test_category() . . . pass
+            running ._test_characteristic() . . . pass
             running ._test_distributivity() . . . pass
             running ._test_elements() . . . 
               Running the test suite of self.an_element()
@@ -894,6 +902,7 @@ cdef class Parent(category_object.CategoryObject):
             _test_an_element
             _test_associativity
             _test_category
+            _test_characteristic
             _test_distributivity
             _test_elements
             _test_elements_eq
@@ -918,7 +927,7 @@ cdef class Parent(category_object.CategoryObject):
         EXAMPLES::
         
             sage: sorted(QQ._introspect_coerce().items())
-            [('_action_hash', <sage.structure.coerce_dict.TripleDict object at ...>),
+            [('_action_hash', {...}),
              ('_action_list', []),
              ('_coerce_from_hash', {...}),
              ('_coerce_from_list', []),
@@ -1860,10 +1869,10 @@ cdef class Parent(category_object.CategoryObject):
         if isinstance(action, Action):
             if action.actor() is self:
                 self._action_list.append(action)
-                self._action_hash.set(action.domain(), action.operation(), action.is_left(), action)
+                self._action_hash[action.domain(), action.operation(), action.is_left()] = action
             elif action.domain() is self:
                 self._action_list.append(action)
-                self._action_hash.set(action.actor(), action.operation(), not action.is_left(), action)
+                self._action_hash[action.actor(), action.operation(), not action.is_left()] = action
             else:
                 raise ValueError("Action must involve self")
         else:
@@ -2419,7 +2428,7 @@ cdef class Parent(category_object.CategoryObject):
         try:
             if self._action_hash is None: # this is because parent.__init__() does not always get called
                 self.init_coerce()
-            return self._action_hash.get(S, op, self_on_left)
+            return self._action_hash[S, op, self_on_left]
         except KeyError:
             pass
 
@@ -2434,7 +2443,7 @@ cdef class Parent(category_object.CategoryObject):
             # We do NOT add to the list, as this would lead to errors as in 
             # the example above. 
 
-        self._action_hash.set(S, op, self_on_left, action)
+        self._action_hash[S, op, self_on_left] = action
         return action
         
 

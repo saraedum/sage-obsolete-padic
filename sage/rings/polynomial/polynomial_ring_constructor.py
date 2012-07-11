@@ -53,8 +53,7 @@ _ID = IntegralDomains()
 from sage.categories.commutative_rings import CommutativeRings
 _CommutativeRings = CommutativeRings()
 
-import weakref
-_cache = weakref.WeakValueDictionary()
+_cache = {}
 
 def PolynomialRing(base_ring, arg1=None, arg2=None,
                    sparse=False, order='degrevlex',

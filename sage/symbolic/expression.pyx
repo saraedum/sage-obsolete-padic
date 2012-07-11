@@ -145,9 +145,11 @@ from sage.symbolic.getitem cimport OperandsWrapper
 from sage.symbolic.function import get_sfunction_from_serial, SymbolicFunction
 from sage.rings.rational import Rational  # Used for sqrt.
 from sage.misc.derivative import multi_derivative
-from sage.rings.infinity import AnInfinity
+from sage.rings.infinity import AnInfinity, infinity, minus_infinity, unsigned_infinity
 from sage.misc.decorators import rename_keyword
 from sage.misc.misc import deprecated_function_alias
+
+LOG_TEN_TWO_PLUS_EPSILON = 3.321928094887363 # a small overestimate of log(10,2)
 
 """
 SAGE_DOCTEST_ALLOW_TABS
@@ -203,9 +205,13 @@ def is_SymbolicEquation(x):
 cdef class Expression(CommutativeRingElement):
     cpdef object pyobject(self):
         """
-        Get the underlying Python object corresponding to this
-        expression, assuming this expression is a single numerical
-        value.   Otherwise, a TypeError is raised.
+        Get the underlying Python object.
+
+        OUTPUT:
+
+        The Python object corresponding to this expression, assuming
+        this expression is a single numerical value or an infinity
+        representable in Python. Otherwise, a ``TypeError`` is raised.
 
         EXAMPLES::
         
@@ -217,11 +223,31 @@ cdef class Expression(CommutativeRingElement):
             -17/3
             sage: a.pyobject() is b
             True
+           
+        TESTS::
+        
+            sage: SR(oo).pyobject()
+            +Infinity
+            sage: SR(-oo).pyobject()
+            -Infinity
+            sage: SR(unsigned_infinity).pyobject()
+            Infinity
+            sage: SR(I*oo).pyobject()
+            Traceback (most recent call last):
+            ...
+            TypeError: Python infinity cannot have complex phase.
         """
         cdef GConstant* c
         if is_a_constant(self._gobj):
             from sage.symbolic.constants import constants_name_table
             return constants_name_table[GEx_to_str(&self._gobj)]
+
+        if is_a_infinity(self._gobj):
+            if (ex_to_infinity(self._gobj).is_unsigned_infinity()): return unsigned_infinity
+            if (ex_to_infinity(self._gobj).is_plus_infinity()):     return infinity
+            if (ex_to_infinity(self._gobj).is_minus_infinity()):    return minus_infinity
+            raise TypeError('Python infinity cannot have complex phase.')
+            
         if not is_a_numeric(self._gobj):
             raise TypeError, "self must be a numeric expression"
         return py_object_from_numeric(self._gobj)
@@ -725,14 +751,39 @@ cdef class Expression(CommutativeRingElement):
         """
         EXAMPLES::
         
-            sage: int(sin(2)*100)
-            90
             sage: int(log(8)/log(2))
             3
+            sage: int(-log(8)/log(2))
+            -3
+            sage: int(sin(2)*100)
+            90
+            sage: int(-sin(2)*100)
+            -90
+            sage: int(SR(3^64)) == 3^64
+            True
+            sage: int(SR(10^100)) == 10^100
+            True
+            sage: int(SR(10^100-10^-100)) == 10^100 - 1
+            True
+            sage: int(sqrt(-3))
+            Traceback (most recent call last):
+            ...
+            ValueError: cannot convert sqrt(-3) to int
         """
-        #FIXME: can we do better?
-        return int(self.n(prec=100))
-
+        from sage.functions.all import floor, ceil
+        try:
+            rif_self = sage.rings.all.RIF(self)
+        except TypeError:
+            raise ValueError, "cannot convert %s to int"%(self)
+        if rif_self > 0 or (rif_self.contains_zero() and self > 0):
+            result = floor(self)
+        else:
+            result = ceil(self)
+        if not isinstance(result, sage.rings.integer.Integer):
+            raise ValueError, "cannot convert %s to int"%(self)
+        else:
+            return int(result)
+            
     def __long__(self):
         """
         EXAMPLES::
@@ -1159,9 +1210,9 @@ cdef class Expression(CommutativeRingElement):
     def __richcmp__(left, right, int op):
         """
         Create a formal symbolic inequality or equality.
-        
+
         EXAMPLES::
-        
+
             sage: var('x, y')
             (x, y)
             sage: x + 2/3 < y^2
@@ -1174,6 +1225,42 @@ cdef class Expression(CommutativeRingElement):
             x^3 - y^10 >= x^10 + y
             sage: x^2 > x
             x^2 > x
+
+        Testing trac #11309 which changes the behavior of comparison of
+        comparisons::
+
+            sage: (-x + y < 0) in [x - y < 0]
+            False
+            sage: (x - 1 < 0) in [x - 2 < 0]
+            False
+            sage: Set([-x + y < 0, x - y < 0])
+            {-x + y < 0, x - y < 0}
+            sage: (x < y) == (x > y)
+            False
+            sage: (x < 0) < (x < 1)
+            False
+            sage: (x < y) != (y > x)
+            False
+            sage: (x >= y) == (y <= x)
+            True
+            sage: (x > y) == (y <= x)
+            False
+            sage: (x < x) == (x < x)
+            True
+            sage: (y > y) != (y > y)
+            False
+            sage: (x < y) != x
+            True
+            sage: (x == y) == (y == x)
+            True
+            sage: (x != y) != (y != x)
+            False
+            sage: (x == y) != (x != y)
+            True
+            sage: (x == y) == (y != x)
+            False
+            sage: x == (x == x)
+            False
         """
         return (<Element>left)._richcmp(right, op)
 
@@ -1183,15 +1270,54 @@ cdef class Expression(CommutativeRingElement):
         l = left
         r = right
 
-        if is_a_relational(l._gobj) or is_a_relational(r._gobj):
-            c = cmp(hash(l), hash(r))
-            if op == Py_NE:
-                return c != 0
-            elif op == Py_EQ:
-                return c == 0
-            else:
+        # If lhs or rhs is a relation, resolve the big relation
+        # immediately UNLESS the lhs and rhs are flipped versions of
+        # the same relation.
+        if is_a_relational(l._gobj):
+            if (op != Py_EQ and op != Py_NE):
+                # relations aren't <, >, <=, or >= to other things
                 return False
+            if is_a_relational(r._gobj):
+                # both lhs and rhs are relations, so we can get to work
+                if l.operator() == r.operator():
+                    e2 = ( # case: (x _ y) ?= (x _ y)
+                           ( l._gobj.lhs().is_equal(r._gobj.lhs()) and
+                             l._gobj.rhs().is_equal(r._gobj.rhs()) ) or
 
+                           # case: (x == y) ?= (y == x)
+                           #       (x != y) ?= (y != x)
+                           ( ( l.operator() == operator.eq or
+                               l.operator() == operator.ne ) and
+                             l._gobj.lhs().is_equal(r._gobj.rhs()) and
+                             l._gobj.rhs().is_equal(r._gobj.lhs()) ))
+                else:
+                    e2 = ( # case: (x < y)  ?= (y > x)  (or vice versa)
+                           #       (x <= y) ?= (y >= x) (or vice versa)
+                           ( ( l.operator() == operator.lt and
+                               r.operator() == operator.gt ) or
+                             ( l.operator() == operator.gt and
+                               r.operator() == operator.lt ) or
+                             ( l.operator() == operator.le and
+                               r.operator() == operator.ge ) or
+                             ( l.operator() == operator.ge and
+                               r.operator() == operator.le ) ) and
+                           l._gobj.lhs().is_equal(r._gobj.rhs()) and
+                           l._gobj.rhs().is_equal(r._gobj.lhs()) )
+
+            else:
+                e2 = False              # l is relational but r isn't.
+
+            if op == Py_EQ:
+                return e2
+            else:                       # op == Py_NE, checked earlier.
+                return not e2
+
+        elif is_a_relational(r._gobj):  # l isn't relational but r is.
+            # things aren't <, >, <=, >=, or == to relations; they
+            # are, however, != to relations
+            return op == Py_NE
+
+        # neither was relational, so we can create a symbolic relation
         cdef GEx e
         if op == Py_LT:
             e = g_lt(l._gobj, r._gobj)
@@ -1204,7 +1330,7 @@ cdef class Expression(CommutativeRingElement):
         elif op == Py_NE:
             e = g_ne(l._gobj, r._gobj)
         elif op == Py_GE:
-            e = g_ge(l._gobj, r._gobj)        
+            e = g_ge(l._gobj, r._gobj)
         else:
             raise TypeError
         return new_Expression_from_GEx(l._parent, e)
@@ -1660,6 +1786,19 @@ cdef class Expression(CommutativeRingElement):
         """
         return is_a_relational(self._gobj)
 
+    cpdef bint is_infinity(self):
+        """
+        Return True if self is an infinite expression.
+
+        EXAMPLES::
+        
+            sage: SR(oo).is_infinity()
+            True
+            sage: x.is_infinity()
+            False
+        """
+        return is_a_infinity(self._gobj)
+
     def left_hand_side(self):
         """
         If self is a relational expression, return the left hand side
@@ -1727,7 +1866,8 @@ cdef class Expression(CommutativeRingElement):
             sage: SR(1./2^10000).is_trivial_zero()
             False
 
-        The :meth:`is_zero` method is more capable::
+        The :meth:`~sage.structure.element.Element.is_zero` method
+        is more capable::
 
             sage: t = pi + (pi - 1)*pi - pi^2
             sage: t.is_trivial_zero()
@@ -1859,16 +1999,29 @@ cdef class Expression(CommutativeRingElement):
             sage: bool(x != y) # The same comment as above applies here as well
             True
             sage: forget()
+
+        Comparisons of infinities::
+
+            sage: assert( (1+I)*oo == (2+2*I)*oo )
+            sage: assert( SR(unsigned_infinity) == SR(unsigned_infinity) )
+            sage: assert( SR(I*oo) == I*oo )
+            sage: assert( SR(-oo) <= SR(oo) )
+            sage: assert( SR(oo) >= SR(-oo) )
+            sage: assert( SR(oo) != SR(-oo) )
+            sage: assert( sqrt(2)*oo != I*oo )
         """
         if self.is_relational():
-            #If both the left hand side and right hand side are wrappers
-            #around Sage objects, then we should do the comparison directly
-            #with those objects
+            # constants are wrappers around Sage objects, compare directly
             if is_a_constant(self._gobj.lhs()) and is_a_constant(self._gobj.rhs()):
                 return self.operator()(self.lhs().pyobject(), self.rhs().pyobject())
 
-            res = relational_to_bool(self._gobj)
-            if res:
+            pynac_result = relational_to_bool(self._gobj)
+
+            # pynac is guaranteed to give the correct answer for comparing infinities
+            if is_a_infinity(self._gobj.lhs()) or is_a_infinity(self._gobj.rhs()):
+                return pynac_result
+
+            if pynac_result:
                 if self.operator() == operator.ne: # this hack is necessary to catch the case where the operator is != but is False because of assumptions made
                     m = self._maxima_()
                     s = m.parent()._eval_line('is (notequal(%s,%s))'%(repr(m.lhs()),repr(m.rhs()))) 
@@ -2198,34 +2351,30 @@ cdef class Expression(CommutativeRingElement):
             sage: nsr(oo) - nsr(oo)
             Traceback (most recent call last):
             ...
-            RuntimeError: indeterminate expression: Infinity - Infinity encountered.
+            RuntimeError: indeterminate expression: infinity - infinity encountered.
             sage: nsr(-oo) - nsr(-oo)
             Traceback (most recent call last):
             ...
-            RuntimeError: indeterminate expression: Infinity - Infinity encountered.
+            RuntimeError: indeterminate expression: infinity - infinity encountered.
 
             sage: nsr(unsigned_infinity) + nsr(oo)
             Traceback (most recent call last):
             ...
-            RuntimeError: indeterminate expression: unsigned_infinity + x where x is Infinity, -Infinity or unsigned infinity encountered.
+            RuntimeError: indeterminate expression: unsigned_infinity +- infinity encountered.
             sage: nsr(unsigned_infinity) - nsr(oo)
             Traceback (most recent call last):
             ...
-            RuntimeError: indeterminate expression: unsigned_infinity + x where x is Infinity, -Infinity or unsigned infinity encountered.
+            RuntimeError: indeterminate expression: unsigned_infinity +- infinity encountered.
             sage: nsr(oo) + nsr(unsigned_infinity)
             Traceback (most recent call last):
             ...
-            RuntimeError: indeterminate expression: unsigned_infinity + x where x is Infinity, -Infinity or unsigned infinity encountered.
+            RuntimeError: indeterminate expression: unsigned_infinity +- infinity encountered.
             sage: nsr(oo) - nsr(unsigned_infinity)
             Traceback (most recent call last):
             ...
-            RuntimeError: indeterminate expression: unsigned_infinity + x where x is Infinity, -Infinity or unsigned infinity encountered.
+            RuntimeError: indeterminate expression: unsigned_infinity +- infinity encountered.
             sage: nsr(unsigned_infinity) + nsr(unsigned_infinity)
-            Traceback (most recent call last):
-            ...
-            RuntimeError: indeterminate expression: unsigned_infinity + x where x is Infinity, -Infinity or unsigned infinity encountered.
-
-
+            Infinity
         """
         cdef GEx x
         cdef Expression _right = <Expression>right
@@ -2381,9 +2530,9 @@ cdef class Expression(CommutativeRingElement):
         ::
 
             sage: x*oo
-            +Infinity
-            sage: -x*oo
-            -Infinity
+            Traceback (most recent call last):
+            ...
+            ArithmeticError: indeterminate expression: infinity * f(x) encountered.
             sage: x*unsigned_infinity
             Traceback (most recent call last):
             ...
@@ -2456,32 +2605,34 @@ cdef class Expression(CommutativeRingElement):
             sage: x/oo
             0
             sage: oo/x
-            +Infinity
+            Traceback (most recent call last):
+            ...
+            RuntimeError: indeterminate expression: infinity * f(x) encountered.
 
             sage: SR(oo)/SR(oo)
             Traceback (most recent call last):
             ...
-            RuntimeError: indeterminate expression: 0*infinity encountered.
+            RuntimeError: indeterminate expression: 0 * infinity encountered.
 
             sage: SR(-oo)/SR(oo)
             Traceback (most recent call last):
             ...
-            RuntimeError: indeterminate expression: 0*infinity encountered.
+            RuntimeError: indeterminate expression: 0 * infinity encountered.
 
             sage: SR(oo)/SR(-oo)
             Traceback (most recent call last):
             ...
-            RuntimeError: indeterminate expression: 0*infinity encountered.
+            RuntimeError: indeterminate expression: 0 * infinity encountered.
 
             sage: SR(oo)/SR(unsigned_infinity)
             Traceback (most recent call last):
             ...
-            RuntimeError: indeterminate expression: 0*infinity encountered.
+            RuntimeError: indeterminate expression: 0 * infinity encountered.
 
             sage: SR(unsigned_infinity)/SR(oo)
             Traceback (most recent call last):
             ...
-            RuntimeError: indeterminate expression: 0*infinity encountered.
+            RuntimeError: indeterminate expression: 0 * infinity encountered.
 
             sage: SR(0)/SR(oo)
             0
@@ -2626,7 +2777,7 @@ cdef class Expression(CommutativeRingElement):
             sage: x^oo
             Traceback (most recent call last):
             ...
-            ValueError: power::eval(): pow(x, Infinity) for non numeric x is not defined.
+            ValueError: power::eval(): pow(f(x), infinity) is not defined.
             sage: SR(oo)^2
             +Infinity
             sage: SR(-oo)^2
@@ -2666,6 +2817,18 @@ cdef class Expression(CommutativeRingElement):
             sqrt(I)
             sage: I^(2/3)
             I^(2/3)
+            sage: 2^(1/2)
+            sqrt(2)
+            sage: (2*I)^(1/2)
+            sqrt(2*I)
+
+        Test if we can take powers of elements of Q(i) #8659::
+
+            sage: t = I.pyobject().parent()(8)
+            sage: t^(1/2)
+            2*sqrt(2)
+            sage: (t^2)^(1/4)
+            2*4^(1/4)
         """
         cdef Expression base, nexp
 
@@ -2692,12 +2855,14 @@ cdef class Expression(CommutativeRingElement):
         variables supplied in args.
 
         Multiple variables and iteration counts may be supplied; see
-        documentation for the global derivative() function for more
+        documentation for the global
+        :meth:`~sage.calculus.functional.derivative` function for more
         details.
 
         .. seealso::
 
-            :meth:`_derivative`
+            This is implemented in the `_derivative` method (see the
+            source code).
 
         EXAMPLES::
         
@@ -2712,6 +2877,16 @@ cdef class Expression(CommutativeRingElement):
             4
             sage: t.derivative(y)
             2*x^2 + 2*y
+
+        If the function depends on only one variable, you may omit the
+        variable. Giving just a number (for the order of the derivative)
+        also works::
+
+            sage: f(x) = x^3 + sin(x)
+            sage: f.derivative()
+            x |--> 3*x^2 + cos(x)
+            sage: f.derivative(2)
+            x |--> 6*x - sin(x)
 
         ::
 
@@ -3526,17 +3701,21 @@ cdef class Expression(CommutativeRingElement):
             sage: (x/y).subs(y=oo)
             0
             sage: (x/y).subs(x=oo)
-            +Infinity
+            Traceback (most recent call last):
+            ...
+            RuntimeError: indeterminate expression: infinity * f(x) encountered.
             sage: (x*y).subs(x=oo)
-            +Infinity
+            Traceback (most recent call last):
+            ...
+            RuntimeError: indeterminate expression: infinity * f(x) encountered.
             sage: (x^y).subs(x=oo)
             Traceback (most recent call last):
             ...
-            ValueError: power::eval(): pow(Infinity, x) for non numeric x is not defined.
+            ValueError: power::eval(): pow(Infinity, f(x)) is not defined.
             sage: (x^y).subs(y=oo)
             Traceback (most recent call last):
             ...
-            ValueError: power::eval(): pow(x, Infinity) for non numeric x is not defined.
+            ValueError: power::eval(): pow(f(x), infinity) is not defined.
             sage: (x+y).subs(x=oo)
             +Infinity
             sage: (x-y).subs(y=oo)
@@ -4106,12 +4285,20 @@ cdef class Expression(CommutativeRingElement):
             Traceback (most recent call last):
             ...
             TypeError: cannot evaluate symbolic expression numerically
+
+        Make sure we've rounded up log(10,2) enough to guarantee
+        sufficient precision (trac #10164)::
+
+            sage: ks = 4*10**5, 10**6
+            sage: all(len(str(e.n(digits=k)))-1 >= k for k in ks)
+            True
+
         """
         if prec is None:
             if digits is None:
                 prec = 53
             else:
-                prec = int((digits+1) * 3.32192) + 1
+                prec = int((digits+1) * LOG_TEN_TWO_PLUS_EPSILON) + 1
         from sage.rings.real_mpfr import RealField
         R = RealField(prec)
         cdef Expression x
@@ -4146,22 +4333,40 @@ cdef class Expression(CommutativeRingElement):
         """
         Round this expression to the nearest integer.
 
-        This method evaluates an expression in ``RR`` first and rounds the
-        result. This may lead to misleading results.
-
         EXAMPLES::
             
-            sage: t = sqrt(Integer('1'*1000)).round(); t
-            33333333333333330562872877837571095953933917311168389275365130348599729268937180234955282892214983624063325870179809380946753270304893256291223685906477377407805362767048122713900447143840625646189582982153140391592656164907437770144711391823061825859553426442610175266854303816282031207413258045024789468633297982051760989540057817134748449866609872506236671598268343900233203388804404405970909678015833968186200327087593697947284709714538428657648875107834928345435181446453242319048564666814955520
-
-        This is off by a huge margin::
-
-            sage: (Integer('1'*1000) - t^2).ndigits()
-            984
+            sage: u = sqrt(43203735824841025516773866131535024)
+            sage: u.round()
+            207855083711803945
+            sage: t = sqrt(Integer('1'*1000)).round(); print str(t)[-10:]
+            3333333333
+            sage: (-sqrt(110)).round()
+            -10
+            sage: (-sqrt(115)).round()
+            -11
+            sage: (sqrt(-3)).round()
+            Traceback (most recent call last):
+            ...
+            ValueError: could not convert sqrt(-3) to a real number
         """
-        #FIXME: can we do better?
-        from sage.rings.real_mpfr import RR
-        return RR(self).round()
+        try:
+            return self.pyobject().round()
+        except (TypeError, AttributeError):
+            pass
+        from sage.functions.all import floor, ceil
+        try:
+            rif_self = sage.rings.all.RIF(self)
+        except TypeError:
+            raise ValueError, "could not convert %s to a real number"%(self)
+        half = 1 / sage.rings.integer.Integer(2)
+        if rif_self < 0 or (rif_self.contains_zero() and self < 0):
+            result = ceil(self - half)
+        else:
+            result = floor(self + half)
+        if not isinstance(result, sage.rings.integer.Integer):
+            raise ValueError, "could not convert %s to a real number"%(self)
+        else:
+            return result
 
     def function(self, *args):
         """
@@ -4920,6 +5125,13 @@ cdef class Expression(CommutativeRingElement):
 
             sage: SR(-5).abs(hold=True)
             abs(-5)
+
+        TESTS:
+
+        Check if :trac:`11155` is fixed::
+
+            sage: abs(pi+i)
+            abs(pi + I)
         """
         return new_Expression_from_GEx(self._parent, g_abs(self._gobj))
 
@@ -5661,9 +5873,10 @@ cdef class Expression(CommutativeRingElement):
             0.0
             sage: maxima('atan2(0,0.6)')
             0.0
-            sage: SR(0).arctan2(0)
-            0
-            
+            sage: SR(0).arctan2(0) # see trac ticket #11423
+            Traceback (most recent call last):
+            ...
+            RuntimeError: arctan2_eval(): arctan2(0,0) encountered 
             sage: SR(I).arctan2(1)
             arctan2(I, 1)
             sage: SR(CDF(0,1)).arctan2(1)
@@ -5671,20 +5884,20 @@ cdef class Expression(CommutativeRingElement):
             sage: SR(1).arctan2(CDF(0,1))
             arctan2(1, 1.0*I)
 
-            sage: SR(oo).arctan2(oo)
-            Traceback (most recent call last):
-            ...
-            RuntimeError: arctan2_eval(): arctan2(infinity, infinity) encountered
-            sage: SR(oo).arctan2(0)
+            sage: arctan2(0,oo)                       
             0
+            sage: SR(oo).arctan2(oo)
+            1/4*pi
+            sage: SR(oo).arctan2(0)
+            1/2*pi
             sage: SR(-oo).arctan2(0)
-            pi
+            -1/2*pi
             sage: SR(-oo).arctan2(-2)
-            -pi
+            pi
             sage: SR(unsigned_infinity).arctan2(2)
             Traceback (most recent call last):
             ...
-            RuntimeError: arctan2_eval(): arctan2(unsigned_infinity, x) encountered
+            RuntimeError: arctan2_eval(): arctan2(x, unsigned_infinity) encountered
             sage: SR(2).arctan2(oo)
             1/2*pi
             sage: SR(2).arctan2(-oo)
@@ -5692,7 +5905,7 @@ cdef class Expression(CommutativeRingElement):
             sage: SR(2).arctan2(SR(unsigned_infinity))
             Traceback (most recent call last):
             ...
-            RuntimeError: arctan2_eval(): arctan2(x, unsigned_infinity) encountered
+            RuntimeError: arctan2_eval(): arctan2(unsigned_infinity, x) encountered
         """
         cdef Expression nexp = self.coerce_in(x)
         return new_Expression_from_GEx(self._parent,
@@ -7533,7 +7746,7 @@ cdef class Expression(CommutativeRingElement):
         .. note::
 
            If you already have a factored expression and just want to
-           get at the individual factors, use :meth:`_factor_list`
+           get at the individual factors, use the `_factor_list` method
            instead.
         
         EXAMPLES::
@@ -8729,7 +8942,7 @@ cdef class Expression(CommutativeRingElement):
     def integral(self, *args, **kwds):
         """
         Compute the integral of self.  Please see
-        :obj:`sage.symbolic.integration.integral.integrate` for more details.
+        :func:`sage.symbolic.integration.integral.integrate` for more details.
 
         EXAMPLES::
 
@@ -8737,11 +8950,52 @@ cdef class Expression(CommutativeRingElement):
             -cos(3) + 1
             sage: sin(x).integral(x)
             -cos(x)
+            
+        TESTS:
+
+        We check that :trac:`12438` is resolved::
+        
+            sage: f(x) = x; f
+            x |--> x
+            sage: integral(f, x)
+            x |--> 1/2*x^2
+            sage: integral(f, x, 0, 1)
+            1/2
+
+            sage: f(x, y) = x + y
+            sage: f
+            (x, y) |--> x + y
+            sage: integral(f, y, 0, 1)
+            x |--> x + 1/2
+            sage: integral(f, x, 0, 1)
+            y |--> y + 1/2
+            sage: _(3)
+            7/2
+            sage: var("z")
+            z
+            sage: integral(f, z, 0, 2)
+            (x, y) |--> 2*x + 2*y
+            sage: integral(f, z)
+            (x, y) |--> (x + y)*z
         """
-        from sage.symbolic.integration.integral import integral
-        from sage.symbolic.callable import is_CallableSymbolicExpressionRing
-        if is_CallableSymbolicExpressionRing(self._parent):
-            return self._parent(integral(ring.SR(self), *args, **kwds))
+        from sage.symbolic.integration.integral import \
+            integral, _normalize_integral_input
+        from sage.symbolic.callable import \
+            CallableSymbolicExpressionRing, is_CallableSymbolicExpressionRing
+        R = self._parent
+        if is_CallableSymbolicExpressionRing(R):
+            f = ring.SR(self)
+            f, v, a, b = _normalize_integral_input(f, *args)
+            # Definite integral with respect to a positional variable.
+            if a is not None and v in R.arguments():
+                arguments = list(R.arguments())
+                arguments.remove(v)
+                if arguments:
+                    arguments = tuple(arguments)
+                    R = CallableSymbolicExpressionRing(arguments, check=False)
+                else:   # all arguments are gone
+                    R = ring.SR
+            return R(integral(f, v, a, b, **kwds))
         return integral(self, *args, **kwds)
 
     integrate = integral

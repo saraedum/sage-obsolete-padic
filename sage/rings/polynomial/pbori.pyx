@@ -2369,10 +2369,18 @@ cdef class BooleanMonomial(MonoidElement):
             sage: m.index()
             0
 
+            # Check that Ticket #13133 is resolved:
+            sage: B(1).lm().index()
+            Traceback (most recent call last):
+            ...
+            ValueError: no variables in constant monomial ; cannot take index()
+
         .. note::
 
            This function is part of the upstream PolyBoRi interface.
         """
+        if self.is_one():
+            raise ValueError, "no variables in constant monomial ; cannot take index()"
         return self._pbmonom.firstIndex()
 
     def deg(BooleanMonomial self):
@@ -3654,12 +3662,12 @@ cdef class BooleanPolynomial(MPolynomial):
         ::
         
             sage: P.one_element().variables()  
-            (1,)
+            ()
         """  
         P = self.parent()  
         o = P.one_element()  
         if self is o or self == o:  
-            return tuple([o])
+            return tuple()
         return tuple(self.vars_as_monomial()) 
 
     def nvariables(self):

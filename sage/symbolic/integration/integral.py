@@ -248,6 +248,66 @@ class DefiniteIntegral(BuiltinFunction):
 
 definite_integral = DefiniteIntegral()
 
+
+def _normalize_integral_input(f, v=None, a=None, b=None):
+    r"""
+    Validate and return variable and endpoints for an integral.
+    
+    INPUT:
+    
+    - ``f`` -- an expression to integrate;
+    
+    - ``v`` -- a variable of integration or a triple;
+    
+    - ``a`` -- (optional) the left endpoint of integration;
+    
+    - ``b`` -- (optional) the right endpoint of integration.
+    
+    It is also possible to pass last three parameters in ``v`` as a triple.
+    
+    OUPUT:
+    
+    - a tuple of ``f``, ``v``, ``a``, and ``b``.
+    
+    EXAMPLES::
+    
+        sage: from sage.symbolic.integration.integral import \
+        ...       _normalize_integral_input
+        sage: _normalize_integral_input(x^2, x, 0, 3)
+        (x^2, x, 0, 3)
+        sage: _normalize_integral_input(x^2, [x, 0, 3], None, None)
+        (x^2, x, 0, 3)
+        sage: _normalize_integral_input(x^2, [0, 3], None, None)
+        doctest:...: DeprecationWarning:
+        Variable of integration should be specified explicitly.
+        (x^2, x, 0, 3)
+        sage: _normalize_integral_input(x^2, [x], None, None)
+        (x^2, x, None, None)
+    """
+    if isinstance(v, (list, tuple)) and a is None and b is None:
+        if len(v) == 1: # bare variable in a tuple
+            v = v[0]
+        elif len(v) == 2: # endpoints only
+            a, b = v
+            v = None
+        elif len(v) == 3: # variable and endpoints
+            v, a, b = v
+        else:
+            raise ValueError("invalid input %s - please use variable, "
+                             "with or without two endpoints" % repr(v))
+    elif b is None and a is not None:
+        # two arguments, must be endpoints
+        v, a, b = None, v, a
+    if v is None:
+        from sage.misc.misc import deprecation
+        deprecation("Variable of integration should be specified explicitly.")
+        v = f.default_variable()
+        if isinstance(f, Function):  # a bare function like sin
+            f = f(v)
+    if (a is None) ^ (b is None):
+        raise TypeError('only one endpoint was given!')
+    return f, v, a, b
+
 def integrate(expression, v=None, a=None, b=None, algorithm=None):
     r"""
     Returns the indefinite integral with respect to the variable
@@ -306,7 +366,7 @@ def integrate(expression, v=None, a=None, b=None, algorithm=None):
 
         sage: f(x) = sin(x)
         sage: f.integral(x, 0, pi/2)
-        x |--> 1
+        1
 
     The variable is required, but the endpoints are optional::
 
@@ -395,7 +455,7 @@ def integrate(expression, v=None, a=None, b=None, algorithm=None):
                  x y  + Sqrt[--] FresnelS[Sqrt[--] x]
                              2                 Pi
         sage: print f.integral(x)
-        y^z*x + 1/8*((I - 1)*sqrt(2)*erf((1/2*I - 1/2)*sqrt(2)*x) + (I + 1)*sqrt(2)*erf((1/2*I + 1/2)*sqrt(2)*x))*sqrt(pi)
+        y^z*x + 1/8*((I + 1)*sqrt(2)*erf((1/2*I + 1/2)*sqrt(2)*x) + (I - 1)*sqrt(2)*erf((1/2*I - 1/2)*sqrt(2)*x))*sqrt(pi)
 
     Alternatively, just use algorithm='mathematica_free' to integrate via Mathematica
     over the internet (does NOT require a Mathematica license!)::
@@ -466,7 +526,7 @@ def integrate(expression, v=None, a=None, b=None, algorithm=None):
     see #3013::
 
         sage: integrate(sin(x)*cos(10*x)*log(x), x)
-        1/198*(11*cos(9*x) - 9*cos(11*x))*log(x) + 1/44*Ei(-11*I*x) - 1/36*Ei(-9*I*x) - 1/36*Ei(9*I*x) + 1/44*Ei(11*I*x)
+        1/198*(11*cos(9*x) - 9*cos(11*x))*log(x) + 1/44*Ei(-11*I*x) + 1/44*Ei(11*I*x) - 1/36*Ei(-9*I*x) - 1/36*Ei(9*I*x)
 
     It is no longer possible to use certain functions without an
     explicit variable.  Instead, evaluate the function at a variable,
@@ -602,42 +662,18 @@ def integrate(expression, v=None, a=None, b=None, algorithm=None):
         sage: F(x=1, a=7).numerical_approx() # abs tol 1e-10
         4.32025625668262
 
+    Verify that MinusInfinity works with sympy (:trac:`12345`)::
+    
+        sage: integral(1/x^2, x, -infinity, -1, algorithm='sympy')
+        1
+
     """
-    if isinstance(v, (list, tuple)) and a is None and b is None:
-        if len(v)==1: # bare variable in a tuple
-            v=v[0]
-        elif len(v)==3: # variable and endpoints
-            v,a,b=v
-        elif len(v)==2: # endpoints only
-            a,b=v
-            v=None
-        elif len(v)==0:
-            v=None
-        else:
-            raise ValueError, "invalid input %s - please use variable, with or without two endpoints"%repr(v)
-    elif b is None and a is not None:
-        # two arguments, must be endpoints
-        a, b = v, a
-        v = None
-
-    if v is None:
-        from sage.misc.misc import deprecation
-        deprecation("Variable of integration should be specified explicitly.")
-        v = expression.default_variable()
-        if isinstance(expression, Function):
-            # a bare function like sin
-            expression = expression(v)
-
-    if (a is None) ^ (b is None):
-        raise TypeError, 'only one endpoint given'
-
-    # Check algorithm
+    expression, v, a, b = _normalize_integral_input(expression, v, a, b)
     if algorithm is not None:
         integrator = available_integrators.get(algorithm)
         if not integrator:
             raise ValueError, "Unknown algorithm: %s" % algorithm
         return integrator(expression, v, a, b)
-
     if a is None:
         return indefinite_integral(expression, v)
     else:

@@ -14,8 +14,8 @@ Support for symbolic functions.
 """
 include "../ext/interrupt.pxi"
 include "../ext/cdefs.pxi"
-include "../libs/ginac/decl.pxi"
 
+from sage.libs.ginac cimport *
 
 from sage.structure.sage_object cimport SageObject
 from expression cimport new_Expression_from_GEx, Expression
@@ -40,8 +40,8 @@ cdef class Function(SageObject):
     Base class for symbolic functions defined through Pynac in Sage. 
 
     This is an abstract base class, with generic code for the interfaces
-    and a :method:`__call__` method. Subclasses should implement the
-    :method:`_is_registered` and :method:`_register_function` methods.
+    and a :meth:`__call__` method. Subclasses should implement the
+    :meth:`_is_registered` and :meth:`_register_function` methods.
 
     This class is not intended for direct use, instead use one of the
     subclasses :class:`BuiltinFunction` or :class:`SymbolicFunction`. 
@@ -1208,7 +1208,7 @@ def get_sfunction_from_serial(serial):
     """
     Returns an already created SFunction given the serial.  These are
     stored in the dictionary
-    :obj:`sage.symbolic.function.sfunction_serial_dict`.
+    `sage.symbolic.function.sfunction_serial_dict`.
     
     EXAMPLES::
 

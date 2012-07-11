@@ -13,7 +13,7 @@ Wrapper around Pynac's constants
 from sage.symbolic.expression cimport Expression, new_Expression_from_GEx
 from sage.symbolic.ring import SR
 
-include "../libs/ginac/decl.pxi"
+from sage.libs.ginac cimport *
 include "../ext/stdsage.pxi"
 
 cdef extern from "pynac/constant.h":
@@ -143,14 +143,14 @@ cdef class E(Expression):
         Dummy class to represent base of the natural logarithm.
 
         The base of the natural logarithm ``e`` is not a constant in GiNaC/Sage.
-        It is respresented by ``\exp(1)``.
+        It is represented by ``exp(1)``.
 
         This class provides a dummy object that behaves well under addition,
-        multiplication, etc. and on exponentiation calls the function `exp`.
+        multiplication, etc. and on exponentiation calls the function ``exp``.
 
         EXAMPLES:
 
-        The constant defined at the top level is just `exp(1)`::
+        The constant defined at the top level is just ``exp(1)``::
 
             sage: e.operator()
             exp
@@ -177,7 +177,7 @@ cdef class E(Expression):
             [a + b]
 
         Numeric evaluation, conversion to other systems, and pickling works
-        as expected. Note that these are properties of the `exp` function,
+        as expected. Note that these are properties of the :func:`exp` function,
         not this class::
 
             sage: RR(e)
@@ -221,6 +221,13 @@ cdef class E(Expression):
             (e^a)^b
             sage: SR(1).exp()
             e
+
+        Testing that it works with matrices (see :trac:`4735`)::
+
+            sage: m = matrix(QQ, 2, 2, [1,0,0,1])
+            sage: e^m
+            [e 0]
+            [0 e]
         """
         global exp_one
         exp_one = SR.one_element().exp()
@@ -249,11 +256,25 @@ cdef class E(Expression):
             <built-in function pow>
             sage: u.operands()
             [e, a]
+
+        It also works with matrices (see :trac:`4735`)::
+
+            sage: m = matrix(QQ, 2, 2, [1,0,0,1])
+            sage: e^m
+            [e 0]
+            [0 e]
+            sage: A = matrix(RDF, [[1,2],[3,4]])
+            sage: e^A
+            [51.9689561987  74.736564567]
+            [112.104846851 164.073803049]
         """
         if PY_TYPE_CHECK(left, E):
             if PY_TYPE_CHECK(right, E):
                 return exp_one.exp()
-            return SR(right).exp()
+            try:
+                return right.exp()
+            except AttributeError:
+                return SR(right).exp()
         else:
             return SR(left)**exp_one
 

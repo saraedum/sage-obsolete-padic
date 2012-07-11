@@ -127,7 +127,7 @@ pythonversion = sys.version.split(' ')[0]
 # Sage trac ticket shortcuts. For example, :trac:`7549` .
 extlinks = {
     'python': ('http://docs.python.org/release/'+pythonversion+'/%s', ''),
-    'trac': ('http://trac.sagemath.org/sage_trac/ticket/%s', 'trac ticket #'),
+    'trac': ('http://trac.sagemath.org/%s', 'trac ticket #'),
     'wikipedia': ('http://en.wikipedia.org/wiki/%s', 'Wikipedia article ')}
 
 # Options for HTML output
@@ -608,14 +608,19 @@ def setup(app):
     app.connect('autodoc-process-docstring', process_inherited)
     app.connect('autodoc-skip-member', skip_member)
 
-    app.add_config_value('intersphinx_mapping', {}, True)
-    app.add_config_value('intersphinx_cache_limit', 5, False)
-    # We do *not* fully initialize intersphinx since we call it by hand
-    # in find_sage_dangling_links.
-    #   app.connect('missing-reference', missing_reference)
-    app.connect('missing-reference', find_sage_dangling_links)
-    import sphinx.ext.intersphinx
-    app.connect('builder-inited', set_intersphinx_mappings)
-    app.connect('builder-inited', sphinx.ext.intersphinx.load_mappings)
-    app.connect('builder-inited', nitpick_patch_config)
+    # When building the standard docs, app.srcdir is set to SAGE_DOC +
+    # 'LANGUAGE/DOCNAME', but when doing introspection, app.srcdir is
+    # set to a temporary directory.  We don't want to use intersphinx,
+    # etc., when doing introspection.
+    if app.srcdir.startswith(SAGE_DOC):
+        app.add_config_value('intersphinx_mapping', {}, True)
+        app.add_config_value('intersphinx_cache_limit', 5, False)
+        # We do *not* fully initialize intersphinx since we call it by hand
+        # in find_sage_dangling_links.
+        #   app.connect('missing-reference', missing_reference)
+        app.connect('missing-reference', find_sage_dangling_links)
+        import sphinx.ext.intersphinx
+        app.connect('builder-inited', set_intersphinx_mappings)
+        app.connect('builder-inited', sphinx.ext.intersphinx.load_mappings)
+        app.connect('builder-inited', nitpick_patch_config)
 

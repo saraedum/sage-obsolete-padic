@@ -9,7 +9,7 @@ If the optional full CremonaDatabase is not installed, a mini-version
 is included by default with Sage.  It contains Weierstrass equations,
 rank, and torsion for curves up to conductor 10000.
 
-The large database includes all curves of conductor up to 180,000. It
+The large database includes all curves of conductor up to 240,000. It
 also includes data related to the BSD conjecture and modular degrees
 for all of these curves, and generators for the Mordell-Weil
 groups. To install it type the following in Sage::
@@ -105,9 +105,9 @@ def build(name, data_tgz, largest_conductor=0, mini=False, decompress=True):
 
     ... note::
 
-           For data up to level 170000, this function takes about 5
-           minutes on a 2.9Ghz Nehalem Core i3. The resulting database
-           occupies 216MB disk space.
+           For data up to level 240000, this function takes about 3
+           minutes on a AMD Opteron(tm) Processor 6174. The resulting database
+           occupies 309MB disk space.
 
     To create the large Cremona database from Cremona's data_tgz tarball,
     run the following command::
@@ -1145,7 +1145,7 @@ class LargeCremonaDatabase(MiniCremonaDatabase):
             sage: c.allbsd(12)            # optional - database_cremona_ellcurve
             {}
             sage: c.allbsd(19)['a3']      # optional - database_cremona_ellcurve
-            [1, 4.0792792004649323, 0.4532532444961036, 1.0, 1]
+            [1, 4.079279200464932, 0.4532532444961036, 1.0, 1]
             sage: c.allbsd(12001)['a1']   # optional - database_cremona_ellcurve
             [2, 3.2760813524872185, 1.5491014309050595, 0.23642597118795194, 1]
         """
