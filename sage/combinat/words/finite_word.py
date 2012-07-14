@@ -181,7 +181,7 @@ Left-special and bispecial factors::
 """
 #*****************************************************************************
 #       Copyright (C) 2008 Arnaud Bergeron <abergeron@gmail.com>,
-#                     2008 Amy Glen <amy.glen@gmail.com>,       
+#                     2008 Amy Glen <amy.glen@gmail.com>,
 #                     2008-2012 Sébastien Labbé <slabqc@gmail.com>,
 #                     2008-2010 Franco Saliola <saliola@gmail.com>
 #
@@ -1296,11 +1296,11 @@ exponent %s: the length of the word (%s) times the exponent \
            [1] N. Pytheas Fogg, Substitutions in Dynamics, Arithmetics,
            and Combinatorics, Lecture Notes in Mathematics 1794, Springer
            Verlag. V. Berthe, S. Ferenczi, C. Mauduit and A. Siegel, Eds.
-           (2002).    
+           (2002).
         """
         d = self.parent().size_of_alphabet()
         if d is Infinity:
-            raise TypeError, "The word must be defined over a finite alphabet"
+            raise TypeError("The word must be defined over a finite alphabet")
         if n == 0:
             return 1
         pn = self.number_of_factors(n)
@@ -1313,8 +1313,8 @@ exponent %s: the length of the word (%s) times the exponent \
         Returns the Rauzy graph of the factors of length n of self.
 
         The vertices are the factors of length `n` and there is an edge from
-        `u` to `v` if `ua = bv` is a factor of length `n+1` for some letters 
-        `a` and `b`.  
+        `u` to `v` if `ua = bv` is a factor of length `n+1` for some letters
+        `a` and `b`.
 
         INPUT:
 
@@ -1330,12 +1330,12 @@ exponent %s: the length of the word (%s) times the exponent \
             sage: g.vertices()
             [012, 123, 234, 345, 456, 567, 678, 789]
             sage: g.edges()
-            [(012, 123, 3), 
-             (123, 234, 4), 
-             (234, 345, 5), 
-             (345, 456, 6), 
-             (456, 567, 7), 
-             (567, 678, 8), 
+            [(012, 123, 3),
+             (123, 234, 4),
+             (234, 345, 5),
+             (345, 456, 6),
+             (456, 567, 7),
+             (567, 678, 8),
              (678, 789, 9)]
             sage: WordOptions(identifier='word: ')
 
@@ -1374,7 +1374,7 @@ exponent %s: the length of the word (%s) times the exponent \
              (word: , word: , word: c)]
         """
         from sage.graphs.digraph import DiGraph
-        multiedges = True if n == 0 else False
+        multiedges = n == 0
         g = DiGraph(loops=True, multiedges=multiedges)
         if n == self.length():
             g.add_vertex(self)
@@ -1496,10 +1496,10 @@ exponent %s: the length of the word (%s) times the exponent \
         """
         from sage.graphs.digraph import DiGraph
         from copy import copy
-        g = copy(self.rauzy_graph(n))      
+        g = copy(self.rauzy_graph(n))
         # Otherwise it changes the rauzy_graph function.
         l = [v for v in g if g.in_degree(v)==1 and g.out_degree(v)==1]
-        if g.num_verts() !=0 and len(l)==g.num_verts():       
+        if g.num_verts() != 0 and len(l) == g.num_verts():
             # In this case, the Rauzy graph is simply a cycle.
             g = DiGraph()
             g.allow_loops(True)
@@ -1519,9 +1519,9 @@ exponent %s: the length of the word (%s) times the exponent \
         r"""
         Returns an iterator over the left special factors (of length n).
 
-        A factor `u` of a word `w` is *left special* if there are 
-        two distinct letters `a` and `b` such that `au` and `bu` 
-        are factors of `w`. 
+        A factor `u` of a word `w` is *left special* if there are
+        two distinct letters `a` and `b` such that `au` and `bu`
+        are factors of `w`.
 
         INPUT:
 
@@ -1554,9 +1554,9 @@ exponent %s: the length of the word (%s) times the exponent \
         r"""
         Returns the left special factors (of length n).
 
-        A factor `u` of a word `w` is *left special* if there are 
-        two distinct letters `a` and `b` such that `au` and `bu` 
-        are factors of `w`. 
+        A factor `u` of a word `w` is *left special* if there are
+        two distinct letters `a` and `b` such that `au` and `bu`
+        are factors of `w`.
 
         INPUT:
 
@@ -1584,9 +1584,9 @@ exponent %s: the length of the word (%s) times the exponent \
         r"""
         Returns an iterator over the right special factors (of length n).
 
-        A factor `u` of a word `w` is *right special* if there are 
-        two distinct letters `a` and `b` such that `ua` and `ub` 
-        are factors of `w`. 
+        A factor `u` of a word `w` is *right special* if there are
+        two distinct letters `a` and `b` such that `ua` and `ub`
+        are factors of `w`.
 
         INPUT:
 
@@ -1619,9 +1619,9 @@ exponent %s: the length of the word (%s) times the exponent \
         r"""
         Returns the right special factors (of length n).
 
-        A factor `u` of a word `w` is *right special* if there are 
-        two distinct letters `a` and `b` such that `ua` and `ub` 
-        are factors of `w`. 
+        A factor `u` of a word `w` is *right special* if there are
+        two distinct letters `a` and `b` such that `ua` and `ub`
+        are factors of `w`.
 
         INPUT:
 
@@ -1662,7 +1662,7 @@ exponent %s: the length of the word (%s) times the exponent \
             sage: for i in range(10):
             ...     for u in sorted(w.bispecial_factors_iterator(i)):
             ...         print i,u
-            0 
+            0
             1 0
             1 1
             2 01
@@ -1679,7 +1679,7 @@ exponent %s: the length of the word (%s) times the exponent \
 
             sage: key = lambda u : (len(u), u)
             sage: for u in sorted(w.bispecial_factors_iterator(), key=key): u
-            word: 
+            word:
             word: 0
             word: 1
             word: 01
@@ -1747,9 +1747,9 @@ exponent %s: the length of the word (%s) times the exponent \
         r"""
         Returns the number of left special factors of length n.
 
-        A factor `u` of a word `w` is *left special* if there are 
-        two distinct letters `a` and `b` such that `au` and `bu` 
-        are factors of `w`. 
+        A factor `u` of a word `w` is *left special* if there are
+        two distinct letters `a` and `b` such that `au` and `bu`
+        are factors of `w`.
 
         INPUT:
 
@@ -1778,9 +1778,9 @@ exponent %s: the length of the word (%s) times the exponent \
         r"""
         Returns the number of right special factors of length n.
 
-        A factor `u` of a word `w` is *right special* if there are 
-        two distinct letters `a` and `b` such that `ua` and `ub` 
-        are factors of `w`. 
+        A factor `u` of a word `w` is *right special* if there are
+        two distinct letters `a` and `b` such that `ua` and `ub`
+        are factors of `w`.
 
         INPUT:
 
