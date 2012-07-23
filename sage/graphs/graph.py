@@ -1543,21 +1543,21 @@ class Graph(GenericGraph):
         Returns the sparse6 representation of the graph as an ASCII string.
         Only valid for undirected graphs on 0 to 262143 vertices, but loops
         and multiple edges are permitted.
-        
+
         EXAMPLES::
-        
+
             sage: G = graphs.BullGraph()
             sage: G.sparse6_string()
             ':Da@en'
-        
+
         ::
-        
+
             sage: G = Graph()
             sage: G.sparse6_string()
             ':?'
-        
+
         ::
-        
+
             sage: G = Graph(loops=True, multiedges=True,sparse=True)
             sage: Graph(':?',sparse=True) == G
             True
