@@ -19,6 +19,7 @@ test.sage
 -h
 --help
 --hg
+--info
 --ipython
 --kash
 --lisp
@@ -197,6 +198,19 @@ def test_executable(args, input="", timeout=50.0):
         sage: ret
         0
     
+    Test ``sage --info [packages]``::
+
+        sage: (out, err, ret) = test_executable(["sage", "--info", "sqlalchemy"])
+        sage: print out
+        Found package sqlalchemy in spkg/standard/sqlalchemy-...spkg
+        = SQLAlchemy =
+        ...
+        SQLAlchemy is the Python SQL toolkit...
+        sage: err
+        ''
+        sage: ret
+        0
+
     Test ``sage-run`` on a Python file, both with an absolute and with a relative path::
 
         sage: import tempfile
