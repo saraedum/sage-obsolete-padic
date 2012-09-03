@@ -705,7 +705,7 @@ ext_modules = [
               sources = ["sage/libs/ratpoints.pyx"],
               depends = [SAGE_INC + 'ratpoints.h'],
               libraries = ["ratpoints", "gmp"]),
-    
+
     Extension('sage.libs.singular.singular',
               sources = ['sage/libs/singular/singular.pyx'],
               libraries = singular_libs,
@@ -775,6 +775,32 @@ ext_modules = [
     Extension('sage.libs.mpmath.ext_libmp',
               sources = ["sage/libs/mpmath/ext_libmp.pyx"],
               libraries = ['gmp']),
+
+        ################################
+        ## 
+        ## sage.libs.gap
+        ##
+        ################################
+
+    Extension('sage.libs.gap.util',
+              sources = ["sage/libs/gap/util.pyx"],
+              libraries = ['csage', 'gmp', 'gap', 'm'],
+              include_dirs = [SAGE_LOCAL + '/include/']),
+
+    Extension('sage.libs.gap.element',
+              sources = ["sage/libs/gap/element.pyx"],
+              libraries = ['csage', 'gmp', 'gap', 'm'],
+              include_dirs = [SAGE_LOCAL + '/include/']),
+
+    # Extension('sage.libs.gap.type',
+    #           sources = ["sage/libs/gap/type.pyx"],
+    #           libraries = ['csage', 'gmp', 'gap', 'm'],
+    #           include_dirs = [SAGE_LOCAL + '/include/']),
+    
+    Extension('sage.libs.gap.libgap',
+              sources = ["sage/libs/gap/libgap.pyx"],
+              libraries = ['csage', 'gmp', 'gap', 'm'],
+              include_dirs = [SAGE_LOCAL + '/include/']),
 
         ###################################
         ##
