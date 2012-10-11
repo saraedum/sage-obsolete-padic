@@ -176,6 +176,7 @@ but the behavior is deprecated::
     syntax and unnamed arguments is deprecated and will be removed
     from a future release of Sage; you can use named arguments instead,
     like EXPR(x=..., y=...)
+    See http://trac.sagemath.org/5930 for details.
     sin(y)
     sage: f(pi)
     0
@@ -1155,12 +1156,14 @@ def limit(ex, dir=None, taylor=False, algorithm='maxima', **argv):
     Check that we give deprecation warnings for 'above' and 'below' #9200::
 
         sage: limit(1/x, x=0, dir='above')
-        doctest:...: DeprecationWarning: (Since Sage version 4.6) the keyword
+        doctest:...: DeprecationWarning: the keyword
         'above' is deprecated. Please use 'right' or '+' instead.
+        See http://trac.sagemath.org/9200 for details.
         +Infinity
         sage: limit(1/x, x=0, dir='below')
-        doctest:...: DeprecationWarning: (Since Sage version 4.6) the keyword
+        doctest:...: DeprecationWarning: the keyword
         'below' is deprecated. Please use 'left' or '-' instead.
+        See http://trac.sagemath.org/9200 for details.
         -Infinity
     """
     if not isinstance(ex, Expression):
@@ -1185,13 +1188,13 @@ def limit(ex, dir=None, taylor=False, algorithm='maxima', **argv):
             l = maxima.sr_limit(ex, v, a)
         elif dir in ['plus', '+', 'right', 'above']:
             if dir == 'above':
-                from sage.misc.misc import deprecation
-                deprecation("the keyword 'above' is deprecated. Please use 'right' or '+' instead.", 'Sage version 4.6')
+                from sage.misc.superseded import deprecation
+                deprecation(9200, "the keyword 'above' is deprecated. Please use 'right' or '+' instead.")
             l = maxima.sr_limit(ex, v, a, 'plus')
         elif dir in ['minus', '-', 'left', 'below']:
             if dir == 'below':
-                from sage.misc.misc import deprecation
-                deprecation("the keyword 'below' is deprecated. Please use 'left' or '-' instead.", 'Sage version 4.6')
+                from sage.misc.superseded import deprecation
+                deprecation(9200, "the keyword 'below' is deprecated. Please use 'left' or '-' instead.")
             l = maxima.sr_limit(ex, v, a, 'minus')
     elif algorithm == 'maxima_taylor':
         if dir is None:

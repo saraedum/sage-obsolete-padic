@@ -35,7 +35,6 @@ from sage.combinat.cartesian_product import CartesianProduct
 from sage.combinat.combinat import CombinatorialObject
 from sage.combinat.partition import Partition
 from sage.combinat.tableau import Tableau
-from sage.combinat.tableau import Tableau_class
 from letters import CrystalOfLetters
 from spins import CrystalOfSpins, CrystalOfSpinsMinus, CrystalOfSpinsPlus
 from sage.misc.flatten import flatten
@@ -967,7 +966,7 @@ class CrystalOfTableaux(CrystalOfWords):
         spin_shapes = tuple( tuple(shape) for shape in shapes )
         try:
             shapes = tuple( tuple(trunc(i) for i in shape) for shape in spin_shapes )
-        except:
+        except StandardError:
             raise ValueError("shapes should all be partitions or half-integer partitions")
         if spin_shapes == shapes:
             return super(CrystalOfTableaux, cls).__classcall__(cls, cartan_type, shapes)
@@ -1114,7 +1113,7 @@ class CrystalOfTableauxElement(TensorProductOfCrystalsElement):
             [0]
         """
         if len(args) == 1:
-            if isinstance(args[0], Tableau_class):
+            if isinstance(args[0], Tableau):
                 options['rows'] = args[0]
         if options.has_key('list'):
             list = options['list']
@@ -1190,7 +1189,7 @@ class CrystalOfTableauxElement(TensorProductOfCrystalsElement):
             sage: t = T(rows=[[1,2],[3,4]]).to_tableau(); t
             [[1, 2], [3, 4]]
             sage: type(t)
-            <class 'sage.combinat.tableau.Tableau_class'>
+            <class 'sage.combinat.tableau.Tableaux_all_with_category.element_class'>
             sage: type(t[0][0])
             <type 'sage.rings.integer.Integer'>
             sage: T = CrystalOfTableaux(['D',3], shape = [1,1])

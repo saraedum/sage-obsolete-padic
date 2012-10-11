@@ -14,7 +14,7 @@ AUTHORS:
 #                  http://www.gnu.org/licenses/
 ################################################################################
 
-from sage.misc.sagex_ds cimport BinaryTree
+from sage.misc.binary_tree cimport BinaryTree
 from sage.misc.decorators import rename_keyword
 
 cdef class CompiledPolynomialFunction:
@@ -39,7 +39,7 @@ cdef class CompiledPolynomialFunction:
     """
 
 
-    #@rename_keyword(deprecated='Sage version 4.6', method="algorithm")
+    #@rename_keyword(deprecation=trac_number, method="algorithm")
     def __init__(self, coeffs, algorithm='binary'):
         """
         Compiles a polynomial into an evaluation DAG representation which

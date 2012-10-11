@@ -1511,6 +1511,70 @@ cdef class Matrix(matrix0.Matrix):
             k = k + 1
         return A
 
+    def delete_columns(self, dcols, check=True):
+        """
+        Return the matrix constructed from deleting the columns with indices in the ``dcols`` list.
+
+        INPUT:
+
+        * ``dcols`` - list of indices of columns to be deleted from self.
+        * ``check`` - checks whether any index in ``dcols`` is out of range. Defaults to ``True``.
+
+        SEE ALSO:
+            The methods :meth:`delete_rows` and :meth:`matrix_from_columns` are related.
+
+        EXAMPLES::
+
+            sage: A = Matrix(3,4,range(12)); A
+            [ 0  1  2  3]
+            [ 4  5  6  7]
+            [ 8  9 10 11]
+            sage: A.delete_columns([0,2])
+            [ 1  3]
+            [ 5  7]
+            [ 9 11]
+
+        ``dcols`` can be a tuple. But only the underlying set of indices matters. ::
+
+            sage: A.delete_columns((2,0,2))
+            [ 1  3]
+            [ 5  7]
+            [ 9 11]
+
+        The default is to check whether any index in ``dcols`` is out of range. ::
+
+            sage: A.delete_columns([-1,2,4])
+            Traceback (most recent call last):
+            ...
+            IndexError: [4, -1] contains invalid indices.
+            sage: A.delete_columns([-1,2,4], check=False)
+            [ 0  1  3]
+            [ 4  5  7]
+            [ 8  9 11]
+
+        TESTS:
+
+        The list of indices is checked.  ::
+
+            sage: A.delete_columns('junk')
+            Traceback (most recent call last):
+            ...
+            TypeError: The argument must be a list or a tuple, not junk
+
+        AUTHORS:
+            - Wai Yan Pong (2012-03-05)
+        """
+        if not (PY_TYPE_CHECK(dcols, list) or PY_TYPE_CHECK(dcols, tuple)):
+            raise TypeError("The argument must be a list or a tuple, not {l}".format(l=dcols))
+        cdef list cols, diff_cols
+
+        if check:
+            diff_cols = list(set(dcols).difference(set(range(self._ncols))))
+            if not (diff_cols == []):
+                raise IndexError("{d} contains invalid indices.".format(d=diff_cols))
+        cols = [k for k in range(self._ncols) if not k in dcols]
+        return self.matrix_from_columns(cols)
+
     def matrix_from_rows(self, rows):
         """
         Return the matrix constructed from self using rows with indices in
@@ -1542,6 +1606,70 @@ cdef class Matrix(matrix0.Matrix):
                 A.set_unsafe(k,c, self.get_unsafe(rows[i],c))
             k += 1
         return A
+
+
+    def delete_rows(self, drows, check=True):
+        """
+        Return the matrix constructed from deleting the rows with indices in the ``drows`` list.
+
+        INPUT:
+
+        * ``drows`` - list of indices of rows to be deleted from self.
+        * ``check`` - checks whether any index in ``drows`` is out of range. Defaults to ``True``.
+
+        SEE ALSO:
+            The methods :meth:`delete_columns` and :meth:`matrix_from_rows` are related.
+
+        EXAMPLES::
+
+            sage: A = Matrix(4,3,range(12)); A
+            [ 0  1  2]
+            [ 3  4  5]
+            [ 6  7  8]
+            [ 9 10 11]
+            sage: A.delete_rows([0,2])
+            [ 3  4  5]
+            [ 9 10 11]
+
+        ``drows`` can be a tuple. But only the underlying set of indices matters. ::
+
+            sage: A.delete_rows((2,0,2))
+            [ 3  4  5]
+            [ 9 10 11]
+
+        The default is to check whether the any index in ``drows`` is out of range. ::
+
+            sage: A.delete_rows([-1,2,4])
+            Traceback (most recent call last):
+            ...
+            IndexError: [4, -1] contains invalid indices.
+            sage: A.delete_rows([-1,2,4], check=False)
+            [ 0  1  2]
+            [ 3  4  5]
+            [ 9 10 11]
+
+        TESTS:
+
+        The list of indices is checked.  ::
+
+            sage: A.delete_rows('junk')
+            Traceback (most recent call last):
+            ...
+            TypeError: The argument must be a list or a tuple, not junk
+
+        AUTHORS:
+            - Wai Yan Pong (2012-03-05)
+        """
+        if not (PY_TYPE_CHECK(drows, list) or PY_TYPE_CHECK(drows, tuple)):
+            raise TypeError("The argument must be a list or a tuple, not {l}".format(l=drows))
+        cdef list rows, diff_rows
+
+        if check:
+            diff_rows = list(set(drows).difference(set(range(self._nrows))))
+            if not (diff_rows == []):
+                raise IndexError("{d} contains invalid indices.".format(d=diff_rows))
+        rows = [k for k in range(self._nrows) if not k in drows]
+        return self.matrix_from_rows(rows)
 
     def matrix_from_rows_and_columns(self, rows, columns):
         """

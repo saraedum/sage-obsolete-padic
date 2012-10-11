@@ -268,6 +268,25 @@ cdef class Matrix(matrix1.Matrix):
             (4 + 5 + 5^2 + 3*5^3 + O(5^4), 2 + 5 + 3*5^2 + 5^3 + O(5^4), 1 + 5 + O(5^4))
             sage: a * x == v
             True
+
+        Solving a system of linear equation symbolically using symbolic matrices::
+
+            sage: var('a,b,c,d,x,y')
+            (a, b, c, d, x, y)
+            sage: A=matrix(SR,2,[a,b,c,d]); A
+            [a b]
+            [c d]
+            sage: result=vector(SR,[3,5]); result
+            (3, 5)
+            sage: soln=A.solve_right(result)
+            sage: soln
+            (-(3*c/a - 5)*b/((b*c/a - d)*a) + 3/a, (3*c/a - 5)/(b*c/a - d))
+            sage: (a*x+b*y).subs(x=soln[0],y=soln[1]).simplify_full()
+            3
+            sage: (c*x+d*y).subs(x=soln[0],y=soln[1]).simplify_full()
+            5
+            sage: (A*soln).apply_map(lambda x: x.simplify_full())
+            (3, 5)
         """
 
         if is_Vector(B):
@@ -4719,7 +4738,14 @@ cdef class Matrix(matrix1.Matrix):
             [               1 6*b*a0 + 3*b + 1])
             ]
 
-        TESTS::
+        TESTS:
+
+        We make sure that :trac:`13308` is fixed. ::
+
+            sage: M = ModularSymbols(Gamma1(23), sign=1)
+            sage: m = M.cuspidal_subspace().hecke_matrix(2)
+            sage: [j*m==i[0]*j for i in m.eigenspaces_left(format='all') for j in i[1].basis()] # long time (4s)
+            [True, True, True, True, True, True, True, True, True, True, True, True]
 
             sage: B = matrix(QQ, 2, 3, range(6))
             sage: B.eigenspaces_left()
@@ -4798,7 +4824,7 @@ cdef class Matrix(matrix1.Matrix):
                     for ev in alpha_conj:
                         m = sage.categories.homset.hom(alpha.parent(), ev.parent(), ev)
                         space = (ev.parent())**self.nrows()
-                        evec_list = [(space)([m(i) for i in v]) for v in WB]
+                        evec_list = [(space)([m(v_j) for v_j in v]) for v in WB]
                         V.append((ev, space.span_of_basis(evec_list, already_echelonized=True), e))
         V = Sequence(V, cr=True, check=False)
         self.cache(key, V)
@@ -7895,7 +7921,7 @@ cdef class Matrix(matrix1.Matrix):
             raise NotImplementedError('QR decomposition is implemented over exact rings, try CDF for numerical results, not %s' % R)
         try:
             F = R.fraction_field()
-        except:
+        except StandardError:
             raise ValueError("QR decomposition needs a fraction field of %s" % R)
         m = self.nrows()
         n = self.ncols()
@@ -9261,14 +9287,14 @@ cdef class Matrix(matrix1.Matrix):
                 JA, SA = A.jordan_form(transformation=True)
             else:
                 JA = A.jordan_form(transformation=False)
-        except:
+        except StandardError:
             raise ValueError('unable to compute Jordan canonical form for a matrix')
         try:
             if transformation:
                 JB, SB = B.jordan_form(transformation=True)
             else:
                 JB = B.jordan_form(transformation=False)
-        except:
+        except StandardError:
             raise ValueError('unable to compute Jordan canonical form for a matrix')
         similar = (JA == JB)
         transform = None
@@ -9394,8 +9420,9 @@ cdef class Matrix(matrix1.Matrix):
             [    1.0   121.0  1555.0  7381.0 22621.0]
             [    1.0   341.0  4681.0 22621.0 69905.0]
             sage: L = m.cholesky_decomposition(); L
-            doctest:...: DeprecationWarning: (Since Sage Version 5.1)
+            doctest:...: DeprecationWarning:
             cholesky_decomposition() is deprecated; please use cholesky() instead.
+            See http://trac.sagemath.org/13045 for details.
             [          1.0           0.0           0.0           0.0           0.0]
             [          1.0           2.0           0.0           0.0           0.0]
             [          1.0          15.0 10.7238052948           0.0           0.0]
@@ -9538,9 +9565,8 @@ cdef class Matrix(matrix1.Matrix):
             [        0.0         0.0]
             [NaN + NaN*I NaN + NaN*I]
         """
-        # deprecation added 2012-05-27
-        from sage.misc.misc import deprecation
-        deprecation("cholesky_decomposition() is deprecated; please use cholesky() instead.", "Sage Version 5.1")
+        from sage.misc.superseded import deprecation
+        deprecation(13045, "cholesky_decomposition() is deprecated; please use cholesky() instead.")
         assert self._nrows == self._ncols, "Can only Cholesky decompose square matrices"
         if self._nrows == 0:
             return self.__copy__()
@@ -9810,10 +9836,6 @@ cdef class Matrix(matrix1.Matrix):
             sage: A.is_symmetric()
             True
             sage: L = A.cholesky()
-            sage: L
-            [            3             0             0]
-            [    4*a^2 + 1             1             0]
-            [      3*a + 2 a^2 + 2*a + 3             3]
             sage: L*L.transpose() == A
             True
 
@@ -10281,7 +10303,7 @@ cdef class Matrix(matrix1.Matrix):
         if not R.is_field():
             try:
                 F = R.fraction_field()
-            except:
+            except StandardError:
                 msg = 'base ring of the matrix needs a field of fractions, not {0}'
                 raise TypeError(msg.format(R))
         else:
@@ -10294,7 +10316,7 @@ cdef class Matrix(matrix1.Matrix):
             try:
                 abs(F.an_element())
                 pivot = 'partial'
-            except:
+            except StandardError:
                 if pivot == 'partial':
                     msg = "cannot take absolute value of matrix entries, try 'pivot=nonzero'"
                     raise TypeError(msg)

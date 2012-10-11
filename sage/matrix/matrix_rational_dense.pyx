@@ -61,8 +61,7 @@ cimport sage.structure.element
 from sage.structure.sequence import Sequence
 from sage.rings.rational cimport Rational
 from matrix cimport Matrix
-from matrix_integer_dense cimport Matrix_integer_dense
-from matrix_integer_dense import _lift_crt
+from matrix_integer_dense cimport Matrix_integer_dense, _lift_crt
 from sage.structure.element cimport ModuleElement, RingElement, Element, Vector
 from sage.rings.integer cimport Integer
 from sage.rings.ring import is_Ring
@@ -630,8 +629,8 @@ cdef class Matrix_rational_dense(matrix_dense.Matrix_dense):
             ...
             ZeroDivisionError: input matrix must be nonsingular
         """
-        from sage.misc.misc import deprecation
-        deprecation("'invert' is deprecated; use 'inverse' instead.")
+        from sage.misc.superseded import deprecation
+        deprecation(5460, "'invert' is deprecated; use 'inverse' instead.")
         return self.__invert__()
 
     def __invert__(self):

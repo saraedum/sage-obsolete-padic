@@ -48,6 +48,11 @@ AUTHORS:
   (via :class:`~sage.structure.unique_representation.UniqueRepresentation`)
   and :class:`BooleanMonomial`.
 
+- Charles Bouillaguet <charles.bouillaguet@gmail.com>: minor changes
+  to improve compatibility with MPolynomial and make the variety()
+  function work on ideals of BooleanPolynomial's.
+
+
 EXAMPLES:
 
 Consider the ideal
@@ -194,6 +199,8 @@ from sage.rings.polynomial.multi_polynomial_ideal import MPolynomialIdeal
 from sage.rings.polynomial.term_order import TermOrder
 from sage.rings.polynomial.polynomial_ring import PolynomialRing_general
 
+from sage.rings.ideal import FieldIdeal
+
 from sage.structure.element cimport Element
 from sage.structure.element cimport RingElement
 from sage.structure.element cimport ModuleElement
@@ -213,23 +220,34 @@ from sage.interfaces.all import singular as singular_default
 order_dict= {"lp":      pblp,
              "dlex":    pbdlex,
              "dp_asc":  pbdp_asc,
+             "dp":      pbdp,
              "block_dlex":   pbblock_dlex,
              "block_dp_asc": pbblock_dp_asc,
+             "block_dp":     pbblock_dp,
              }
 
 
 inv_order_dict= {pblp:"lex",
                  pbdlex:"deglex",
-                 pbdp_asc:"degrevlex",
+                 pbdp_asc:"degneglex",
+                 pbdp: "degrevlex",
                  }
 
-order_mapping = {'lp':   pblp,
-                 'Dp':   pbdlex,
-                 'dp':   pbdp_asc}
+order_mapping = {'lp':        pblp,
+                 'lex':       pblp,
+                 'Dp':        pbdlex,
+                 'deglex':    pbdlex,
+                 'dlex':      pbdlex,
+                 'dp_asc':    pbdp_asc,
+                 'degneglex': pbdp_asc,
+                 'dp':        pbdp,
+                 'degrevlex': pbdp,
+                 }
 
 
 lp = int(pblp)
 dlex = int(pbdlex)
+dp = int(pbdp)
 dp_asc = int(pbdp_asc)
 block_dlex = int(pbblock_dlex)
 block_dp_asc = int(pbblock_dp_asc)
@@ -354,9 +372,10 @@ cdef class BooleanPolynomialRing(MPolynomialRing_generic):
         order = TermOrder(order, n)
 
         try:
-            pb_order_code = order_mapping[order[0].singular_str()]
+            pb_order_code = order_mapping[order[0].name()]
         except KeyError:
-            raise ValueError, "Only lex, deglex, degrevlex orders are supported."
+            raise ValueError, "Only order keys " + \
+                  ', '.join(order_mapping.keys()) + " are supported."
 
         if order.is_block_order():
             if pb_order_code is pblp:
@@ -365,25 +384,28 @@ cdef class BooleanPolynomialRing(MPolynomialRing_generic):
                 pb_order_code = pbblock_dlex
             elif pb_order_code is pbdp_asc:
                 pb_order_code = pbblock_dp_asc
+            elif pb_order_code is pbdp:
+                pb_order_code = pbblock_dp
             for i in range(1, len(order.blocks())):
                 if order[0].name() != order[i].name():
-                    raise ValueError, "Each block must have the same order type (deglex or degrevlex) for block orders."
-
-        if (pb_order_code is pbdlex) or (pb_order_code is pblp) or \
-                (pb_order_code is pbblock_dlex):
-            for i from 0 <= i < n:
-                self.pbind[i] = i
-        elif pb_order_code is pbdp_asc:
+                    raise ValueError, "Each block must have the same order " + \
+                          "type (deglex, degneglex or degrevlex) for block orders."
+        
+        if pb_order_code is pbdp:
             for i from 0 <= i < n:
                 self.pbind[i] = n - i -1
-        else:
-            # pb_order_code is block_dp_asc:
+            pb_order_code = pbdp_asc
+        elif pb_order_code is pbblock_dp:
             bstart = 0
             for i from 0 <= i < len(order.blocks()):
                 bsize = len(order[i])
                 for j from 0 <= j < bsize:
                     self.pbind[bstart + j] = bstart + bsize - j -1
                 bstart += bsize
+            pb_order_code = pbblock_dp_asc
+        else:                           # native PolyBoRi ordering
+            for i from 0 <= i < n:
+                self.pbind[i] = i
 
         self._pbring = PBRing_Constructor(n, pb_order_code)
 
@@ -456,6 +478,8 @@ cdef class BooleanPolynomialRing(MPolynomialRing_generic):
         """
         return self._pbring.nVariables()
 
+
+
     def gen(self, i=0):
         """
         Returns the i-th generator of this boolean polynomial ring.
@@ -489,10 +513,10 @@ cdef class BooleanPolynomialRing(MPolynomialRing_generic):
                 i = i.index()
             else:
                 raise TypeError, "Boolean monomials must be in one variable only."
-        i = int(i)
-        if i < 0 or i >= self._pbring.nVariables():
+        cdef idx = int(i)
+        if idx < 0 or idx >= self._pbring.nVariables():
             raise ValueError, "Generator not defined."
-        return new_BP_from_PBVar(self, self._pbring.variable(self.pbind[i]))
+        return new_BP_from_PBVar(self, self._pbring.variable(self.pbind[idx]))
 
     def gens(self):
         """
@@ -595,6 +619,13 @@ cdef class BooleanPolynomialRing(MPolynomialRing_generic):
             sage: ZZ['a'].gen() + c
             a + c
 
+        Check that :trac:`13284` is fixed:
+
+            sage: from sage.rings.ideal import Cyclic
+            sage: R = BooleanPolynomialRing(10, 'x')
+            sage: I = Cyclic(R)
+            sage: len(I.groebner_basis())
+            10
         """
         if self._base.has_coerce_map_from(S):
             return True
@@ -788,7 +819,7 @@ cdef class BooleanPolynomialRing(MPolynomialRing_generic):
                     for monom in other:
                         new_monom = self._monom_monoid._one_element
                         for i in monom.iterindex():
-                            new_monom *= var_mapping[(<BooleanPolynomialRing>(<BooleanPolynomial>other)._parent).pbind[i]]
+                            new_monom *= var_mapping[i]
                         p += new_monom
                     return p
         elif (PY_TYPE_CHECK(other, MPolynomial) or \
@@ -874,13 +905,17 @@ cdef class BooleanPolynomialRing(MPolynomialRing_generic):
             sage: P(p)
             x
 
+        Check that trac ticket #13202 is fixed:
+
+            sage: B.<a,b,c,d> = BooleanPolynomialRing(order='degrevlex')
+            sage: P.<c,d> = BooleanPolynomialRing(order='lex')
+            sage: P(B(c))
+            c
         """
         cdef int i
 
         try:
             return self._coerce_c_impl(other)
-        except NameError, msg:
-            raise NameError, msg
         except TypeError:
             pass
 
@@ -905,7 +940,7 @@ cdef class BooleanPolynomialRing(MPolynomialRing_generic):
                     for monom in other:
                         new_monom = self._monom_monoid._one_element
                         for i in monom.iterindex():
-                            new_monom *= var_mapping[(<BooleanPolynomialRing>(<BooleanPolynomial>other)._parent).pbind[i]]
+                            new_monom *= var_mapping[i]
                         p += new_monom
                     return p
         elif (PY_TYPE_CHECK(other, MPolynomial) or \
@@ -946,8 +981,11 @@ cdef class BooleanPolynomialRing(MPolynomialRing_generic):
 
         try:
             i = int(other)
-        except:
-            raise TypeError, "cannot convert %s to BooleanPolynomial"%(type(other))
+        except StandardError:
+            try:    # last chance: try Sage's conversions over GF(2), Trac #13284
+                return self._coerce_c_impl(self.cover_ring()(other))
+            except:
+                raise TypeError, "cannot convert %s to BooleanPolynomial"%(type(other))
 
         i = i % 2
         if i == 1:
@@ -1562,7 +1600,7 @@ cdef class BooleanPolynomialRing(MPolynomialRing_generic):
 
     def _settings(self, names, blocks):
         for (idx, elt) in enumerate(names):
-            self._pbring.setVariableName(idx, elt)
+            self._pbring.setVariableName(self.pbind[idx], elt)
 
         for elt in blocks:
             self._pbring.ordering().appendBlock(elt)
@@ -1698,7 +1736,7 @@ cdef class BooleanPolynomialRing(MPolynomialRing_generic):
         if ordering is not None:
             ring.changeOrdering(ordering)
         for (idx, elt) in enumerate(names):
-            ring.setVariableName(idx, elt)
+            ring.setVariableName(self.pbind[idx], elt)
 
         for elt in blocks:
             ring.appendBlock(elt)
@@ -1754,31 +1792,39 @@ def get_var_mapping(ring, other):
         [z, x]
         sage: sage.rings.polynomial.pbori.get_var_mapping(P, x^2)
         [None, x]
+
+    Check that ticket #13202 is fixed::
+
+        sage: B.<a,b,c,d> = BooleanPolynomialRing(order='degrevlex')
+        sage: P.<c,d> = BooleanPolynomialRing(order='lex')
+        sage: sage.rings.polynomial.pbori.get_var_mapping(B, P)
+        [c, d]
     """
+
     my_names = list(ring._names) # we need .index(.)
     if isinstance(other, (ParentWithGens,BooleanMonomialMonoid)):
-        variables = range(other.ngens())
+        indices = range(other.ngens())
         ovar_names = other._names
     else:
         ovar_names = other.parent().variable_names()
         if PY_TYPE_CHECK(other, BooleanPolynomial):
-            variables = other.vars_as_monomial().iterindex()
+            indices = other.vars_as_monomial().iterindex()
         elif PY_TYPE_CHECK(other, BooleanMonomial):
-            variables = other.iterindex()
+            indices = other.iterindex()
         else:
             t = other.variables()
             ovar_names = list(ovar_names)
-            variables = [ovar_names.index(str(var)) for var in t]
+            indices = [ovar_names.index(str(var)) for var in t]
 
     var_mapping = [None] * len(ovar_names)
-    for i in variables:
+    for idx in indices:
         try:
-            ind = int(my_names.index(ovar_names[i]))
+            ind = int(my_names.index(ovar_names[idx]))
         except ValueError:
             # variable name not found in list of our variables
             # raise an exception and bail out
-            raise NameError, "name %s not defined"%(ovar_names[i])
-        var_mapping[i] = ring.gen(ind)
+            raise NameError, "name %s not defined"%(ovar_names[idx])
+        var_mapping[idx] = ring.gen(ind)
     return var_mapping
 
 class BooleanMonomialMonoid(UniqueRepresentation,Monoid_class):
@@ -2381,7 +2427,7 @@ cdef class BooleanMonomial(MonoidElement):
         """
         if self.is_one():
             raise ValueError, "no variables in constant monomial ; cannot take index()"
-        return self._pbmonom.firstIndex()
+        return (<BooleanPolynomialRing>self.ring()).pbind[self._pbmonom.firstIndex()]
 
     def deg(BooleanMonomial self):
         """
@@ -2404,10 +2450,18 @@ cdef class BooleanMonomial(MonoidElement):
         """
         return self._pbmonom.deg()
 
-    def degree(BooleanMonomial self):
+
+    def degree(BooleanMonomial self, BooleanPolynomial x=None):
         """
-        Return degree of this monomial.
-        
+        Return the degree of this monomial in ``x``, where
+        ``x`` must be one of the generators of the polynomial ring.
+
+        INPUT:
+
+        - ``x`` - boolean multivariate polynomial (a generator of the
+          polynomial ring). If ``x`` is not specified (or is ``None``),
+          return the total degree of this monomial.
+
         EXAMPLES::
         
             sage: from polybori import BooleanMonomialMonoid
@@ -2415,8 +2469,21 @@ cdef class BooleanMonomial(MonoidElement):
             sage: M = BooleanMonomialMonoid(P)
             sage: M(x*y).degree()
             2
+            sage: M(x*y).degree(x)
+            1
+            sage: M(x*y).degree(z)
+            0
         """
-        return self._pbmonom.deg()
+        if not x:
+            return self._pbmonom.deg()
+
+        if not x in self._parent.gens():
+            raise ValueError("x must be one of the generators of the parent.")
+
+        if self.reducible_by( x.lm() ): 
+            return 1
+        else:
+            return 0
 
     def divisors(self):
         """
@@ -2832,7 +2899,7 @@ cdef class BooleanMonomialIterator:
             raise StopIteration
         value = self._iter.value()
         self._iter.next()
-        return value
+        return self.pbind[value]
 
 cdef inline BooleanMonomialIterator new_BMI_from_BooleanMonomial(BooleanMonomial monom):
     """
@@ -2843,6 +2910,7 @@ cdef inline BooleanMonomialIterator new_BMI_from_BooleanMonomial(BooleanMonomial
     m._iter = monom._pbmonom.begin()
     m._end  = monom._pbmonom.end()
     m.obj = monom
+    m.pbind = (<BooleanPolynomialRing> monom.ring()).pbind
     return m
 
 cdef class BooleanPolynomial(MPolynomial):
@@ -3684,6 +3752,77 @@ cdef class BooleanPolynomial(MPolynomial):
         """
         return self._pbpoly.nUsedVariables()
  
+
+    def is_univariate(self):
+        """
+        Return ``True`` if self is a univariate polynomial, that is if
+        self contains only one variable.
+
+        EXAMPLES::
+
+            sage: P.<x,y,z> = BooleanPolynomialRing()
+            sage: f = x + 1
+            sage: f.is_univariate()
+            True
+            sage: f = y*x + 1
+            sage: f.is_univariate()
+            False
+            sage: f = P(0)
+            sage: f.is_univariate()
+            True
+        """
+        return ( self.nvariables() <= 1 )
+
+
+    def univariate_polynomial(self, R=None):
+        """
+        Returns a univariate polynomial associated to this
+        multivariate polynomial.
+
+        If this polynomial is not in at most one variable, then a
+        ``ValueError`` exception is raised.  This is checked using the
+        :meth:`is_univariate()` method.  The new Polynomial is over
+        GF(2)  and in the variable ``x`` if no ring ``R`` is provided.
+
+            sage: R.<x, y> = BooleanPolynomialRing()
+            sage: f = x - y + x*y + 1
+            sage: f.univariate_polynomial()
+            Traceback (most recent call last):
+            ...
+            ValueError: polynomial must involve at most one variable
+            sage: g = f.subs({x:0}); g
+            y + 1
+            sage: g.univariate_polynomial ()
+            y + 1
+            sage: g.univariate_polynomial(GF(2)['foo'])
+            foo + 1
+
+        Here's an example with a constant multivariate polynomial::
+
+            sage: g = R(1)
+            sage: h = g.univariate_polynomial(); h
+            1
+            sage: h.parent()
+            Univariate Polynomial Ring in x over Finite Field of size 2 (using NTL)
+        """
+        if not self.is_univariate():
+            raise ValueError, "polynomial must involve at most one variable"
+
+        #construct ring if none
+        if R == None:
+            if self.is_constant():
+                R = GF(2)['x']
+            else:
+                R = GF(2)[str(self.variable(0))]
+
+        coefficients = [0, 0]
+        for m in self.monomials():
+            coefficients[ m.degree() ] = 1
+
+        return R(coefficients)
+
+
+
     def monomials(self): 
         r""" 
         Return a list of monomials appearing in ``self``
@@ -3694,7 +3833,7 @@ cdef class BooleanPolynomial(MPolynomial):
             sage: P.<a,b,c> = BooleanPolynomialRing(3,order='lex') 
             sage: f = a + c*b 
             sage: f.monomials() 
-            [a, b*c] 
+            [a, b*c]
         
         ::
         
@@ -3702,8 +3841,28 @@ cdef class BooleanPolynomial(MPolynomial):
             sage: f = a + c*b 
             sage: f.monomials() 
             [c*b, a]
+            sage: P.zero().monomials()
+            []
         """ 
         return list(self) 
+
+    
+    def variable(self, i=0):
+        """
+        Return the i-th variable occurring in self. The index i is the
+        index in ``self.variables()``
+
+        EXAMPLES::
+
+            sage: P.<x,y,z> = BooleanPolynomialRing(3)
+            sage: f = x*z + z + 1
+            sage: f.variables()
+            (x, z)
+            sage: f.variable(1)
+            z
+        """
+        return self.variables()[i]
+
 
     def terms(self): 
         """ 
@@ -3863,7 +4022,7 @@ cdef class BooleanPolynomial(MPolynomial):
             for i in range(N):
                 arg = args[i]
                 try:
-                    arg = P(arg)
+                    arg = P.coerce(arg)
                     if arg.constant():
                         # TODO: We should collect those and reduce once only
                         self = ll_red_nf_redsb(self, (P.gen(i) + arg).set())
@@ -4018,7 +4177,7 @@ cdef class BooleanPolynomial(MPolynomial):
         M = self.set()
         try: # 0
             d = iter(M).next().degree()
-        except:
+        except StopIteration:
             return True
         for m in M: 
             if m.degree() != d: 
@@ -4230,7 +4389,8 @@ cdef class BooleanPolynomial(MPolynomial):
 
            This function is part of the upstream PolyBoRi interface.
         """
-        return new_CN_from_PBNavigator(self._pbpoly.navigation())
+        return new_CN_from_PBNavigator(self._pbpoly.navigation(),
+                                       (<BooleanPolynomialRing>self._parent).pbind)
 
     def map_every_x_to_x_plus_one(self):
         """
@@ -4664,7 +4824,7 @@ cdef class MonomialConstruct:
                 if PY_TYPE_CHECK(x, BooleanPolynomial):
                    return result.lm()
                 return result
-            except:
+            except StandardError:
                 raise TypeError, "Cannot convert to Boolean Monomial %s"%(str(type(x)))
 
 cdef class VariableConstruct:
@@ -4765,6 +4925,24 @@ class BooleanPolynomialIdeal(MPolynomialIdeal):
         """
         MPolynomialIdeal.__init__(self, ring, gens, coerce)
 
+
+    def dimension(self):
+        """
+        Return the dimension of ``self``, which is always zero.
+
+        TESTS:
+
+        Check that :trac:`13155` is solved::
+
+            sage: R = BooleanPolynomialRing(11, 'x') 
+            sage: R2 = PolynomialRing(GF(2), 11, 'x')
+            sage: I = ideal([ R(f) for f in sage.rings.ideal.Cyclic(R2, 11).gens() ])
+            sage: I.dimension()
+            0
+        """
+        return 0
+
+
     def groebner_basis(self, **kwds):
         r"""
         Return a Groebner basis of this ideal.
@@ -4838,7 +5016,7 @@ class BooleanPolynomialIdeal(MPolynomialIdeal):
 
         TESTS:
 
-        This examples shows, that a bug in our variable indices was
+        This example shows, that a bug in our variable indices was
         indeed fixed::
 
             sage: R.<a111,a112,a121,a122,b111,b112,b211,b212,c111,c112> = BooleanPolynomialRing(order='lex')
@@ -4849,18 +5027,25 @@ class BooleanPolynomialIdeal(MPolynomialIdeal):
              b111*b211 + b111 + b211 + 1, b111*b212 + b112*b211 + 1, b112*b212 + b112 + b212 + 1, 
              b211*b212 + b211 + b212 + 1, c111 + 1, c112 + 1]
 
+
+        The following example shows whether boolean constants are handled correctly.
+
+            sage: P.<x,y,z> = BooleanPolynomialRing(3)
+            sage: I = Ideal([x*z + y*z + z, x*y + x*z + x + y*z + y + z])
+            sage: I.groebner_basis()
+            [x, y, z]
+
         """
         try:
             return Sequence(sorted(self.__gb, reverse=True), self.ring(), check=False, immutable=True)
         except AttributeError:
             pass
-        from polybori.gbcore import groebner_basis
+
         if "redsb" not in kwds:
             kwds["redsb"]=True
         sig_on()
-        gb = groebner_basis(self.gens(), **kwds)
+        gb = self._groebner_basis(**kwds)
         sig_off()
-
         if gb:
           if kwds.get("deg_bound", False) is False:
             g = GroebnerStrategy(gb[0].ring())
@@ -4868,7 +5053,76 @@ class BooleanPolynomialIdeal(MPolynomialIdeal):
                 g.add_as_you_wish(p)
             g.reduction_strategy.opt_red_tail=True
             self.__gb = g
+
         return Sequence(sorted(gb,reverse=True), self.ring(), check=False, immutable=True)
+
+
+    def _groebner_basis(self, **kwds):
+        r"""
+        Calls PolyBoRi's groebner_basis function. It takes care of the import
+        and suitable wrapping (if necessary)
+
+        EXAMPLES::
+
+            sage: B.<x,y,z> = BooleanPolynomialRing(order='degrevlex')
+            sage: id = B.ideal((x + y)*(y + z), x*y*z)
+            sage: id._groebner_basis()
+            [z*x, y*x + z*y + y]
+
+            sage: B.<x,y,z> = BooleanPolynomialRing(order='deglex')
+            sage: id = B.ideal((x + y)*(y + z), x*y*z)
+            sage: id._groebner_basis()
+            [x*z, x*y + y*z + y]
+        """
+
+        from polybori.gbcore import groebner_basis
+
+        if self.ring().term_order()[0].name() == "degrevlex":
+            # PolyBoRi's groebner_basis assumes increasing indices
+            # so undone degneglex (dp_asc) wrapping for now
+            tmp = BooleanPolynomialRing_from_PBRing((<BooleanPolynomialRing>self.ring())._pbring)
+            gb = groebner_basis([new_BP_from_PBPoly(tmp, (<BooleanPolynomial>elt)._pbpoly) \
+              for elt in self.gens()], **kwds)
+            return [new_BP_from_PBPoly(self.ring(), (<BooleanPolynomial>elt)._pbpoly) for elt in gb]
+
+        return groebner_basis(self.gens(), **kwds)
+
+    def variety(self, **kwds):
+        r"""
+        Return the variety of ``self``.
+
+        EXAMPLE::
+
+            sage: R.<x,y,z> = BooleanPolynomialRing()    # Test a simple example
+            sage: I = ideal( [ x*y*z + x*z + y + 1, x+y+z+1 ] )
+            sage: I.variety()
+            [{y: 1, z: 0, x: 0}, {y: 1, z: 1, x: 1}]
+
+            sage: R = BooleanPolynomialRing(6, ['x%d'%(i+1) for i in range(6)], order='lex')
+            sage: R.inject_variables()
+            Defining...
+            sage: polys = [\
+                   x1*x2 + x1*x4 + x1*x5 + x1*x6 + x1 + x2 + x3*x4 + x3*x5 + x3 + x4*x5 + x4*x6 + x4 + x5 + x6, \
+                   x1*x2 + x1*x3 + x1*x4 + x1*x6 + x2*x3 + x2*x6 + x2 + x3*x4 + x5*x6, \
+                   x1*x3 + x1*x4 + x1*x6 + x1 + x2*x5 + x2*x6 + x3*x4 + x3 + x4*x6 + x4 + x5*x6 + x5 + x6, \
+                   x1*x2 + x1*x3 + x1*x4 + x1*x5 + x2 + x3*x5 + x3*x6 + x3 + x5 + x6, \
+                   x1*x2 + x1*x4 + x1*x5 + x1*x6 + x2*x3 + x2*x4 + x2*x5 + x3*x5 + x5*x6 + x5 + x6, \
+                   x1*x2 + x1*x6 + x2*x4 + x2*x5 + x2*x6 + x3*x6 + x4*x6 + x5*x6 + x5]
+            sage: I = R.ideal( polys )
+            sage: V1 = I.variety()    
+
+            sage: R = PolynomialRing(GF(2), 6, ['x%d'%(i+1) for i in range(6)], order='lex')
+            sage: I = R.ideal( polys )
+            sage: V2 = (I + sage.rings.ideal.FieldIdeal(R)).variety()
+            sage: V1 == V2
+            True
+        """
+        R = GF(2)[ self.ring().gens() ]
+        I = R.ideal( [ R( f ) for f in self.groebner_basis() ] )
+        J = FieldIdeal(R)
+        return (I+J).variety(**kwds)
+
+
 
     def reduce(self, f):
         """
@@ -5192,7 +5446,8 @@ cdef class BooleSet:
             sage: nav_else.value()
             2
         """
-        return new_CN_from_PBNavigator(self._pbset.navigation())
+        return new_CN_from_PBNavigator(self._pbset.navigation(),
+                                       (<BooleanPolynomialRing>self._ring).pbind)
 
     def ring(self):
         """
@@ -5325,7 +5580,7 @@ cdef class BooleSet:
             sage: s.change(2)
             {{a,c}, {b,c}}
         """
-        return new_BS_from_PBSet(self._pbset.change(ind), self._ring)
+        return new_BS_from_PBSet(self._pbset.change(self._ring.pbind[ind]), self._ring)
 
     def vars(self):
         """
@@ -5518,7 +5773,7 @@ cdef class BooleSet:
             sage: s.subset0(1)
             {{x2,x3}}
         """
-        return new_BS_from_PBSet(self._pbset.subset0(i), self._ring)
+        return new_BS_from_PBSet(self._pbset.subset0(self._ring.pbind[i]), self._ring)
     
     def subset1(self, int i):
         """
@@ -5543,7 +5798,7 @@ cdef class BooleSet:
             sage: s.subset1(1)
             {{x2}}
         """
-        return new_BS_from_PBSet(self._pbset.subset1(i), self._ring)
+        return new_BS_from_PBSet(self._pbset.subset1(self._ring.pbind[i]), self._ring)
 
     def include_divisors(self):
         """
@@ -5730,13 +5985,15 @@ cdef class CCuddNavigator:
         PBNavigator_destruct(&self._pbnav)
 
     def value(self):
-        return self._pbnav.value()
+        if self._pbnav.isConstant():
+            return self._pbnav.value()
+        return self._pbind[self._pbnav.value()]
 
     def else_branch(self):
-        return new_CN_from_PBNavigator(self._pbnav.elseBranch())
+        return new_CN_from_PBNavigator(self._pbnav.elseBranch(), self._pbind)
 
     def then_branch(self):
-        return new_CN_from_PBNavigator(self._pbnav.thenBranch())
+        return new_CN_from_PBNavigator(self._pbnav.thenBranch(), self._pbind)
 
     def constant(self):
         return self._pbnav.isConstant()
@@ -6849,13 +7106,15 @@ class BooleanMulAction(Action):
         else:
             return left if right % 2 else GF(2)(0)
 
-cdef inline CCuddNavigator new_CN_from_PBNavigator(PBNavigator juice):
+cdef inline CCuddNavigator new_CN_from_PBNavigator(PBNavigator juice,
+                                                   Py_ssize_t* pbind):
     """
     Construct a new CCuddNavigator
     """
     cdef CCuddNavigator n
     n = <CCuddNavigator>PY_NEW(CCuddNavigator)
     n._pbnav = juice
+    n._pbind = pbind
     return n
 
 cdef class VariableBlock:
@@ -7136,7 +7395,8 @@ def mult_fact_sim_C(BooleanPolynomialVector v, BooleanPolynomialRing ring):
 
 def recursively_insert(CCuddNavigator n, int ind, BooleSet m):
     cdef PBSet b
-    b = pb_recursively_insert((<CCuddNavigator>n)._pbnav, ind, 
+    cdef BooleanPolynomialRing ring = m.ring()
+    b = pb_recursively_insert((<CCuddNavigator>n)._pbnav, ring.pbind[ind],
                                                 (<BooleSet>m)._pbset)
     return new_BS_from_PBSet(b, m._ring)
 
@@ -7323,8 +7583,12 @@ def if_then_else(root, a, b):
         if not PY_TYPE_CHECK(root, int):
             raise TypeError, "Only variables are acceptable as root."
 
-    if root >= a_set.navigation().value() or root >= b_set.navigation().value():
+    cdef Py_ssize_t* pbind = ring.pbind
+    root = ring.pbind[root]
+
+    if (root >= a_set.navigation().value()) or  (root >= b_set.navigation().value()):
         raise IndexError, "index of root must be less than the values of roots of the branches."
+
     res = PBSet_Constructor_indsetset(root, a_set.navigation(), 
             b_set.navigation(), ring._pbring);
     return new_BS_from_PBSet(res, ring)
@@ -7348,14 +7612,16 @@ def top_index(s):
         sage: top_index(x + 1)
         0
     """
+    cdef  Py_ssize_t idx = -1
     if PY_TYPE_CHECK(s, BooleSet):
-        return (<BooleSet>s)._pbset.navigation().value()
+        idx = (<BooleSet>s)._pbset.navigation().value()
     elif PY_TYPE_CHECK(s, BooleanMonomial):
-        return (<BooleanMonomial>s)._pbmonom.firstIndex()
+        idx = (<BooleanMonomial>s)._pbmonom.firstIndex()
     elif PY_TYPE_CHECK(s, BooleanPolynomial):
-        return (<BooleanPolynomial>s)._pbpoly.navigation().value()
+        idx = (<BooleanPolynomial>s)._pbpoly.navigation().value()
     else:
         raise TypeError, "Argument 's' has incorrect type (expected BooleSet, BooleanMonomial or BooleanPolynomial, got %s)"%(type(s))
+    return (<BooleanPolynomialRing>s.ring()).pbind[idx]
 
 
 cdef long PBRing_identifier(PBRing pbring):
@@ -7374,8 +7640,6 @@ cdef object TermOrder_from_PBRing(PBRing _ring):
     cdef int n = _ring.nVariables()
     pb_base_order_code = _ring.ordering().getBaseOrderCode()
     order_str = inv_order_dict[pb_base_order_code]
-    if order_str == 'degrevlex':
-        order_str = 'deglex_asc'
 
     cdef PBBlockIter it = _ring.ordering().blockBegin()
     cdef int ctr = 0
@@ -7404,25 +7668,12 @@ cdef BooleanPolynomialRing BooleanPolynomialRing_from_PBRing(PBRing _ring):
 
     self.pbind = <Py_ssize_t*>sage_malloc(n*sizeof(Py_ssize_t))
 
-    pb_order_code = _ring.ordering().getOrderCode()
-
     T = TermOrder_from_PBRing(_ring)
 
-    if (pb_order_code is pbdlex) or (pb_order_code is pblp) or (pb_order_code is pbblock_dlex):
-        for i from 0 <= i < n:
-            self.pbind[i] = i
-    elif pb_order_code is pbdp_asc:
-        for i from 0 <= i < n:
-            self.pbind[i] = i
-    else:
-        # pb_order_code is block_dp_asc:
-        bstart = 0
-        for i from 0 <= i < len(T.blocks()):
-            bsize = len(T[i])
-            for j from 0 <= j < bsize:
-                self.pbind[bstart + j] = bstart + j
-            bstart += bsize
-
+    # pbdp and pbblock_dp cannot occur here
+    for i from 0 <= i < n:
+        self.pbind[i] = i
+            
     names = []
     for i in range(n):
         name = _ring.getVariableName(i)
@@ -7623,10 +7874,118 @@ def unpickle_BooleanPolynomialRing(n, names, order):
 
 cdef class BooleConstant:
     def __init__(self, int value):
-       PBConstant_construct(&self._pbconst, value)
+        """ 
+        Construct a boolean constant (modulo 2) from integer value:
+        
+        INPUT:
+        
+        -  ``i`` - an integer
+    
+        EXAMPLE::
 
+            sage: from polybori import BooleConstant
+            sage: [BooleConstant(i) for i in range(5)]
+            [0, 1, 0, 1, 0]
+        """ 
+        PBConstant_construct(&self._pbconst, value)
+
+    def __repr__(self):
+        """
+        EXAMPLE::
+        
+            sage: from polybori import BooleConstant
+            sage: repr((BooleConstant(0),BooleConstant(1))) # indirect doctest
+            '(0, 1)'
+            
+        """
+        if self.is_one():
+            return '1'
+        return '0'
+    
     def deg(self):
+        """ 
+        Get degree of boolean constant.
+        
+        EXAMPLE::
+        
+            sage: from polybori import BooleConstant
+            sage: BooleConstant(0).deg()
+            -1
+            sage: BooleConstant(1).deg()
+            0
+        """
         return self._pbconst.deg()
+
+    def variables(self):
+        """ 
+        Get variables (return always and empty tuple).
+        
+        EXAMPLE::
+    
+            sage: from polybori import BooleConstant
+            sage: BooleConstant(0).variables()
+            ()
+            sage: BooleConstant(1).variables()
+            ()
+        """
+        return tuple()
+
+    def is_one(self):
+        """ 
+        Check whether boolean constant is one.
+        
+        EXAMPLE::
+    
+            sage: from polybori import BooleConstant
+            sage: BooleConstant(0).is_one()
+            False
+            sage: BooleConstant(1).is_one()
+            True
+        """
+        return self._pbconst.isOne()
+
+    def is_zero(self):
+        """ 
+        Check whether boolean constant is zero.
+        
+        EXAMPLE::
+    
+            sage: from polybori import BooleConstant
+            sage: BooleConstant(1).is_zero()
+            False
+            sage: BooleConstant(0).is_zero()
+            True
+        """
+        return self._pbconst.isZero()
+
+    def is_constant(self):
+        """ 
+        This is always true for in this case.
+        
+        EXAMPLE::
+    
+            sage: from polybori import BooleConstant
+            sage: BooleConstant(1).is_constant()
+            True
+            sage: BooleConstant(0).is_constant()
+            True
+        """
+        return True
+
+    def has_constant_part(self):
+        """ 
+        This is true for for `BooleConstant(1)`.
+        
+        EXAMPLE::
+    
+            sage: from polybori import BooleConstant
+            sage: BooleConstant(1).has_constant_part()
+            True
+            sage: BooleConstant(0).has_constant_part()
+            False
+        """
+        return self._pbconst.hasConstantPart()
+
 
 cdef object pb_block_order(n, order_str,blocks):
     T = [TermOrder(order_str, blockend-blockstart, force=True) 
@@ -7644,8 +8003,10 @@ cpdef object TermOrder_from_pb_order(int n, order, blocks):
     if not PY_TYPE_CHECK(order, str):
         if order == pbblock_dlex:
             order_str = pb_block_order(n, "deglex", blocks)
-        elif order == pbblock_dp_asc:
+        elif order == pbblock_dp:
             order_str = pb_block_order(n, "degrevlex", blocks)
+        elif order == pbblock_dp_asc:
+            order_str = pb_block_order(n, "degneglex", blocks)
         else:
             order_str = inv_order_dict[order]
     else:
@@ -7776,7 +8137,7 @@ cdef class MonomialFactory:
                 if PY_TYPE_CHECK(arg, BooleanPolynomial):
                    return result.lm()
                 return result
-            except:
+            except StandardError:
                 raise TypeError, \
                     "Cannot %s convert to Boolean Monomial"%(str(type(arg)))
 

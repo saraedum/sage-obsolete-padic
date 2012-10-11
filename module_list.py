@@ -72,6 +72,13 @@ for line in open(SAGE_INC + "m4ri/m4ri_config.h"):
 
 singular_libs = ['m', 'readline', 'singular', 'givaro', 'ntl', 'gmpxx', 'gmp']
 
+
+#########################################################
+### Givaro flags
+#########################################################
+
+givaro_extra_compile_args =['-D__STDC_LIMIT_MACROS']
+
 #########################################################
 ### PolyBoRi defines
 #########################################################
@@ -338,6 +345,9 @@ ext_modules = [
     Extension('sage.graphs.graph_decompositions.vertex_separation',
               sources = ['sage/graphs/graph_decompositions/vertex_separation.pyx']),
 
+    Extension('sage.graphs.graph_decompositions.graph_products',
+              sources = ['sage/graphs/graph_decompositions/graph_products.pyx']),
+
     Extension('sage.graphs.convexity_properties',
               sources = ['sage/graphs/convexity_properties.pyx']),
 
@@ -362,6 +372,9 @@ ext_modules = [
               depends = ['sage/graphs/modular_decomposition/src/dm.c',
                          'sage/graphs/modular_decomposition/src/dm_english.h']),
 
+    Extension('sage.graphs.weakly_chordal',
+              sources = ['sage/graphs/weakly_chordal.pyx']),
+
     Extension('sage.graphs.matchpoly',
               sources = ['sage/graphs/matchpoly.pyx'],
               libraries = ['gmp', 'flint'],
@@ -370,53 +383,53 @@ ext_modules = [
               depends = flint_depends),
 
     Extension('sage.graphs.planarity',
-              sources = ['sage/graphs/planarity/graphColorVertices.c',
-                         'sage/graphs/planarity/graphColorVertices_Extensions.c',
-                         'sage/graphs/planarity/graphDrawPlanar.c',
-                         'sage/graphs/planarity/graphDrawPlanar_Extensions.c',
-                         'sage/graphs/planarity/graphEmbed.c',
-                         'sage/graphs/planarity/graphExtensions.c',
-                         'sage/graphs/planarity/graphIO.c',
-                         'sage/graphs/planarity/graphIsolator.c',
-                         'sage/graphs/planarity/graphK23Search.c',
-                         'sage/graphs/planarity/graphK23Search_Extensions.c',
-                         'sage/graphs/planarity/graphK33Search.c',
-                         'sage/graphs/planarity/graphK33Search_Extensions.c',
-                         'sage/graphs/planarity/graphK4Search.c',
-                         'sage/graphs/planarity/graphK4Search_Extensions.c',
-                         'sage/graphs/planarity/graphNonplanar.c',
-                         'sage/graphs/planarity/graphOuterplanarObstruction.c',
-                         'sage/graphs/planarity/graphPreprocess.c',
-                         'sage/graphs/planarity/graphTests.c',
-                         'sage/graphs/planarity/graphUtils.c',
-                         'sage/graphs/planarity/listcoll.c',
-                         'sage/graphs/planarity/planarity.c',
-                         'sage/graphs/planarity/planarityCommandLine.c',
-                         'sage/graphs/planarity/planarityRandomGraphs.c',
-                         'sage/graphs/planarity/planaritySpecificGraph.c',
-                         'sage/graphs/planarity/planarityUtils.c',
-                         'sage/graphs/planarity/stack.c',
+              sources = ['sage/graphs/planarity_c/graphColorVertices.c',
+                         'sage/graphs/planarity_c/graphColorVertices_Extensions.c',
+                         'sage/graphs/planarity_c/graphDrawPlanar.c',
+                         'sage/graphs/planarity_c/graphDrawPlanar_Extensions.c',
+                         'sage/graphs/planarity_c/graphEmbed.c',
+                         'sage/graphs/planarity_c/graphExtensions.c',
+                         'sage/graphs/planarity_c/graphIO.c',
+                         'sage/graphs/planarity_c/graphIsolator.c',
+                         'sage/graphs/planarity_c/graphK23Search.c',
+                         'sage/graphs/planarity_c/graphK23Search_Extensions.c',
+                         'sage/graphs/planarity_c/graphK33Search.c',
+                         'sage/graphs/planarity_c/graphK33Search_Extensions.c',
+                         'sage/graphs/planarity_c/graphK4Search.c',
+                         'sage/graphs/planarity_c/graphK4Search_Extensions.c',
+                         'sage/graphs/planarity_c/graphNonplanar.c',
+                         'sage/graphs/planarity_c/graphOuterplanarObstruction.c',
+                         'sage/graphs/planarity_c/graphPreprocess.c',
+                         'sage/graphs/planarity_c/graphTests.c',
+                         'sage/graphs/planarity_c/graphUtils.c',
+                         'sage/graphs/planarity_c/listcoll.c',
+                         'sage/graphs/planarity_c/planarity.c',
+                         'sage/graphs/planarity_c/planarityCommandLine.c',
+                         'sage/graphs/planarity_c/planarityRandomGraphs.c',
+                         'sage/graphs/planarity_c/planaritySpecificGraph.c',
+                         'sage/graphs/planarity_c/planarityUtils.c',
+                         'sage/graphs/planarity_c/stack.c',
                          'sage/graphs/planarity.pyx'],
-              depends = ['sage/graphs/planarity/appconst.h',
-                         'sage/graphs/planarity/graphColorVertices.h',
-                         'sage/graphs/planarity/graphColorVertices.private.h',
-                         'sage/graphs/planarity/graphDrawPlanar.h',
-                         'sage/graphs/planarity/graphDrawPlanar.private.h',
-                         'sage/graphs/planarity/graphExtensions.h',
-                         'sage/graphs/planarity/graphExtensions.private.h',
-                         'sage/graphs/planarity/graphFunctionTable.h',
-                         'sage/graphs/planarity/graph.h',
-                         'sage/graphs/planarity/graphK23Search.h',
-                         'sage/graphs/planarity/graphK23Search.private.h',
-                         'sage/graphs/planarity/graphK33Search.h',
-                         'sage/graphs/planarity/graphK33Search.private.h',
-                         'sage/graphs/planarity/graphK4Search.h',
-                         'sage/graphs/planarity/graphK4Search.private.h',
-                         'sage/graphs/planarity/graphStructures.h',
-                         'sage/graphs/planarity/listcoll.h',
-                         'sage/graphs/planarity/planarity.h',
-                         'sage/graphs/planarity/platformTime.h',
-                         'sage/graphs/planarity/stack.h']),
+              depends = ['sage/graphs/planarity_c/appconst.h',
+                         'sage/graphs/planarity_c/graphColorVertices.h',
+                         'sage/graphs/planarity_c/graphColorVertices.private.h',
+                         'sage/graphs/planarity_c/graphDrawPlanar.h',
+                         'sage/graphs/planarity_c/graphDrawPlanar.private.h',
+                         'sage/graphs/planarity_c/graphExtensions.h',
+                         'sage/graphs/planarity_c/graphExtensions.private.h',
+                         'sage/graphs/planarity_c/graphFunctionTable.h',
+                         'sage/graphs/planarity_c/graph.h',
+                         'sage/graphs/planarity_c/graphK23Search.h',
+                         'sage/graphs/planarity_c/graphK23Search.private.h',
+                         'sage/graphs/planarity_c/graphK33Search.h',
+                         'sage/graphs/planarity_c/graphK33Search.private.h',
+                         'sage/graphs/planarity_c/graphK4Search.h',
+                         'sage/graphs/planarity_c/graphK4Search.private.h',
+                         'sage/graphs/planarity_c/graphStructures.h',
+                         'sage/graphs/planarity_c/listcoll.h',
+                         'sage/graphs/planarity_c/planarity.h',
+                         'sage/graphs/planarity_c/platformTime.h',
+                         'sage/graphs/planarity_c/stack.h']),
 
     Extension('sage.graphs.graph_decompositions.rankwidth',
               sources = ['sage/graphs/graph_decompositions/rankwidth.pyx']),
@@ -576,7 +589,7 @@ ext_modules = [
 
     Extension('sage.libs.ecl',
               sources = ["sage/libs/ecl.pyx"],
-              libraries = ["ecl"],
+              libraries = ["ecl", "gmp"],
               include_dirs = [SAGE_INC + 'ecl/'],
               depends = [SAGE_INC + 'ecl/ecl.h']),
 
@@ -605,9 +618,10 @@ ext_modules = [
               sources = ['sage/libs/linbox/linbox.pyx'],
               # For this to work on cygwin, linboxsage *must* be
               # before ntl.
-              libraries = ['linboxsage', 'ntl', 'linbox', 
-                           'stdc++', 'givaro', 'gmp', 'gmpxx', BLAS, BLAS2],
+              libraries = ['linboxsage', 'ntl', 'iml', 'linbox',
+                           'stdc++', 'givaro', 'mpfr', 'gmp', 'gmpxx', BLAS, BLAS2],
               language = 'c++',
+              extra_compile_args = givaro_extra_compile_args,
               depends = [SAGE_INC + 'givaro/givconfig.h']),
 
     Extension('sage.libs.lcalc.lcalc_Lfunction',
@@ -662,42 +676,48 @@ ext_modules = [
               libraries = singular_libs,
               language="c++",
               include_dirs = [SAGE_INC + 'singular', SAGE_INC + 'factory'],
-              depends = singular_depends),
+              depends = singular_depends,
+              extra_compile_args = givaro_extra_compile_args),
     
     Extension('sage.libs.singular.polynomial',
               sources = ['sage/libs/singular/polynomial.pyx'],
               libraries = singular_libs,
               language="c++",
               include_dirs = [SAGE_INC + 'singular', SAGE_INC + 'factory'],
-              depends = singular_depends),
+              depends = singular_depends,
+              extra_compile_args = givaro_extra_compile_args),
 
     Extension('sage.libs.singular.ring',
               sources = ['sage/libs/singular/ring.pyx'],
               libraries = singular_libs,
               language="c++",
               include_dirs = [SAGE_INC + 'singular', SAGE_INC + 'factory'],
-              depends = singular_depends),
+              depends = singular_depends,
+              extra_compile_args = givaro_extra_compile_args),
 
     Extension('sage.libs.singular.groebner_strategy',
               sources = ['sage/libs/singular/groebner_strategy.pyx'],
               libraries = singular_libs,
               language="c++",
               include_dirs = [SAGE_INC + 'singular', SAGE_INC + 'factory'],
-              depends = singular_depends),
+              depends = singular_depends,
+              extra_compile_args = givaro_extra_compile_args),
 
     Extension('sage.libs.singular.function',
               sources = ['sage/libs/singular/function.pyx'],
               libraries = singular_libs,
               language="c++",
               include_dirs = [SAGE_INC +'singular', SAGE_INC + 'factory'],
-              depends = singular_depends),
+              depends = singular_depends,
+              extra_compile_args = givaro_extra_compile_args),
 
     Extension('sage.libs.singular.option',
               sources = ['sage/libs/singular/option.pyx'],
               libraries = singular_libs,
               language="c++",
               include_dirs = [SAGE_INC + 'singular', SAGE_INC + 'factory'],
-              depends = singular_depends),
+              depends = singular_depends,
+              extra_compile_args = givaro_extra_compile_args),
 
     Extension('sage.libs.symmetrica.symmetrica',
               sources = ["sage/libs/symmetrica/%s"%s for s in ["symmetrica.pyx"]],
@@ -943,7 +963,7 @@ ext_modules = [
               extra_compile_args = ['-std=c99'] + m4ri_extra_compile_args,
               depends = [SAGE_INC + 'm4ri/m4ri.h'],
               # order matters for cygwin!!
-              libraries = ['iml', 'pari', 'm', 'gmp', BLAS, BLAS2]),
+              libraries = ['iml', 'pari', 'gmp', 'm', BLAS, BLAS2]),
 
     Extension('sage.matrix.matrix_integer_sparse',
               sources = ['sage/matrix/matrix_integer_sparse.pyx'],
@@ -960,7 +980,7 @@ ext_modules = [
               libraries = ['m4rie', 'm4ri', 'givaro', 'ntl', 'gmpxx', 'gmp', 'm', 'stdc++'],
               depends = [SAGE_INC + "m4rie/m4rie.h"],
               include_dirs = [SAGE_INC + 'm4rie'],
-              extra_compile_args = m4ri_extra_compile_args,
+              extra_compile_args = m4ri_extra_compile_args + givaro_extra_compile_args,
               language="c++"),
 
     Extension('sage.matrix.matrix_modn_dense',
@@ -970,14 +990,14 @@ ext_modules = [
     Extension('sage.matrix.matrix_modn_dense_float',
               sources = ['sage/matrix/matrix_modn_dense_float.pyx'],
               language="c++",
-              libraries = ['gmp', 'linbox', 'givaro', BLAS, BLAS2],
-              extra_compile_args = ['-DDISABLE_COMMENTATOR']),
+              libraries = ['linbox', 'givaro', 'mpfr', 'gmpxx', 'gmp', BLAS, BLAS2],
+              extra_compile_args = ['-DDISABLE_COMMENTATOR'] + givaro_extra_compile_args),
 
     Extension('sage.matrix.matrix_modn_dense_double',
               sources = ['sage/matrix/matrix_modn_dense_double.pyx'],
               language="c++",
-              libraries = ['gmp', 'linbox', 'givaro', BLAS, BLAS2],
-              extra_compile_args = ['-DDISABLE_COMMENTATOR']),
+              libraries = ['linbox', 'givaro', 'mpfr', 'gmpxx', 'gmp', BLAS, BLAS2],
+              extra_compile_args = ['-DDISABLE_COMMENTATOR'] + givaro_extra_compile_args),
 
     Extension('sage.matrix.matrix_modn_sparse',
               sources = ['sage/matrix/matrix_modn_sparse.pyx'],
@@ -988,7 +1008,8 @@ ext_modules = [
               libraries = singular_libs,
               language="c++",
               include_dirs = [SAGE_INC + 'singular', SAGE_INC + 'factory'],
-              depends = singular_depends),
+              depends = singular_depends,
+              extra_compile_args = givaro_extra_compile_args),
 
     #Extension('sage.matrix.matrix_pid_dense',
     #          sources = ['sage/matrix/matrix_pid_dense.pyx']),
@@ -1025,7 +1046,7 @@ ext_modules = [
     Extension('sage.matrix.misc',
               sources = ['sage/matrix/misc.pyx'],
               libraries=['mpfr','gmp']),
-    
+
     Extension('sage.matrix.strassen',
               sources = ['sage/matrix/strassen.pyx']),
                             
@@ -1095,7 +1116,11 @@ ext_modules = [
     Extension('sage.misc.randstate',
               sources = ['sage/misc/randstate.pyx'],
               libraries = ['gmp']),
-    
+
+    Extension('sage.misc.readline_extra_commands',
+              sources = ['sage/misc/readline_extra_commands.pyx'],
+              libraries = ['readline']),
+
     Extension('sage.misc.refcount',
               sources = ['sage/misc/refcount.pyx']),
 
@@ -1108,8 +1133,8 @@ ext_modules = [
     Extension('sage.misc.classcall_metaclass', 
               sources = ['sage/misc/classcall_metaclass.pyx']), 
 
-    Extension('sage.misc.sagex_ds',
-              sources = ['sage/misc/sagex_ds.pyx']),
+    Extension('sage.misc.binary_tree',
+              sources = ['sage/misc/binary_tree.pyx']),
     
     Extension('sage.misc.search',
               sources = ['sage/misc/search.pyx']),
@@ -1133,7 +1158,7 @@ ext_modules = [
               sources = ['sage/modular/arithgroup/farey_symbol.pyx',
                          'sage/modular/arithgroup/farey.cpp',
                          'sage/modular/arithgroup/sl2z.cpp'],
-              libraries = ['gmpxx'],
+              libraries = ['gmpxx', 'gmp'],
               language = 'c++'),
 
     Extension('sage.modular.modform.eis_series_cython',
@@ -1436,7 +1461,8 @@ ext_modules = [
               sources = ["sage/rings/finite_rings/element_givaro.pyx"],
               # this order is needed to compile under windows.
               libraries = ['givaro', 'ntl', 'gmpxx', 'gmp', 'm', 'stdc++', ],
-              language='c++'),
+              language='c++',
+              extra_compile_args = givaro_extra_compile_args),
 
     Extension('sage.rings.finite_rings.element_ntl_gf2e',
               sources = ['sage/rings/finite_rings/element_ntl_gf2e.pyx'],
@@ -1576,21 +1602,24 @@ ext_modules = [
               libraries = singular_libs,
               language="c++",
               include_dirs = [SAGE_INC + 'singular', SAGE_INC + 'factory'],
-              depends = singular_depends),
+              depends = singular_depends,
+              extra_compile_args = givaro_extra_compile_args),
 
     Extension('sage.rings.polynomial.plural',
               sources = ['sage/rings/polynomial/plural.pyx'],
               libraries = ['m', 'readline', 'singular', 'givaro', 'gmpxx', 'gmp'],
               language="c++",
               include_dirs = [SAGE_ROOT +'/local/include/singular'],
-              depends = [SAGE_ROOT + "/local/include/libsingular.h"]),
+              depends = [SAGE_ROOT + "/local/include/libsingular.h"],
+              extra_compile_args = givaro_extra_compile_args),
 
     Extension('sage.rings.polynomial.multi_polynomial_libsingular',
               sources = ['sage/rings/polynomial/multi_polynomial_libsingular.pyx'],
               libraries = singular_libs,
               language="c++",
               include_dirs = [SAGE_INC + 'singular', SAGE_INC + 'factory'],
-              depends = singular_depends),
+              depends = singular_depends,
+              extra_compile_args = givaro_extra_compile_args),
 
     Extension('sage.rings.polynomial.multi_polynomial_ring_generic',
               sources = ['sage/rings/polynomial/multi_polynomial_ring_generic.pyx']), 
@@ -1774,7 +1803,10 @@ ext_modules = [
 
     Extension('sage.structure.mutability',
               sources = ['sage/structure/mutability.pyx']),
-    
+
+    Extension('sage.structure.misc',
+              sources = ['sage/structure/misc.pyx']),
+
     Extension('sage.structure.parent',
               sources = ['sage/structure/parent.pyx']),
 
@@ -1843,12 +1875,21 @@ ext_modules = [
               sources = ['sage/tests/interrupt.pyx', 'sage/tests/c_lib.c']),
 
     Extension('sage.tests.stl_vector',
-              sources = ['sage/tests/stl_vector.pyx'], 
+              sources = ['sage/tests/stl_vector.pyx'],
+              libraries = ['gmp'],
               language = 'c++'),
     
     Extension('sage.tests.cython',
               sources = ['sage/tests/cython.pyx']),
     
+    ################################
+    ## 
+    ## sage.sat
+    ##
+    ################################
+
+    Extension('sage.sat.solvers.satsolver',
+              sources = ['sage/sat/solvers/satsolver.pyx']),
     ]
 
 # Optional extensions :
@@ -1889,6 +1930,19 @@ if is_package_installed('cbc'):
         )
 
 
+if is_package_installed('cryptominisat'):
+    ext_modules.extend([
+        Extension("sage.sat.solvers.cryptominisat.cryptominisat",
+                  ["sage/sat/solvers/cryptominisat/cryptominisat.pyx"],
+                  include_dirs = [SAGE_INC, SAGE_INC+"/cmsat"],
+                  language = "c++",
+                  libraries = ['cryptominisat', 'z']),
+        Extension("sage.sat.solvers.cryptominisat.solverconf",
+                  ["sage/sat/solvers/cryptominisat/solverconf.pyx", "sage/sat/solvers/cryptominisat/solverconf_helper.cpp"],
+                  include_dirs = [SAGE_INC, SAGE_INC+"/cmsat"],
+                  language = "c++",
+                  libraries = ['cryptominisat', 'z'])
+        ])
 
 # Only include darwin_utilities on OS_X >= 10.5
 UNAME = os.uname()

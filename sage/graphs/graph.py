@@ -43,13 +43,16 @@ graphs.
 
     :meth:`~Graph.is_prime` | Tests whether the current graph is prime.
     :meth:`~Graph.is_split` | Returns ``True`` if the graph is a Split graph, ``False`` otherwise.
-    :meth:`~Graph.is_triangle_free` | Returns whether ``self`` is triangle-free
+    :meth:`~Graph.is_triangle_free` | Returns whether ``self`` is triangle-free.
     :meth:`~Graph.is_bipartite` | Returns True if graph G is bipartite, False if not.
     :meth:`~Graph.is_line_graph` | Tests wether the graph is a line graph.
     :meth:`~Graph.is_odd_hole_free` | Tests whether ``self`` contains an induced odd hole.
     :meth:`~Graph.is_even_hole_free` | Tests whether ``self`` contains an induced even hole.
-
-
+    :meth:`~Graph.is_cartesian_product` | Tests whether ``self`` is a cartesian product of graphs.
+    :meth:`~Graph.is_long_hole_free` | Tests whether ``self`` contains an induced cycle of length at least 5.
+    :meth:`~Graph.is_long_antihole_free` | Tests whether ``self`` contains an induced anticycle of length at least 5.
+    :meth:`~Graph.is_weakly_chordal` | Tests whether ``self`` is weakly chordal.
+    :meth:`~Graph.is_strongly_regular` | Tests whether ``self`` is strongly regular.
 
 **Connectivity and orientations:**
 
@@ -186,6 +189,9 @@ AUTHORS:
 - Nicolas M. Thiery (2010-02): graph layout code refactoring, dot2tex/graphviz interface
 
 - David Coudert (2012-04) : Reduction rules in vertex_cover.
+
+- Birk Eisermann (2012-06): added recognition of weakly chordal graphs and
+                            long-hole-free / long-antihole-free graphs
 
 
 Graph Format
@@ -446,6 +452,8 @@ Show each graph as you iterate through the results:
     ...     show(g)
 
 
+
+
 Visualization
 -------------
 
@@ -490,6 +498,7 @@ from sage.rings.integer import Integer
 import sage.graphs.generic_graph_pyx as generic_graph_pyx
 from sage.graphs.generic_graph import GenericGraph
 from sage.graphs.digraph import DiGraph
+
 
 class Graph(GenericGraph):
     r"""
@@ -1202,7 +1211,7 @@ class Graph(GenericGraph):
                 try:
                     e = int(e)
                     assert e >= 0
-                except:
+                except StandardError:
                     if weighted is False:
                         raise ValueError("Non-weighted graph's"+
                         " adjacency matrix must have only nonnegative"+
@@ -1534,21 +1543,21 @@ class Graph(GenericGraph):
         Returns the sparse6 representation of the graph as an ASCII string.
         Only valid for undirected graphs on 0 to 262143 vertices, but loops
         and multiple edges are permitted.
-        
+
         EXAMPLES::
-        
+
             sage: G = graphs.BullGraph()
             sage: G.sparse6_string()
             ':Da@en'
-        
+
         ::
-        
+
             sage: G = Graph()
             sage: G.sparse6_string()
             ':?'
-        
+
         ::
-        
+
             sage: G = Graph(loops=True, multiedges=True,sparse=True)
             sage: Graph(':?',sparse=True) == G
             True
@@ -1564,8 +1573,9 @@ class Graph(GenericGraph):
             edges = self.edges(labels=False)
             for i in range(len(edges)): # replace edge labels with natural numbers (by index in vertices)
                 edges[i] = (vertices.index(edges[i][0]),vertices.index(edges[i][1]))
-            # order edges
-            edges.sort(compare_edges)
+            # order edges 'reverse lexicographically', that is, for
+            # edge (a,b) and edge (c,d) first compare b and d, then a and c;
+            edges.sort(key=lambda e: (e[1],e[0]))
 
             # encode bit vector
             from math import ceil
@@ -1804,7 +1814,7 @@ class Graph(GenericGraph):
                 
             start = start + 2
 
-        return True            
+        return True
 
     def is_line_graph(self, certificate = False):
         r"""
@@ -2153,13 +2163,96 @@ class Graph(GenericGraph):
         else:
             return counter_example is None
 
+    def is_strongly_regular(self, return_parameters=False):
+        r"""
+        Tests whether ``self`` is strongly regular.
+
+        A graph `G` is said to be strongly regular with parameters `(k, \lambda,
+        \mu)` if and only if:
+
+            * `G` is `k`-regular
+
+            * Any two adjacent vertices of `G` have `\lambda` common neighbors.
+
+            * Any two non-adjacent vertices of `G` have `\mu` common neighbors.
+
+        INPUT:
+
+        - ``return_parameters`` (boolean) -- whether to return the triple
+          `(k,\lambda,\mu)`. If ``return_parameters = False`` (default), this
+          method only returns ``True`` and ``False`` answers. If
+          ``return_parameters=True``, the ``True`` answers are replaced by
+          triples `(k,\lambda,\mu)`. See definition above.
+
+        EXAMPLES:
+
+        Petersen's graph is strongly regular::
+
+            sage: g = graphs.PetersenGraph()
+            sage: g.is_strongly_regular()
+            True
+            sage: g.is_strongly_regular(return_parameters = True)
+            (3, 0, 1)
+
+        And Clebsch's graph is too::
+
+            sage: g = graphs.ClebschGraph()
+            sage: g.is_strongly_regular()
+            True
+            sage: g.is_strongly_regular(return_parameters = True)
+            (5, 0, 2)
+
+        But Chvatal's graph is not::
+
+            sage: g = graphs.ChvatalGraph()
+            sage: g.is_strongly_regular()
+            False
+        """
+        degree = self.degree()
+        k = degree[0]
+        if not all(d == k for d in degree):
+            return False
+
+        if self.is_clique():
+            l = self.order()-2
+            m = 0
+        elif self.size() == 0:
+            l = 0
+            m = 0
+        else:
+            l = m = None
+            for u in self:
+                nu = set(self.neighbors(u))
+                for v in self:
+                    if u == v:
+                        continue
+                    nv = set(self.neighbors(v))
+                    inter = len(nu&nv)
+
+                    if v in nu:
+                        if l is None:
+                            l = inter
+                        else:
+                            if l != inter:
+                                return False
+                    else:
+                        if m is None:
+                            m = inter
+                        else:
+                            if m != inter:
+                                return False
+
+            if return_parameters:
+                return (k,l,m)
+            else:
+                return True
 
     def degree_constrained_subgraph(self, bounds=None, solver=None, verbose=0):
         r"""
         Returns a degree-constrained subgraph.
 
         Given a graph `G` and two functions `f, g:V(G)\rightarrow \mathbb Z`
-        such that `f \leq g`, a degree-constrained subgraph in `G` is 
+        such that `f \leq g`, a degree-constrained subgraph in `G` is
         a subgraph `G' \subseteq G` such that for any vertex `v \in G`,
         `f(v) \leq d_{G'}(v) \leq g(v)`.
 
@@ -2954,7 +3047,7 @@ class Graph(GenericGraph):
 
         try:
             p.solve(log=verbose)
-        except:
+        except StandardError:
             return None
 
         classss=p.get_values(classss)
@@ -3292,38 +3385,59 @@ class Graph(GenericGraph):
 
     ### Centrality
 
-    def centrality_betweenness(self, normalized=True):
+    def centrality_betweenness(self, k=None, normalized=True, weight=None,
+            endpoints=False, seed=None):
         r"""
-        Returns the betweenness centrality (fraction of number of shortest
-        paths that go through each vertex) as a dictionary keyed by
-        vertices. The betweenness is normalized by default to be in range
-        (0,1). This wraps NetworkX's implementation of the algorithm
-        described in [Brandes2003]_.
-        
-        Measures of the centrality of a vertex within a graph determine the
-        relative importance of that vertex to its graph. Vertices that
-        occur on more shortest paths between other vertices have higher
-        betweenness than vertices that occur on less.
-        
+        Returns the betweenness centrality (fraction of number of
+        shortest paths that go through each vertex) as a dictionary
+        keyed by vertices. The betweenness is normalized by default to
+        be in range (0,1). This wraps NetworkX's implementation of the
+        algorithm described in [Brandes2003]_.
+
+        Measures of the centrality of a vertex within a graph determine
+        the relative importance of that vertex to its graph. Vertices
+        that occur on more shortest paths between other vertices have
+        higher betweenness than vertices that occur on less.
+
         INPUT:
-        
-        
-        -  ``normalized`` - boolean (default True) - if set to
-           False, result is not normalized.
-        
-        
+
+
+        -  ``normalized`` - boolean (default True) - if set to False,
+           result is not normalized.
+
+        - ``k`` - integer or None (default None) - if set to an integer,
+          use ``k`` node samples to estimate betweenness. Higher values
+          give better approximations.
+
+        - ``weight`` - None or string. If set to a string, use that
+          attribute of the nodes as weight. ``weight = True`` is
+          equivalent to ``weight = "weight"``
+
+        - ``endpoints`` - Boolean. If set to True it includes the
+          endpoints in the shortest paths count
+
         REFERENCE:
 
         .. [Brandes2003] Ulrik Brandes. (2003). Faster Evaluation of
-          Shortest-Path Based Centrality Indices. [Online] Available:
-          http://citeseer.nj.nec.com/brandes00faster.html
-        
+           Shortest-Path Based Centrality Indices. [Online] Available:
+           http://citeseer.nj.nec.com/brandes00faster.html
+
         EXAMPLES::
-        
+
             sage: (graphs.ChvatalGraph()).centrality_betweenness()
-            {0: 0.06969696969696969, 1: 0.06969696969696969, 2: 0.0606060606060606, 3: 0.0606060606060606, 4: 0.06969696969696969, 5: 0.06969696969696969, 6: 0.0606060606060606, 7: 0.0606060606060606, 8: 0.0606060606060606, 9: 0.0606060606060606, 10: 0.0606060606060606, 11: 0.0606060606060606}
-            sage: (graphs.ChvatalGraph()).centrality_betweenness(normalized=False)
-            {0: 3.833333333333333, 1: 3.833333333333333, 2: 3.333333333333333, 3: 3.333333333333333, 4: 3.833333333333333, 5: 3.833333333333333, 6: 3.333333333333333, 7: 3.333333333333333, 8: 3.333333333333333, 9: 3.333333333333333, 10: 3.333333333333333, 11: 3.333333333333333}
+            {0: 0.06969696969696969, 1: 0.06969696969696969,
+             2: 0.0606060606060606, 3: 0.0606060606060606,
+             4: 0.06969696969696969, 5: 0.06969696969696969,
+             6: 0.0606060606060606, 7: 0.0606060606060606,
+             8: 0.0606060606060606, 9: 0.0606060606060606,
+             10: 0.0606060606060606, 11: 0.0606060606060606}
+            sage: (graphs.ChvatalGraph()).centrality_betweenness(
+            ...     normalized=False)
+            {0: 3.833333333333333, 1: 3.833333333333333, 2: 3.333333333333333,
+             3: 3.333333333333333, 4: 3.833333333333333, 5: 3.833333333333333,
+             6: 3.333333333333333, 7: 3.333333333333333, 8: 3.333333333333333,
+             9: 3.333333333333333, 10: 3.333333333333333,
+             11: 3.333333333333333}
             sage: D = DiGraph({0:[1,2,3], 1:[2], 3:[0,1]})
             sage: D.show(figsize=[2,2])
             sage: D = D.to_undirected()
@@ -3332,8 +3446,10 @@ class Graph(GenericGraph):
             {0: 0.16666666666666666, 1: 0.16666666666666666, 2: 0.0, 3: 0.0}
         """
         import networkx
-        return networkx.betweenness_centrality(self.networkx_graph(copy=False), normalized)
-        
+        return networkx.betweenness_centrality(self.networkx_graph(copy=False),
+                k=k, normalized=normalized, weight=weight, endpoints=endpoints,
+                seed=seed)
+
     def centrality_degree(self, v=None):
         r"""
         Returns the degree centrality (fraction of vertices connected to)
@@ -3778,11 +3894,12 @@ class Graph(GenericGraph):
             sage: C = Graph('DJ{')
             sage: C.cliques()
             doctest:...: DeprecationWarning: The function 'cliques' has been deprecated. Use 'cliques_maximal' or 'cliques_maximum'.
+            See http://trac.sagemath.org/5793 for details.
             [[4, 0], [4, 1, 2, 3]]
 
         """
-        from sage.misc.misc import deprecation
-        deprecation("The function 'cliques' has been deprecated. Use " + \
+        from sage.misc.superseded import deprecation
+        deprecation(5793, "The function 'cliques' has been deprecated. Use " + \
                     "'cliques_maximal' or 'cliques_maximum'.")
         return self.cliques_maximal()
         
@@ -4707,6 +4824,55 @@ class Graph(GenericGraph):
 
         return D[0] == "Prime" and len(D[1]) == self.order()
 
+    def is_cartesian_product(self, certificate = False):
+        r"""
+        Tests whether ``self`` is a cartesian product of graphs.
+
+        INPUT:
+
+        - ``certificate`` (boolean) -- if ``certificate = False`` (default) the
+          method only returns ``True`` or ``False`` answers. If ``certificate =
+          True``, the ``True`` answers are replaced by the list of the factors of
+          the graph.
+
+        .. SEEALSO::
+
+            - :meth:`~sage.graphs.generic_graph.GenericGraph.cartesian_product`
+
+            - :mod:`~sage.graphs.graph_decompositions.graph_products` -- a
+              module on graph products.
+
+        EXAMPLE:
+
+        The Petersen graph is prime::
+
+            sage: g = graphs.PetersenGraph()
+            sage: g.is_cartesian_product()
+            False
+
+        A 2d grid is the product of paths::
+
+            sage: g = graphs.Grid2dGraph(5,5)
+            sage: p1, p2 = g.is_cartesian_product(certificate = True)
+            sage: p1.is_isomorphic(graphs.PathGraph(5))
+            True
+            sage: p2.is_isomorphic(graphs.PathGraph(5))
+            True
+
+        And of course, we find the factors back when we build a graph from a
+        product::
+
+            sage: g = graphs.PetersenGraph().cartesian_product(graphs.CycleGraph(3))
+            sage: g1, g2 = g.is_cartesian_product(certificate = True)
+            sage: any( x.is_isomorphic(graphs.PetersenGraph()) for x in [g1,g2])
+            True
+            sage: any( x.is_isomorphic(graphs.CycleGraph(3)) for x in [g1,g2])
+            True
+        """
+        from sage.graphs.graph_decompositions.graph_products import is_cartesian_product
+        return is_cartesian_product(self, certificate = certificate)
+
+
     def _gomory_hu_tree(self, vertices=None, method="FF"):
         r"""
         Returns a Gomory-Hu tree associated to self.
@@ -4907,32 +5073,32 @@ class Graph(GenericGraph):
             True
         """
         return self._gomory_hu_tree(method=method)
-        
+
 
     def two_factor_petersen(self):
         r"""
         Returns a decomposition of the graph into 2-factors.
-    
+
         Petersen's 2-factor decomposition theorem asserts that any
         `2r`-regular graph `G` can be decomposed into 2-factors.
         Equivalently, it means that the edges of any `2r`-regular
         graphs can be partitionned in `r` sets `C_1,\dots,C_r` such
         that for all `i`, the set `C_i` is a disjoint union of cycles
         ( a 2-regular graph ).
-    
+
         As any graph of maximal degree `\Delta` can be completed into
         a regular graph of degree `2\lceil\frac\Delta 2\rceil`, this
         result also means that the edges of any graph of degree `\Delta`
         can be partitionned in `r=2\lceil\frac\Delta 2\rceil` sets
-        `C_1,\dots,C_r` such that for all `i`, the set `C_i` is a 
-        graph of maximal degree `2` ( a disjoint union of paths 
+        `C_1,\dots,C_r` such that for all `i`, the set `C_i` is a
+        graph of maximal degree `2` ( a disjoint union of paths
         and cycles ).
-    
+
         EXAMPLE:
-    
+
         The Complete Graph on `7` vertices is a `6`-regular graph, so it can
         be edge-partitionned into `2`-regular graphs::
-    
+
             sage: g = graphs.CompleteGraph(7)
             sage: classes = g.two_factor_petersen()
             sage: for c in classes:
@@ -4952,49 +5118,58 @@ class Graph(GenericGraph):
             sage: g.plot(edge_colors={'black':cl[0], 'red':cl[1]})
 
         """
-    
+
         d = self.eulerian_orientation()
-    
+
         # This new graph is bipartite, and built the following way :
         #
         # To each vertex v of the digraph are associated two vertices,
         # a sink (-1,v) and a source (1,v)
         # Any edge (u,v) in the digraph is then added as ((-1,u),(1,v))
-    
+
         from sage.graphs.graph import Graph
         g = Graph()
         g.add_edges([((-1,u),(1,v)) for (u,v) in d.edge_iterator(labels=None)])
-    
+
         # This new bipartite graph is now edge_colored
         from sage.graphs.graph_coloring import edge_coloring
         classes = edge_coloring(g)
-    
+
         # The edges in the classes are of the form ((-1,u),(1,v))
         # and have to be translated back to (u,v)
         classes_b = []
         for c in classes:
             classes_b.append([(u,v) for ((uu,u),(vv,v)) in c])
-    
+
         return classes_b
+
+# Aliases to functions defined in Cython modules
+import types
+
+import sage.graphs.weakly_chordal
+Graph.is_long_hole_free = types.MethodType(sage.graphs.weakly_chordal.is_long_hole_free, None, Graph)
+Graph.is_long_antihole_free = types.MethodType(sage.graphs.weakly_chordal.is_long_antihole_free, None, Graph)
+Graph.is_weakly_chordal = types.MethodType(sage.graphs.weakly_chordal.is_weakly_chordal, None, Graph)
+
 
 def compare_edges(x, y):
     """
+    This function has been deprecated.
+
     Compare edge x to edge y, return -1 if x y, 1 if x y, else 0.
-    
-    EXAMPLES::
-    
+
+    TEST::
+
         sage: G = graphs.PetersenGraph()
         sage: E = G.edges()
         sage: from sage.graphs.graph import compare_edges
         sage: compare_edges(E[0], E[2])
+        doctest:...: DeprecationWarning: compare_edges(x,y) is deprecated.  Use statement 'cmp(x[1],y[1]) or cmp(x[0],y[0])' instead.
+        See http://trac.sagemath.org/13192 for details.
         -1
-        sage: compare_edges(E[0], E[1])
-        -1
-        sage: compare_edges(E[0], E[0])
-        0
-        sage: compare_edges(E[1], E[0])
-        1
     """
+    from sage.misc.superseded import deprecation
+    deprecation(13192, "compare_edges(x,y) is deprecated.  Use statement 'cmp(x[1],y[1]) or cmp(x[0],y[0])' instead.")
     if x[1] < y[1]:
         return -1
     elif x[1] > y[1]:

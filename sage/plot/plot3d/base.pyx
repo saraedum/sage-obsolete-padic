@@ -1114,7 +1114,10 @@ end_scene""" % (render_params.antialiasing,
             #if fg >= 2:
             #    fg = 2
             filename = '%s-size%s%s'%(base, fg*100, ext)
-            ext = "jmol"
+            if EMBEDDED_MODE:
+                ext = "jmol"
+            else:
+                ext = "spt"
             archive_name = "%s.%s.zip" % (filename, ext)
             if EMBEDDED_MODE:
                 # jmol doesn't seem to correctly parse the ?params part of a URL
@@ -1125,11 +1128,46 @@ end_scene""" % (render_params.antialiasing,
             viewer_app = os.path.join(sage.misc.misc.SAGE_LOCAL, "bin/jmol")
 
             # We need a script to load the file
-            f = open(filename + '.jmol', 'w')
-            f.write('set defaultdirectory "%s"\n' % archive_name)
+            f = open(filename + '.'+ext, 'w')
+            import sagenb
+            if EMBEDDED_MODE:
+                path = "cells/%s/%s" %(sagenb.notebook.interact.SAGE_CELL_ID, archive_name)
+            else:
+                path = archive_name
+            f.write('set defaultdirectory "%s"\n' %path) 
             f.write('script SCRIPT\n')
             f.close()
 
+            # If the server has a Java installation we can make better static images with Jmol
+            # Test for Java then make image with Jmol or Tachyon if no JavaVM
+            if EMBEDDED_MODE:
+                #name image file
+                head,tail = os.path.split(archive_name)
+                png_path = os.path.join(head,'.jmol_images')
+                if  not os.path.exists(png_path):
+                    os.mkdir(png_path)
+                png_name = os.path.join(png_path,filename)
+                #test for JavaVM
+                from sage.interfaces.jmoldata import JmolData
+                jdata = JmolData()
+                if (jdata.is_jvm_available()):
+                    # make the image with Jmol
+                    # hack...need absolute paths since jvm running outside of sage environment
+                    cellhead, celltail =os.path.split(os.path.realpath(os.path.join(os.path.curdir,"data")))
+                    celldir = os.path.join(cellhead,"cells",str(sagenb.notebook.interact.SAGE_CELL_ID))
+                    png_name = png_name+".jmol.png"
+                    png_fullpath = os.path.join(celldir,png_name)
+                    archive_fullpath = os.path.join(celldir,archive_name)
+                    #print png_fullpath
+                    script = 'set defaultdirectory \"'+archive_fullpath+'\"\n script SCRIPT\n'
+                    #print script 
+                    jdata.export_image(targetfile = png_fullpath,datafile=script,image_type="PNG", figsize = fg)
+                else:
+                    #make the image with tachyon
+                    T = self._prepare_for_tachyon(frame, axes, frame_aspect_ratio, aspect_ratio, zoom)
+                    tachyon_rt(T.tachyon(), png_name+".jmol.png", verbosity, True, opts)
+
+                        
         if viewer == 'canvas3d':
             T = self._prepare_for_tachyon(frame, axes, frame_aspect_ratio, aspect_ratio, zoom)
             data = flatten_list(T.json_repr(T.default_render_params()))

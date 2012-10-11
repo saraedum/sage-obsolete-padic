@@ -12,6 +12,8 @@ AUTHORS:
 - Dan Drake (2008-04-07): allow Permutation() to take lists of tuples
 
 - Sebastien Labbe (2009-03-17): added robinson_schensted_inverse
+
+- Travis Scrimshaw (2012-08-16): to_standard() no longer modifies input
 """
 #*****************************************************************************
 #       Copyright (C) 2007 Mike Hansen <mhansen@gmail.com>, 
@@ -39,7 +41,7 @@ from permutation_nk import PermutationsNK
 from sage.groups.perm_gps.permgroup_named import SymmetricGroup
 from sage.groups.perm_gps.permgroup_element import PermutationGroupElement
 from sage.misc.prandom import sample
-from sage.graphs.all import DiGraph
+from sage.graphs.digraph import DiGraph
 import itertools
 import __builtin__
 from combinat import CombinatorialClass, CombinatorialObject, catalan_number, InfiniteAbstractCombinatorialClass
@@ -247,7 +249,7 @@ def Permutation(l):
 
     #if l is a pair of tableaux or a pair of lists
     elif isinstance(l, (tuple, list)) and len(l) == 2 and \
-        all(map(lambda x: isinstance(x, tableau.Tableau_class), l)):
+        all(map(lambda x: isinstance(x, tableau.Tableau), l)):
         return robinson_schensted_inverse(*l)
     elif isinstance(l, (tuple, list)) and len(l) == 2 and \
         all(map(lambda x: isinstance(x, list), l)):
@@ -743,15 +745,23 @@ class Permutation_class(CombinatorialObject):
 
     def signature(p):
         r"""
-        Returns the signature of a permutation.
+        Returns the signature of a permutation. 
+
+        .. NOTE::
+
+            sign may be used as an alias to signature.
         
         EXAMPLES::
         
             sage: Permutation([4, 2, 3, 1, 5]).signature()
             -1
+            sage: Permutation([1,3,2,5,4]).sign()
+            1
         """
         return (-1)**(len(p)-len(p.to_cycles()))
-    
+
+    #one can also use sign as an alias for signature
+    sign = signature
 
     def is_even(self):
         r"""
@@ -2949,7 +2959,6 @@ class Permutations_mset(CombinatorialClass):
             mset_list[one] = mset_list[j]
             mset_list[j] = t
 
-
             #Reverse the list between two and last
             i = int((n - two)/2)-1
             #mset_list = mset_list[:two] + [x for x in reversed(mset_list[two:])]
@@ -3353,6 +3362,32 @@ class StandardPermutations_n(CombinatorialClass):
         """
         for p in Permutations_set(range(1,self.n+1)):
             yield Permutation_class(p)
+
+    def element_in_conjugacy_classes(self,nu):
+        r"""
+        Returns a permutation with cycle type ``nu``
+
+        If the size of ``nu`` is smaller than the size of permutations in ``self``, then some fixed points are added.
+
+        EXAMPLES ::
+
+            sage: PP=Permutations(5)
+            sage: PP.element_in_conjugacy_classes([2,2])
+            [2, 1, 4, 3, 5]
+        """
+        nu=sage.combinat.partition.Partition(nu)
+        if nu.size() > self.n:
+            raise ValueError, "The size of the partition (=%s) should be lower than the size of the permutations(=%s)"%(nu.size,self.n)
+        l=[]
+        i=0
+        for nui in nu:
+            for j in range(nui-1):
+                l.append(i+j+2)
+            l.append(i+1)
+            i+=nui
+        for i in range(nu.size(),self.n):
+            l.append(i+1)
+        return Permutation(l)
  
     def cardinality(self):
         """
@@ -3826,7 +3861,7 @@ class StandardPermutations_descents(CombinatorialClass):
          
          EXAMPLES::
          
-             sage: Permutations(descents=([2,4,0],5)).list()
+             sage: Permutations(descents=([2,0],5)).list()
              [[2, 1, 4, 3, 5],
               [2, 1, 5, 3, 4],
               [3, 1, 4, 2, 5],
@@ -4328,18 +4363,29 @@ def to_standard(p):
         [1, 2, 3]
         sage: permutation.to_standard([])
         []
+        
+    TESTS:
+    
+    Does not mutate the list::
+    
+        sage: a = [1,2,4]
+        sage: permutation.to_standard(a)
+        [1, 2, 3]
+        sage: a
+        [1, 2, 4]
     """
     if not p:
         return Permutation([])
-    s = p[:]
+    s = [0]*len(p)
+    c = p[:]
     biggest = max(p) + 1
     i = 1
-    for _ in range(len(p)):
-        smallest = min(p)
-        smallest_index = p.index(smallest)
+    for _ in range(len(c)):
+        smallest = min(c)
+        smallest_index = c.index(smallest)
         s[smallest_index] = i
         i += 1
-        p[smallest_index] = biggest
+        c[smallest_index] = biggest
 
     return Permutation(s)
 
@@ -5162,8 +5208,8 @@ def Permutations(n=None,k=None, **kwargs):
     
     ::
     
-        sage: p = Permutations(descents=[1,3]); p
-        Standard permutations of 4 with descents [1, 3]
+        sage: p = Permutations(descents=([1], 4)); p
+        Standard permutations of 4 with descents [1]
         sage: p.list()
         [[1, 3, 2, 4], [1, 4, 2, 3], [2, 3, 1, 4], [2, 4, 1, 3], [3, 4, 1, 2]]
     

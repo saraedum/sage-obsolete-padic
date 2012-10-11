@@ -2,7 +2,8 @@
 Classical symmetric functions.
 """
 #*****************************************************************************
-#       Copyright (C) 2007 Mike Hansen <mhansen@gmail.com>, 
+#       Copyright (C) 2007 Mike Hansen <mhansen@gmail.com>
+#                     2012 Mike Zabrocki <mike.zabrocki@gmail.com>
 #
 #  Distributed under the terms of the GNU General Public License (GPL)
 #
@@ -37,7 +38,7 @@ import kschur
 ZZ = IntegerRing()
 QQ = RationalField()
 
-translate = {'monomial':'MONOMIAL', 'homogeneous':'HOMSYM', 'power':'POWSYM', 'elementary':'ELMSYM', 'schur':'SCHUR'}
+translate = {'monomial':'MONOMIAL', 'homogeneous':'HOMSYM', 'powersum':'POWSYM', 'elementary':'ELMSYM', 'Schur':'SCHUR'}
 
 conversion_functions = {}
 
@@ -50,7 +51,7 @@ def init():
         sage: from sage.combinat.sf.classical import init
         sage: sage.combinat.sf.classical.conversion_functions = {}
         sage: init()
-        sage: sage.combinat.sf.classical.conversion_functions[('schur', 'power')]
+        sage: sage.combinat.sf.classical.conversion_functions[('Schur', 'powersum')]
         <built-in function t_SCHUR_POWSYM_symmetrica>
     """
     for other_basis in translate:
@@ -71,32 +72,44 @@ init()
 ###################################
 class SymmetricFunctionAlgebra_classical(sfa.SymmetricFunctionAlgebra_generic):
     """
+    The class of classical symmetric functions.
+
+    .. TODO:: delete this class once all coercions will be handled by Sage's coercion model
+
     TESTS::
 
         sage: TestSuite(SymmetricFunctions(QQ).s()).run()
+        sage: TestSuite(SymmetricFunctions(QQ).h()).run()
+        sage: TestSuite(SymmetricFunctions(QQ).m()).run()
+        sage: TestSuite(SymmetricFunctions(QQ).e()).run()
+        sage: TestSuite(SymmetricFunctions(QQ).p()).run()
     """
-
-    class Element(sfa.SymmetricFunctionAlgebra_generic.Element):
-        """
-        A symmetric function.
-        """
-        pass
 
     def _element_constructor_(self, x):
         """
-        Convert x into self, if coercion failed
+        Convert ``x`` into ``self``, if coercion failed
+
+        INPUT:
+
+        - ``self`` -- a basis of the symmetric functions
+        - ``x`` -- an element of the symmetric functions
 
         EXAMPLES::
 
-            sage: s = SFASchur(QQ)
+            sage: s = SymmetricFunctions(QQ).s()
             sage: s(2)
             2*s[]
             sage: s([2,1]) # indirect doctest
             s[2, 1]
 
-            sage: McdJ = MacdonaldPolynomialsJ(QQ)
+            sage: s([[2,1],[1]])
+            s[1, 1] + s[2]
+            sage: s([[],[]])
+            s[]
+
+            sage: McdJ = SymmetricFunctions(QQ['q','t'].base_ring())
             sage: s = SymmetricFunctions(McdJ.base_ring()).s()
-            sage: s._element_constructor(McdJ(s[2,1]))
+            sage: s._element_constructor_(McdJ(s[2,1]))
             s[2, 1]
         """
         R = self.base_ring()
@@ -136,7 +149,7 @@ class SymmetricFunctionAlgebra_classical(sfa.SymmetricFunctionAlgebra_generic):
         # TODO: find the right idiom
         #
         # One cannot use anymore self.element_class: it is build by
-        # the category mecanism, and depends on the coeff ring.
+        # the category mechanism, and depends on the coeff ring.
 
         elif isinstance(x, self.Element):
             P = x.parent()
@@ -195,7 +208,7 @@ class SymmetricFunctionAlgebra_classical(sfa.SymmetricFunctionAlgebra_generic):
             #Q: Convert to P basis and then convert to self
             #
             elif isinstance(x, hall_littlewood.HallLittlewood_q.Element):
-                    return self( x.parent()._P( x ) )
+                return self( x.parent()._P( x ) )
 
         #######
         # LLT #
@@ -216,7 +229,7 @@ class SymmetricFunctionAlgebra_classical(sfa.SymmetricFunctionAlgebra_generic):
                 for part in P._self_to_m_cache[n][m]:
                     z_elt[part] = z_elt.get(part, zero) + BR(c*P._self_to_m_cache[n][m][part].subs(t=P.t))
                     
-            m = sfa.SFAMonomial(BR)
+            m = P._sym.monomial()
             return self( m._from_dict(z_elt) )            
 
         #########################
@@ -282,8 +295,9 @@ class SymmetricFunctionAlgebra_classical(sfa.SymmetricFunctionAlgebra_generic):
         # Skew Partitions #
         ###################
         elif x in sage.combinat.skew_partition.SkewPartitions():
-            skewschur = symmetrica.part_part_skewschur(x[0], x[1])
-            return self(skewschur)
+            import sage.libs.lrcalc.lrcalc as lrcalc
+            skewschur = lrcalc.skew(x[0], x[1])
+            return self._from_dict(skewschur)
 
 
         #############################
@@ -304,59 +318,13 @@ class SymmetricFunctionAlgebra_classical(sfa.SymmetricFunctionAlgebra_generic):
         else:
             try:
                 return eclass(self, {sage.combinat.partition.Partition_class([]):R(x)})
-            except:
+            except StandardError:
                 raise TypeError, "do not know how to make x (= %s) an element of self"%(x)
 
-
-    def is_field(self, proof = True):
+    # This subclass is currently needed for the test above:
+    #    isinstance(x, SymmetricFunctionAlgebra_classical.Element):
+    class Element(sfa.SymmetricFunctionAlgebra_generic.Element):
         """
-        EXAMPLES::
-        
-            sage: s = SFASchur(QQ)
-            sage: s.is_field()
-            False
+        A symmetric function.
         """
-        return False
-
-    def is_commutative(self):
-        """
-        Return True if this symmetric function algebra is commutative.
-        
-        EXAMPLES::
-        
-            sage: s = SFASchur(QQ)
-            sage: s.is_commutative()
-            True
-        """
-        return self.base_ring().is_commutative()
-
-
-    def _repr_(self):
-        """
-        Text representation of this symmetric function algebra.
-        
-        EXAMPLES::
-        
-            sage: SFASchur(QQ)._repr_()
-            'Symmetric Function Algebra over Rational Field, Schur symmetric functions as basis'
-        """
-        return "Symmetric Function Algebra over %s, %s symmetric functions as basis"%(self.base_ring(), self._basis.capitalize())
-
-
-
-
-##     def __pow__(self, n):
-##         """
-##         EXAMPLES:
-
-##         """
-##         if not isinstance(n, (int, Integer)):
-##             raise TypeError, "n must be an integer"
-##         A = self.parent()
-##         z = A(Integer(1))
-##         for i in range(n):
-##             z *= self
-##         return z
-
-
-    
+        pass

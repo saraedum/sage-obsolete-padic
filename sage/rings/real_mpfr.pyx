@@ -356,7 +356,7 @@ cdef double LOG_TEN_TWO_PLUS_EPSILON = 3.321928094887363 # a small overestimate 
 
 cdef object RealField_cache = weakref.WeakValueDictionary()
 
-def RealField(int prec=53, int sci_not=0, rnd="RNDN"):
+cpdef RealField(int prec=53, int sci_not=0, rnd="RNDN"):
     """
     RealField(prec, sci_not, rnd):
     
@@ -4591,10 +4591,11 @@ cdef class RealNumber(sage.structure.element.RingElement):
             
             sage: RR(6).lngamma()
             doctest:...: DeprecationWarning: The method lngamma() is deprecated. Use log_gamma() instead.
+            See http://trac.sagemath.org/6992 for details.
             4.78749174278205
         """
-        from sage.misc.misc import deprecation
-        deprecation("The method lngamma() is deprecated. Use log_gamma() instead.")
+        from sage.misc.superseded import deprecation
+        deprecation(6992, "The method lngamma() is deprecated. Use log_gamma() instead.")
         return self.log_gamma()
 
     def log_gamma(self):

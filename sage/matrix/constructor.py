@@ -1064,9 +1064,9 @@ def random_matrix(ring, nrows, ncols=None, algorithm='randomize', *args, **kwds)
 
         sage: K.<a>=FiniteField(3^2)
         sage: random_matrix(K, 2, 5)
-        [      1     2*a       1   a + 2       2]
-        [      a 2*a + 1       0       2       1]
-        
+        [      1       a       1 2*a + 1       2]
+        [    2*a   a + 2       0       2       1]
+
         sage: random_matrix(RR, 3, 4, density=0.66)
         [ 0.000000000000000 -0.806696574554030 -0.693915509972359  0.000000000000000]
         [ 0.629781664418083  0.000000000000000 -0.833709843116637  0.000000000000000]
@@ -1967,7 +1967,7 @@ def elementary_matrix(arg0, arg1=None, **kwds):
         raise ValueError('size of elementary matrix must be given')
     try:
         n = rings.Integer(arg0)
-    except:
+    except TypeError:
         raise TypeError('size of elementary matrix must be an integer, not {0}'.format(arg0))
     if n <= 0:
         raise ValueError('size of elementary matrix must be 1 or greater, not {0}'.format(n))
@@ -1995,14 +1995,14 @@ def elementary_matrix(arg0, arg1=None, **kwds):
     # analyze parameters to determine matrix type
     try:
         row1 = rings.Integer(row1)
-    except:
+    except TypeError:
         raise TypeError('{0} of elementary matrix must be an integer, not {1}'.format(opstring, row1))
     if row1 < 0 or row1 >= n :
         raise ValueError('{0} of elementary matrix must be positive and smaller than {1}, not {2}'.format(opstring, n, row1))
     if not row2 is None:
         try:
             row2 = rings.Integer(row2)
-        except:
+        except TypeError:
             raise TypeError('{0} of elementary matrix must be an integer, not {1}'.format(opstring, row2))
         if row2 < 0 or row2 >= n :
             raise ValueError('{0} of elementary matrix must be positive and smaller than {1}, not {2}'.format(opstring, n, row2))

@@ -43,7 +43,7 @@ finished::
 import os, time
 
 from sage0 import Sage, SageElement
-
+from pexpect import ExceptionPexpect
 
 number = 0
 
@@ -85,7 +85,7 @@ class PSage(Sage):
             try:
                 self.expect().expect(self._prompt)
                 self.expect().expect(self._prompt)
-            except:
+            except ExceptionPexpect:
                 pass
         return open(self.__tmp).read() == '__locked__'
 
@@ -115,7 +115,7 @@ class PSage(Sage):
             self.expect().expect(self._prompt)
         try:
             return Sage.eval(self, x, **kwds)
-        except:
+        except ExceptionPexpect:
             return "<<currently executing code>>"
             
 
@@ -125,7 +125,7 @@ class PSage(Sage):
         """
         try:
             return self.eval('print %s'%var)
-        except:
+        except ExceptionPexpect:
             return "<<currently executing code>>"
 
     def set(self, var, value):
@@ -149,7 +149,7 @@ class PSage(Sage):
         E.write(self.preparse(x) + '\n')
         try:
             E.expect(self._prompt)
-        except:
+        except ExceptionPexpect:
             pass
         E.write(self._unlock_code + '\n\n')
 

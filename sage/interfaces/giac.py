@@ -184,8 +184,6 @@ loaded.
 #                  http://www.gnu.org/licenses/
 #############################################################################
 
-#from __future__ import with_statement
-
 import os
 
 from sage.interfaces.expect import Expect, ExpectElement, ExpectFunction, FunctionElement, gc_disabled
@@ -310,7 +308,7 @@ class Giac(Expect):
             2
             sage: try:                                   # optional - giac
             ...     giac._keyboard_interrupt()
-            ... except:
+            ... except KeyboardInterrupt:
             ...     pass
             ...
             Interrupting Giac...
@@ -1047,7 +1045,7 @@ class GiacElement(ExpectElement):
             try:
                 from sage.symbolic.all import SR
                 return SR(result)
-            except:
+            except StandardError:
                 raise NotImplementedError, "Unable to parse Giac output: %s" % result
         else:
             return [entry.sage() for entry in self]

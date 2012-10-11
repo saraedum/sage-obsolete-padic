@@ -996,6 +996,14 @@ cdef class IntegerMod_abstract(FiniteRingElement):
           CRT and p-adic log techniques are used to reduce to this case.
           'Johnston' is the only currently supported option.
 
+        - ``cunningham`` - bool (default: ``False``); In some cases,
+          factorization of ``n`` is computed. If cunningham is set to ``True``,
+          the factorization of ``n`` is computed using trial division for all
+          primes in the so called Cunningham table. Refer to
+          sage.rings.factorint.factor_cunningham for more information. You need
+          to install an optional package to use this method, this can be done
+          with the following command line ``sage -i cunningham_tables``
+
         OUTPUT:
 
         If self has an `n`\th root, returns one (if ``all`` is ``False``) or a
@@ -1087,6 +1095,17 @@ cdef class IntegerMod_abstract(FiniteRingElement):
             ...       except ValueError:
             ...           pass
 
+        We check that #13172 is resolved::
+
+            sage: mod(-1, 4489).nth_root(2, all=True)
+            []
+
+        Check that the code path cunningham might be used::
+
+            sage: a = Mod(9,11)
+            sage: a.nth_root(2, False, True, 'Johnston', cunningham = True) # optional - cunningham
+            [3, 8]
+
         ALGORITHMS:
 
         - The default for prime modulus is currently an algorithm described in the following paper:
@@ -1164,7 +1183,7 @@ cdef class IntegerMod_abstract(FiniteRingElement):
                 else:
                     return K(p**(pval // n) * mod(upart, p**(k-pval)).nth_root(n, algorithm=algorithm).lift())
             from sage.rings.padics.all import ZpFM
-            R = ZpFM(p,k,print_mode='digits')
+            R = ZpFM(p,k)
             self_orig = self
             if p == 2:
                 sign = [1]
@@ -1226,7 +1245,7 @@ cdef class IntegerMod_abstract(FiniteRingElement):
             ...                   L = b.nth_root(e, all=True)
             ...                   if len(L) > 0:
             ...                       c = b.nth_root(e)
-            ...               except:
+            ...               except StandardError:
             ...                   L = [-1]
             ...               M = b._nth_root_naive(e)
             ...               if sorted(L) != M:

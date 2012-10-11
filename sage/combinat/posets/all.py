@@ -11,7 +11,7 @@ from poset_examples import posets, Posets
 ##### Added 28 April 2009 #################################################
 ###########################################################################
 
-from sage.misc.misc import deprecation
+from sage.misc.superseded import deprecation
 
 def BooleanLattice(*args, **kwds):
     r"""
@@ -21,10 +21,11 @@ def BooleanLattice(*args, **kwds):
     TESTS::
 
         sage: BooleanLattice(3)
-        doctest:1: DeprecationWarning: BooleanLattice is deprecated, use Posets.BooleanLattice instead!
+        doctest:...: DeprecationWarning: BooleanLattice is deprecated, use Posets.BooleanLattice instead!
+        See http://trac.sagemath.org/10998 for details.
         Finite lattice containing 8 elements
     """
-    deprecation("%s is deprecated, use Posets.%s instead!" % \
+    deprecation(10998, "%s is deprecated, use Posets.%s instead!" % \
            ("BooleanLattice", "BooleanLattice"))
     return Posets.BooleanLattice(*args, **kwds)
 
@@ -36,10 +37,11 @@ def ChainPoset(*args, **kwds):
     TESTS::
 
         sage: ChainPoset(3)
-        doctest:1: DeprecationWarning: ChainPoset is deprecated, use Posets.ChainPoset instead!
+        doctest:...: DeprecationWarning: ChainPoset is deprecated, use Posets.ChainPoset instead!
+        See http://trac.sagemath.org/10998 for details.
         Finite lattice containing 3 elements
     """
-    deprecation("%s is deprecated, use Posets.%s instead!" % \
+    deprecation(10998, "%s is deprecated, use Posets.%s instead!" % \
            ("ChainPoset","ChainPoset"))
     return Posets.ChainPoset(*args, **kwds)
 
@@ -51,10 +53,11 @@ def AntichainPoset(*args, **kwds):
     TESTS::
 
         sage: AntichainPoset(3)
-        doctest:1: DeprecationWarning: AntichainPoset is deprecated, use Posets.AntichainPoset instead!
+        doctest:...: DeprecationWarning: AntichainPoset is deprecated, use Posets.AntichainPoset instead!
+        See http://trac.sagemath.org/10998 for details.
         Finite poset containing 3 elements
     """
-    deprecation("%s is deprecated, use Posets.%s instead!" % \
+    deprecation(10998, "%s is deprecated, use Posets.%s instead!" % \
            ("AntichainPoset","AntichainPoset"))
     return Posets.AntichainPoset(*args, **kwds)
 
@@ -66,10 +69,11 @@ def PentagonPoset(*args, **kwds):
     TESTS::
 
         sage: PentagonPoset()
-        doctest:1: DeprecationWarning: PentagonPoset is deprecated, use Posets.PentagonPoset instead!
+        doctest:...: DeprecationWarning: PentagonPoset is deprecated, use Posets.PentagonPoset instead!
+        See http://trac.sagemath.org/10998 for details.
         Finite lattice containing 5 elements
     """
-    deprecation("%s is deprecated, use Posets.%s instead!" % \
+    deprecation(10998, "%s is deprecated, use Posets.%s instead!" % \
            ("PentagonPoset","PentagonPoset"))
     return Posets.PentagonPoset(*args, **kwds)
 
@@ -81,10 +85,11 @@ def DiamondPoset(*args, **kwds):
     TESTS::
 
         sage: DiamondPoset(3)
-        doctest:1: DeprecationWarning: DiamondPoset is deprecated, use Posets.DiamondPoset instead!
+        doctest:...: DeprecationWarning: DiamondPoset is deprecated, use Posets.DiamondPoset instead!
+        See http://trac.sagemath.org/10998 for details.
         Finite lattice containing 3 elements
     """
-    deprecation("%s is deprecated, use Posets.%s instead!" % \
+    deprecation(10998, "%s is deprecated, use Posets.%s instead!" % \
            ("DiamondPoset","DiamondPoset"))
     return Posets.DiamondPoset(*args, **kwds)
 
@@ -96,10 +101,11 @@ def PosetOfIntegerCompositions(*args, **kwds):
     TESTS::
 
         sage: PosetOfIntegerCompositions(3)
-        doctest:1: DeprecationWarning: PosetOfIntegerCompositions is deprecated, use Posets.IntegerCompositions instead!
+        doctest:...: DeprecationWarning: PosetOfIntegerCompositions is deprecated, use Posets.IntegerCompositions instead!
+        See http://trac.sagemath.org/10998 for details.
         Finite poset containing 4 elements
     """
-    deprecation("%s is deprecated, use Posets.%s instead!" % \
+    deprecation(10998, "%s is deprecated, use Posets.%s instead!" % \
            ("PosetOfIntegerCompositions","IntegerCompositions"))
     return Posets.IntegerCompositions(*args, **kwds)
 
@@ -111,10 +117,11 @@ def PosetOfIntegerPartitions(*args, **kwds):
     TESTS::
 
         sage: PosetOfIntegerPartitions(3)
-        doctest:1: DeprecationWarning: PosetOfIntegerPartitions is deprecated, use Posets.IntegerPartitions instead!
+        doctest:...: DeprecationWarning: PosetOfIntegerPartitions is deprecated, use Posets.IntegerPartitions instead!
+        See http://trac.sagemath.org/10998 for details.
         Finite poset containing 3 elements
     """
-    deprecation("%s is deprecated, use Posets.%s instead!" % \
+    deprecation(10998, "%s is deprecated, use Posets.%s instead!" % \
            ("PosetOfIntegerPartitions","IntegerPartitions"))
     return Posets.IntegerPartitions(*args, **kwds)
 
@@ -126,10 +133,11 @@ def PosetOfRestrictedIntegerPartitions(*args, **kwds):
     TESTS::
 
         sage: PosetOfRestrictedIntegerPartitions(3)
-        doctest:1: DeprecationWarning: PosetOfRestrictedIntegerPartitions is deprecated, use Posets.RestrictedIntegerPartitions instead!
+        doctest:...: DeprecationWarning: PosetOfRestrictedIntegerPartitions is deprecated, use Posets.RestrictedIntegerPartitions instead!
+        See http://trac.sagemath.org/10998 for details.
         Finite poset containing 3 elements
     """
-    deprecation("%s is deprecated, use Posets.%s instead!" % \
+    deprecation(10998, "%s is deprecated, use Posets.%s instead!" % \
            ("PosetOfRestrictedIntegerPartitions","RestrictedIntegerPartitions"))
     return Posets.RestrictedIntegerPartitions(*args, **kwds)
 
@@ -141,10 +149,11 @@ def RandomPoset(*args, **kwds):
     TESTS::
 
         sage: RandomPoset(17,.15)
-        doctest:1: DeprecationWarning: RandomPoset is deprecated, use Posets.RandomPoset instead!
+        doctest:...: DeprecationWarning: RandomPoset is deprecated, use Posets.RandomPoset instead!
+        See http://trac.sagemath.org/10998 for details.
         Finite poset containing 17 elements
     """
-    deprecation("%s is deprecated, use Posets.%s instead!" % \
+    deprecation(10998, "%s is deprecated, use Posets.%s instead!" % \
            ("RandomPoset","RandomPoset"))
     return Posets.RandomPoset(*args, **kwds)
 
@@ -157,10 +166,11 @@ def SymmetricGroupBruhatOrderPoset(*args, **kwds):
     TESTS::
 
         sage: SymmetricGroupBruhatOrderPoset(3)
-        doctest:1: DeprecationWarning: SymmetricGroupBruhatOrderPoset is deprecated, use Posets.SymmetricGroupBruhatOrderPoset instead!
+        doctest:...: DeprecationWarning: SymmetricGroupBruhatOrderPoset is deprecated, use Posets.SymmetricGroupBruhatOrderPoset instead!
+        See http://trac.sagemath.org/10998 for details.
         Finite poset containing 6 elements
     """
-    deprecation("%s is deprecated, use Posets.%s instead!" % \
+    deprecation(10998, "%s is deprecated, use Posets.%s instead!" % \
            ("SymmetricGroupBruhatOrderPoset","SymmetricGroupBruhatOrderPoset"))
     return Posets.SymmetricGroupBruhatOrderPoset(*args, **kwds)
 
@@ -172,9 +182,10 @@ def SymmetricGroupWeakOrderPoset(*args, **kwds):
     TESTS::
 
         sage: SymmetricGroupWeakOrderPoset(3)
-        doctest:1: DeprecationWarning: SymmetricGroupWeakOrderPoset is deprecated, use Posets.SymmetricGroupWeakOrderPoset instead!
+        doctest:...: DeprecationWarning: SymmetricGroupWeakOrderPoset is deprecated, use Posets.SymmetricGroupWeakOrderPoset instead!
+        See http://trac.sagemath.org/10998 for details.
         Finite poset containing 6 elements
     """
-    deprecation("%s is deprecated, use Posets.%s instead!" % \
+    deprecation(10998, "%s is deprecated, use Posets.%s instead!" % \
            ("SymmetricGroupWeakOrderPoset","SymmetricGroupWeakOrderPoset"))
     return Posets.SymmetricGroupWeakOrderPoset(*args, **kwds)

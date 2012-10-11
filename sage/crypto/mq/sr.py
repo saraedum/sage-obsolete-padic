@@ -310,8 +310,6 @@ REFERENCES:
   Within the AES*\; in Advances in Cryptology \- CRYPTO 2002\; LNCS
   2442\; Springer Verlag 2002
 """
-from __future__ import with_statement
-
 from sage.rings.finite_rings.constructor import FiniteField as GF
 from sage.rings.integer_ring import ZZ
 from sage.rings.polynomial.polynomial_ring_constructor import PolynomialRing, BooleanPolynomialRing_constructor as BooleanPolynomialRing
@@ -3353,7 +3351,7 @@ def test_consistency(max_n=2, **kwargs):
     has a more reasonable memory usage. ::
     
         sage: from sage.crypto.mq.sr import test_consistency
-        sage: test_consistency(1)  # long time (71s on sage.math, 2012)
+        sage: test_consistency(1)  # long time (65s on sage.math, 2012)
         True
     """
     consistent = True

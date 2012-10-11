@@ -4,6 +4,7 @@ Combinatorics
 .. toctree::
    :maxdepth: 2
 
+   ../sage/combinat/tutorial
    ../sage/combinat/combinat
    ../sage/combinat/sloane_functions
    ../sage/combinat/expnums
@@ -21,6 +22,7 @@ Combinatorics
    ../sage/combinat/e_one_star
    ../sage/combinat/finite_class
    ../sage/combinat/integer_list
+   ../sage/combinat/integer_matrices
    ../sage/combinat/integer_vector
    ../sage/combinat/integer_vector_weighted
    ../sage/combinat/integer_vectors_mod_permgroup
@@ -49,12 +51,14 @@ Combinatorics
    algebra
    tableaux
    symmetric_functions
+   ncsf_qsym
    root_systems
 
    ../sage/combinat/kazhdan_lusztig
 
    crystals
    posets
+   rigged_configurations
    designs
    species
    developer
@@ -62,3 +66,4 @@ Combinatorics
    iet
 
    ../sage/combinat/misc
+

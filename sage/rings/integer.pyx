@@ -179,7 +179,7 @@ cdef object numpy_object_interface = {'typestr': '|O'}
 cdef mpz_t mpz_tmp
 mpz_init(mpz_tmp)
 
-cdef public int set_mpz(Integer self, mpz_t value):
+cdef int set_mpz(Integer self, mpz_t value):
     mpz_set(self.value, value)
 
 cdef set_from_Integer(Integer self, Integer other):
@@ -188,7 +188,7 @@ cdef set_from_Integer(Integer self, Integer other):
 cdef set_from_int(Integer self, int other):
     mpz_set_si(self.value, other)
 
-cdef public mpz_t* get_value(Integer self):
+cdef mpz_t* get_value(Integer self):
     return &self.value
 
 
@@ -2214,7 +2214,7 @@ cdef class Integer(sage.structure.element.EuclideanDomainElement):
         # upper is *greater* than the answer
         try:
             upper = rif_log.upper().ceiling()
-        except:
+        except StandardError:
             # ceiling is probably Infinity
             # I'm not sure what to do now
             upper = 0
@@ -3425,13 +3425,12 @@ cdef class Integer(sage.structure.element.EuclideanDomainElement):
                 from sage.interfaces.all import kash as I
             else:
                 from sage.interfaces.all import magma as I
-            F = I.eval('Factorization(%s)'%n)
-            i = F.rfind(']') + 1
-            F = F[:i]
-            F = F.replace("<","(").replace(">",")")
-            F = eval(F)
-            if not int_:
-                F = [(Integer(a), int(b)) for a,b in F]
+            str_res = I.eval('Factorization(%s)'%n)
+            # The result looks like "[ <n1, p1>, <p2, e2>, ... ]
+            str_res = str_res.replace(']', '').replace('[', '').replace('>', '').replace('<', '').split(',')
+            res = [int(s.strip()) for s in str_res]
+            exp_type = int if int_ else Integer
+            F = [(Integer(p), exp_type(e)) for p,e in zip(res[0::2], res[1::2])]
             return Factorization(F, unit)
         else:
             raise ValueError, "Algorithm is not known"
@@ -4600,6 +4599,8 @@ cdef class Integer(sage.structure.element.EuclideanDomainElement):
             2 * 101^2
             sage: a.squarefree_part(bound=1000)
             2
+            sage: a.squarefree_part(bound=2**14)
+            2
             sage: a = 7^3 * next_prime(2^100)^2 * next_prime(2^200)
             sage: a / a.squarefree_part(bound=1000)
             49
@@ -4634,7 +4635,8 @@ cdef class Integer(sage.structure.element.EuclideanDomainElement):
             if bound == -1:
                 F = self.factor()
             else:
-                F = self._factor_trial_division(bound)
+                from sage.rings.factorint import factor_trial_division
+                F = factor_trial_division(self,bound)
             n = one
             for pp, e in F:
                 if e % 2 != 0:
@@ -4963,14 +4965,15 @@ cdef class Integer(sage.structure.element.EuclideanDomainElement):
         
             sage: 5.sqrt_approx(prec=200)
             doctest:...: DeprecationWarning: This function is deprecated.  Use sqrt with a given number of bits of precision instead.
+            See http://trac.sagemath.org/10107 for details.
             2.2360679774997896964091736687312762354406183596115257242709
             sage: 5.sqrt_approx()
             2.23606797749979
             sage: 4.sqrt_approx()
             2
         """
-        from sage.misc.misc import deprecation
-        deprecation("This function is deprecated.  Use sqrt with a given number of bits of precision instead.")
+        from sage.misc.superseded import deprecation
+        deprecation(10107, "This function is deprecated.  Use sqrt with a given number of bits of precision instead.")
         try:
             return self.sqrt(extend=False,all=all)
         except ValueError:

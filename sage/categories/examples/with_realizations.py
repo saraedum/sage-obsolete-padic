@@ -9,6 +9,7 @@ Examples of parents endowed with multiple realizations
 #*****************************************************************************
 
 from sage.misc.cachefunc import cached_method
+from sage.misc.bindable_class import BindableClass
 from sage.categories.all import Rings, Algebras, AlgebrasWithBasis
 from sage.categories.realizations import Category_realization_of_parent
 from sage.structure.unique_representation import UniqueRepresentation
@@ -54,38 +55,66 @@ class SubsetAlgebra(UniqueRepresentation, Parent):
 
         sage: A = Sets().WithRealizations().example(); A
         The subset algebra of {1, 2, 3} over Rational Field
+        sage: A.base_ring()
+        Rational Field
 
     The three bases of ``A``::
 
         sage: F   = A.F()  ; F
-        The subset algebra of {1, 2, 3} over Rational Field on the fundamental basis
+        The subset algebra of {1, 2, 3} over Rational Field in the Fundamental basis
         sage: In  = A.In() ; In
-        The subset algebra of {1, 2, 3} over Rational Field on the in basis
+        The subset algebra of {1, 2, 3} over Rational Field in the In basis
         sage: Out = A.Out(); Out
-        The subset algebra of {1, 2, 3} over Rational Field on the out basis
+        The subset algebra of {1, 2, 3} over Rational Field in the Out basis
+
+    One can quickly define all the bases using the following shortcut::
+
+        sage: A.inject_shorthands()
+        Injecting F as shorthand for The subset algebra of {1, 2, 3} over Rational Field in the Fundamental basis
+        ...
+        Injecting In as shorthand for The subset algebra of {1, 2, 3} over Rational Field in the In basis
+        ...
+
+    Accessing the basis elements is done with :meth:`basis()` method::
 
         sage: F.basis().list()
         [F[{}], F[{1}], F[{2}], F[{3}], F[{1, 2}], F[{1, 3}], F[{2, 3}], F[{1, 2, 3}]]
 
+    To access a particular basis element, you can use the :meth:`from_set`
+    method::
+
+        sage: F.from_set(2,3)
+        F[{2, 3}]
+        sage: In.from_set(1,3)
+        In[{1, 3}]
+
+    or as a convenient shorthand, one can use the following notation::
+
+        sage: F[2,3]
+        F[{2, 3}]
+        sage: In[1,3]
+        In[{1, 3}]
+
     Some conversions::
 
-        sage: F(In.from_set(2,3))
+        sage: F(In[2,3])
         F[{}] + F[{2}] + F[{3}] + F[{2, 3}]
-        sage: In(F.from_set(2,3))
+        sage: In(F[2,3])
         In[{}] - In[{2}] - In[{3}] + In[{2, 3}]
 
-        sage: Out(F.from_set(3))
+        sage: Out(F[3])
         Out[{3}] + Out[{1, 3}] + Out[{2, 3}] + Out[{1, 2, 3}]
-        sage: F(Out.from_set(3))
+        sage: F(Out[3])
         F[{3}] - F[{1, 3}] - F[{2, 3}] + F[{1, 2, 3}]
 
-        sage: Out(In.from_set(2,3))
+        sage: Out(In[2,3])
         Out[{}] + Out[{1}] + 2*Out[{2}] + 2*Out[{3}] + 2*Out[{1, 2}] + 2*Out[{1, 3}] + 4*Out[{2, 3}] + 4*Out[{1, 2, 3}]
 
     We can now mix expressions::
 
-        sage: (1 + Out.from_set(1)) * In.from_set(2,3)
+        sage: (1 + Out[1]) * In[2,3]
         Out[{}] + 2*Out[{1}] + 2*Out[{2}] + 2*Out[{3}] + 2*Out[{1, 2}] + 2*Out[{1, 3}] + 4*Out[{2, 3}] + 4*Out[{1, 2, 3}]
+
     """
 
     def __init__(self, R, S):
@@ -98,51 +127,83 @@ class SubsetAlgebra(UniqueRepresentation, Parent):
             sage: Sets().WithRealizations().example() is A
             True
             sage: TestSuite(A).run()
+
+        TESTS::
+
+            sage: A = Sets().WithRealizations().example(); A
+            The subset algebra of {1, 2, 3} over Rational Field
+            sage: F, In, Out = A.realizations()
+            sage: type(F.coerce_map_from(In))
+            <class 'sage.categories.modules_with_basis.TriangularModuleMorphism'>
+            sage: type(In.coerce_map_from(F))
+            <class 'sage.categories.modules_with_basis.TriangularModuleMorphism'>
+            sage: type(F.coerce_map_from(Out))
+            <class 'sage.categories.modules_with_basis.TriangularModuleMorphism'>
+            sage: type(Out.coerce_map_from(F))
+            <class 'sage.categories.modules_with_basis.TriangularModuleMorphism'>
+            sage: In.coerce_map_from(Out)
+            Composite map:
+              From: The subset algebra of {1, 2, 3} over Rational Field in the Out basis
+              To:   The subset algebra of {1, 2, 3} over Rational Field in the In basis
+              Defn:   Generic morphism:
+                      From: The subset algebra of {1, 2, 3} over Rational Field in the Out basis
+                      To:   The subset algebra of {1, 2, 3} over Rational Field in the Fundamental basis
+                    then
+                      Generic morphism:
+                      From: The subset algebra of {1, 2, 3} over Rational Field in the Fundamental basis
+                      To:   The subset algebra of {1, 2, 3} over Rational Field in the In basis
+            sage: Out.coerce_map_from(In)
+            Composite map:
+              From: The subset algebra of {1, 2, 3} over Rational Field in the In basis
+              To:   The subset algebra of {1, 2, 3} over Rational Field in the Out basis
+              Defn:   Generic morphism:
+                      From: The subset algebra of {1, 2, 3} over Rational Field in the In basis
+                      To:   The subset algebra of {1, 2, 3} over Rational Field in the Fundamental basis
+                    then
+                      Generic morphism:
+                      From: The subset algebra of {1, 2, 3} over Rational Field in the Fundamental basis
+                      To:   The subset algebra of {1, 2, 3} over Rational Field in the Out basis
         """
         assert(R in Rings())
         self._base = R # Won't be needed when CategoryObject won't override anymore base_ring
         self._S = S
         Parent.__init__(self, category = Algebras(R).WithRealizations())
 
-    # Could possibly go in Monoids.WithRealizations.ParentMethods
-    def one(self):
+        # Initializes the bases and change of bases of ``self``
+
+        category   = self.Bases()
+        F   = self.F()
+        In  = self.In()
+        Out = self.Out()
+
+        In_to_F = In.module_morphism(F.sum_of_monomials * Subsets,
+                                     codomain = F, category = category,
+                                     triangular = 'upper', unitriangular = True,
+                                     cmp = self.indices_cmp)
+        In_to_F   .register_as_coercion()
+        (~In_to_F).register_as_coercion()
+
+        F_to_Out = F.module_morphism(Out.sum_of_monomials * self.supsets,
+                                     codomain = Out, category = category,
+                                     triangular = 'lower', unitriangular = True,
+                                     cmp = self.indices_cmp)
+        F_to_Out   .register_as_coercion()
+        (~F_to_Out).register_as_coercion()
+
+    _shorthands = ["F", "In", "Out"]
+
+    def a_realization(self):
         r"""
+        Returns the default realization of ``self``
+
         EXAMPLES::
 
             sage: A = Sets().WithRealizations().example(); A
             The subset algebra of {1, 2, 3} over Rational Field
-            sage: A.one()
-            F[{}]
-            sage: A.one() is A.F().one()
-            True
+            sage: A.a_realization()
+            The subset algebra of {1, 2, 3} over Rational Field in the Fundamental basis
         """
-        return self.F().one()
-
-    # Could possibly go in CommutativeAdditiveMonoids.WithRealizations.ParentMethods
-    def zero(self):
-        r"""
-        EXAMPLES::
-
-            sage: A = Sets().WithRealizations().example(); A
-            The subset algebra of {1, 2, 3} over Rational Field
-            sage: A.zero()
-            0
-            sage: A.zero() is A.F().zero()
-            True
-        """
-        return self.F().zero()
-
-    # Could be inherited from ParentWithBase?
-    def base_ring(self):
-        r"""
-        EXAMPLES::
-
-            sage: A = Sets().WithRealizations().example(); A
-            The subset algebra of {1, 2, 3} over Rational Field
-            sage: A.base_ring()
-            Rational Field
-        """
-        return self._base
+        return self.F()
 
     def base_set(self):
         r"""
@@ -157,6 +218,8 @@ class SubsetAlgebra(UniqueRepresentation, Parent):
 
     def indices(self):
         r"""
+        The objects that index the basis elements of this algebra.
+
         EXAMPLES::
 
             sage: A = Sets().WithRealizations().example(); A
@@ -189,11 +252,11 @@ class SubsetAlgebra(UniqueRepresentation, Parent):
 
     def supsets(self, set):
         r"""
+        Returns all the subsets of `S` containing ``set``
+
         INPUT:
 
         - ``set`` -- a subset of the base set `S` of ``self``
-
-        Returns all the subsets of `S` containing ``set``
 
         EXAMPLES::
 
@@ -214,101 +277,7 @@ class SubsetAlgebra(UniqueRepresentation, Parent):
         """
         return "The subset algebra of %s over %s"%(self.base_set(), self.base_ring())
 
-    # Eventually it will be possible to put the class directly here if desired
-    def F(self):
-        """
-        Returns the fundamental basis of ``self``
-
-        EXAMPLES::
-
-            sage: Sets().WithRealizations().example().F()
-            The subset algebra of {1, 2, 3} over Rational Field on the fundamental basis
-        """
-        return Fundamental(self)
-
-    def In(self):
-        """
-        Returns the in basis of ``self``
-
-        EXAMPLES::
-
-            sage: Sets().WithRealizations().example().In()
-            The subset algebra of {1, 2, 3} over Rational Field on the in basis
-        """
-        return In(self)
-
-    def Out(self):
-        """
-        Returns the out basis of ``self``
-
-        EXAMPLES::
-
-            sage: Sets().WithRealizations().example().Out()
-            The subset algebra of {1, 2, 3} over Rational Field on the out basis
-        """
-        return Out(self)
-
-    def __init_extra__(self):
-        r"""
-        Initializes the bases and change of bases of ``self``
-
-        TESTS::
-
-            sage: A = Sets().WithRealizations().example(); A
-            The subset algebra of {1, 2, 3} over Rational Field
-            sage: F, In, Out = A.realizations()
-            sage: type(F.coerce_map_from(In))
-            <class 'sage.categories.modules_with_basis.TriangularModuleMorphism'>
-            sage: type(In.coerce_map_from(F))
-            <class 'sage.categories.modules_with_basis.TriangularModuleMorphism'>
-            sage: type(F.coerce_map_from(Out))
-            <class 'sage.categories.modules_with_basis.TriangularModuleMorphism'>
-            sage: type(Out.coerce_map_from(F))
-            <class 'sage.categories.modules_with_basis.TriangularModuleMorphism'>
-            sage: In.coerce_map_from(Out)
-            Composite map:
-              From: The subset algebra of {1, 2, 3} over Rational Field on the out basis
-              To:   The subset algebra of {1, 2, 3} over Rational Field on the in basis
-              Defn:   Generic morphism:
-                      From: The subset algebra of {1, 2, 3} over Rational Field on the out basis
-                      To:   The subset algebra of {1, 2, 3} over Rational Field on the fundamental basis
-                    then
-                      Generic morphism:
-                      From: The subset algebra of {1, 2, 3} over Rational Field on the fundamental basis
-                      To:   The subset algebra of {1, 2, 3} over Rational Field on the in basis
-            sage: Out.coerce_map_from(In)
-            Composite map:
-              From: The subset algebra of {1, 2, 3} over Rational Field on the in basis
-              To:   The subset algebra of {1, 2, 3} over Rational Field on the out basis
-              Defn:   Generic morphism:
-                      From: The subset algebra of {1, 2, 3} over Rational Field on the in basis
-                      To:   The subset algebra of {1, 2, 3} over Rational Field on the fundamental basis
-                    then
-                      Generic morphism:
-                      From: The subset algebra of {1, 2, 3} over Rational Field on the fundamental basis
-                      To:   The subset algebra of {1, 2, 3} over Rational Field on the out basis
-        """
-        category   = self.Realizations()
-        F   = self.F()
-        In  = self.In()
-        Out = self.Out()
-
-        In_to_F = In.module_morphism(F.sum_of_monomials * Subsets,
-                                     codomain = F, category = category,
-                                     triangular = 'upper', unitriangular = True,
-                                     cmp = self.indices_cmp)
-        In_to_F   .register_as_coercion()
-        (~In_to_F).register_as_coercion()
-
-        F_to_Out = F.module_morphism(Out.sum_of_monomials * self.supsets,
-                                     codomain = Out, category = category,
-                                     triangular = 'lower', unitriangular = True,
-                                     cmp = self.indices_cmp)
-        F_to_Out   .register_as_coercion()
-        (~F_to_Out).register_as_coercion()
-
-    # Alternatively, this category can be defined elsewhere, with just a link
-    class Realizations(Category_realization_of_parent):
+    class Bases(Category_realization_of_parent):
         r"""
         The category of the realizations of the subset algebra
         """
@@ -319,13 +288,15 @@ class SubsetAlgebra(UniqueRepresentation, Parent):
 
                 sage: A = Sets().WithRealizations().example(); A
                 The subset algebra of {1, 2, 3} over Rational Field
-                sage: C = A.Realizations(); C
-                The category of realizations of The subset algebra of {1, 2, 3} over Rational Field
+                sage: C = A.Bases(); C
+                Category of bases of The subset algebra of {1, 2, 3} over Rational Field
                 sage: C.super_categories()
-                [Join of Category of algebras over Rational Field and Category of realizations of sets, Category of algebras with basis over Rational Field]
+                [Join of Category of algebras over Rational Field and Category of realizations of magmas,
+                 Category of realizations of The subset algebra of {1, 2, 3} over Rational Field,
+                 Category of algebras with basis over Rational Field]
             """
             R = self.base().base_ring()
-            return [Algebras(R).Realizations(), AlgebrasWithBasis(R)]
+            return [Algebras(R).Realizations(), self.base().Realizations(), AlgebrasWithBasis(R)]
 
         class ParentMethods:
 
@@ -337,28 +308,50 @@ class SubsetAlgebra(UniqueRepresentation, Parent):
                 EXAMPLES::
 
                     sage: In = Sets().WithRealizations().example().In(); In
-                    The subset algebra of {1, 2, 3} over Rational Field on the in basis
+                    The subset algebra of {1, 2, 3} over Rational Field in the In basis
                     sage: In.from_set(2,3)
                     In[{2, 3}]
 
-                .. TODO:: rename to __getitem__ once ``Parent.__getitem__``
-                   won't be anymore in the way::
+                As a shorthand, one can construct elements using the following
+                notation::
 
-                        sage: In[2,3]     # todo: not implemented
-                        In[{2, 3}]
+                    sage: In[2,3]
+                    In[{2, 3}]
                 """
                 return self.monomial(Set(args))
 
-            # This could go in some super category VectorSpaces().Realizations()
+            def __getitem__(self, s):
+                r"""
+                This method implements a convenient shorthand for constructing
+                basis elements of this algebra.
+
+                EXAMPLES::
+
+                    sage: A = Sets().WithRealizations().example()
+                    sage: In = A.In()
+                    sage: In[2,3]
+                    In[{2, 3}]
+                    sage: F = A.F()
+                    sage: F[1,3]
+                    F[{1, 3}]
+                """
+                from sage.rings.integer import Integer
+                if isinstance(s, Integer):
+                    return self.from_set(*(s,))
+                else:
+                    return self.from_set(*s)
+
+            # This could go in the super category VectorSpaces().Realizations()
             def _repr_(self):
                 r"""
                 EXAMPLES::
 
                     sage: Sets().WithRealizations().example().In()  # indirect doctest
-                    The subset algebra of {1, 2, 3} over Rational Field on the in basis
+                    The subset algebra of {1, 2, 3} over Rational Field in the In basis
                 """
-                return "%s %s"%(self.realization_of(), "on the %s basis"%(self._realization_name()))
+                return "%s in the %s basis" % (self.realization_of(), self._realization_name())
 
+            # Could this go in the super category Monoids().Realizations() ?
             @cached_method
             def one(self):
                 r"""
@@ -379,151 +372,164 @@ class SubsetAlgebra(UniqueRepresentation, Parent):
                 """
                 return self(self.realization_of().F().one())
 
-class Fundamental(CombinatorialFreeModule):
-    r"""
-    The class for the parent modeling the fundamental basis of the
-    Subset Algebra
-
-    INPUT:
-
-    - ``A`` -- a parent with realization in :class:`SubsetAlgebra`
-    """
-
-    def __init__(self, A):
+    class Fundamental(CombinatorialFreeModule, BindableClass):
         r"""
-        EXAMPLES::
-
-            sage: A = Sets().WithRealizations().example(); A
-            The subset algebra of {1, 2, 3} over Rational Field
-            sage: F = A.F(); F
-            The subset algebra of {1, 2, 3} over Rational Field on the fundamental basis
-            sage: TestSuite(F).run()
-        """
-        CombinatorialFreeModule.__init__(self,
-            A.base_ring(), A.indices(),
-            category=A.Realizations(), prefix='F', monomial_cmp=A.indices_cmp)
-
-    def product_on_basis(self, left, right):
-        r"""
-        Product of basis elements, as per :meth:`AlgebrasWithBasis.ParentMethods.product_on_basis`.
+        The Subset algebra, in the fundamental basis
 
         INPUT:
 
-        - ``left``, ``right`` -- sets indexing basis elements
+        - ``A`` -- a parent with realization in :class:`SubsetAlgebra`
 
         EXAMPLES::
 
-            sage: F = Sets().WithRealizations().example().F(); F
-            The subset algebra of {1, 2, 3} over Rational Field on the fundamental basis
-            sage: S = F.basis().keys(); S
-            Subsets of {1, 2, 3}
-            sage: F.product_on_basis(S([]), S([]))
-            F[{}]
-            sage: F.product_on_basis(S({1}), S({3}))
-            F[{1, 3}]
-            sage: F.product_on_basis(S({1,2}), S({2,3}))
-            F[{1, 2, 3}]
+            sage: A = Sets().WithRealizations().example()
+            sage: A.F()
+            The subset algebra of {1, 2, 3} over Rational Field in the Fundamental basis
+            sage: A.Fundamental()
+            The subset algebra of {1, 2, 3} over Rational Field in the Fundamental basis
         """
-        return self.monomial( left.union(right)  )
 
-    def one_basis(self):
+        def __init__(self, A):
+            r"""
+            EXAMPLES::
+
+                sage: A = Sets().WithRealizations().example(); A
+                The subset algebra of {1, 2, 3} over Rational Field
+                sage: F = A.F(); F
+                The subset algebra of {1, 2, 3} over Rational Field in the Fundamental basis
+                sage: TestSuite(F).run()
+            """
+            CombinatorialFreeModule.__init__(self,
+                A.base_ring(), A.indices(),
+                category=A.Bases(), prefix='F', monomial_cmp=A.indices_cmp)
+
+        def product_on_basis(self, left, right):
+            r"""
+            Product of basis elements, as per :meth:`AlgebrasWithBasis.ParentMethods.product_on_basis`.
+
+            INPUT:
+
+            - ``left``, ``right`` -- sets indexing basis elements
+
+            EXAMPLES::
+
+                sage: F = Sets().WithRealizations().example().F(); F
+                The subset algebra of {1, 2, 3} over Rational Field in the Fundamental basis
+                sage: S = F.basis().keys(); S
+                Subsets of {1, 2, 3}
+                sage: F.product_on_basis(S([]), S([]))
+                F[{}]
+                sage: F.product_on_basis(S({1}), S({3}))
+                F[{1, 3}]
+                sage: F.product_on_basis(S({1,2}), S({2,3}))
+                F[{1, 2, 3}]
+            """
+            return self.monomial(left.union(right))
+
+        def one_basis(self):
+            r"""
+            Returns the index of the basis element which is equal to '1'.
+
+            EXAMPLES::
+
+                sage: F = Sets().WithRealizations().example().F(); F
+                The subset algebra of {1, 2, 3} over Rational Field in the Fundamental basis
+                sage: F.one_basis()
+                {}
+                sage: F.one()
+                F[{}]
+            """
+            return Set([])
+
+        # Bypass the definition in SubsetAlgebra.Bases.ParentMethods
+        # by the usual one from basis; alternatively one could just
+        # define one instead of one_basis.
+        one = AlgebrasWithBasis.ParentMethods.one
+
+    F = Fundamental
+
+    class In(CombinatorialFreeModule, BindableClass):
         r"""
-        Returns the index of the basis element which is equal to '1'.
+        The Subset Algebra, in the ``In`` basis
+
+        INPUT:
+
+        - ``A`` -- a parent with realization in :class:`SubsetAlgebra`
 
         EXAMPLES::
 
-            sage: F = Sets().WithRealizations().example().F(); F
-            The subset algebra of {1, 2, 3} over Rational Field on the fundamental basis
-            sage: F.one_basis()
-            {}
-            sage: F.one()
-            F[{}]
-        """
-        return Set([])
+            sage: A = Sets().WithRealizations().example()
+            sage: A.In()
+            The subset algebra of {1, 2, 3} over Rational Field in the In basis
 
-    one = AlgebrasWithBasis.ParentMethods.one
+        TESTS:
 
-class In(CombinatorialFreeModule):
-    r"""
-    The class for the parent modeling the ``In`` basis of the Subset
-    Algebra
-
-    INPUT:
-
-    - ``A`` -- a parent with realization in :class:`SubsetAlgebra`
-    """
-
-    def __init__(self, A):
-        r"""
-        EXAMPLES::
+        The product in this basis is computed by converting to the fundamental
+        basis, computing the product there, and then converting back::
 
             sage: In = Sets().WithRealizations().example().In(); In
-            The subset algebra of {1, 2, 3} over Rational Field on the in basis
-            sage: TestSuite(In).run()
-        """
-        CombinatorialFreeModule.__init__(self,
-            A.base_ring(), A.indices(),
-            category=A.Realizations(), prefix='In', monomial_cmp=A.indices_cmp)
-
-    # This won't be needed any more once #8878 will be closed
-    def product(self, x, y):
-        r"""
-        Returns the product of ``x`` by ``y``
-
-        .. SEEALSO:: :meth:`Magmas.ParentMethods.product`
-
-        EXAMPLES::
-
-            sage: In = Sets().WithRealizations().example().In(); In
-            The subset algebra of {1, 2, 3} over Rational Field on the in basis
+            The subset algebra of {1, 2, 3} over Rational Field in the In basis
             sage: x = In.an_element()
             sage: y = In.an_element()
+            sage: In.product
+            <bound method ....product_by_coercion ...>
+            sage: In.product.__module__
+            'sage.categories.magmas'
             sage: In.product(x, y)
             -21*In[{}] - 2*In[{1}] + 19*In[{2}] + 53*In[{1, 2}]
-
-        .. TODO:: this method won't be needed once :trac:`8878` will be closed
         """
-        F = self.realization_of().F()
-        return self(F(x) * F(y))
 
-class Out(CombinatorialFreeModule):
-    r"""
-    The class for the parent modeling the `Out` basis of the Subset
-    Algebra
+        def __init__(self, A):
+            r"""
+            EXAMPLES::
 
-    INPUT:
+                sage: In = Sets().WithRealizations().example().In(); In
+                The subset algebra of {1, 2, 3} over Rational Field in the In basis
+                sage: TestSuite(In).run()
+            """
+            CombinatorialFreeModule.__init__(self,
+                A.base_ring(), A.indices(),
+                category=A.Bases(), prefix='In', monomial_cmp=A.indices_cmp)
 
-    - ``A`` -- a parent with realization in :class:`SubsetAlgebra`
-    """
-
-    def __init__(self, A):
+    class Out(CombinatorialFreeModule, BindableClass):
         r"""
-        EXAMPLES::
+        The Subset Algebra, in the `Out` basis
 
-            sage: Out = Sets().WithRealizations().example().Out(); Out
-            The subset algebra of {1, 2, 3} over Rational Field on the out basis
-            sage: TestSuite(Out).run()
-        """
-        CombinatorialFreeModule.__init__(self,
-            A.base_ring(), A.indices(),
-            category=A.Realizations(), prefix='Out', monomial_cmp=A.indices_cmp)
+        INPUT:
 
-    def product(self, x, y):
-        r"""
-        Returns the product of ``x`` by ``y``
-
-        .. SEEALSO:: :meth:`Magmas.ParentMethods.product`
+        - ``A`` -- a parent with realization in :class:`SubsetAlgebra`
 
         EXAMPLES::
 
+            sage: A = Sets().WithRealizations().example()
+            sage: A.Out()
+            The subset algebra of {1, 2, 3} over Rational Field in the Out basis
+
+        TESTS:
+
+        The product in this basis is computed by converting to the fundamental
+        basis, computing the product there, and then converting back::
+
             sage: Out = Sets().WithRealizations().example().Out(); Out
-            The subset algebra of {1, 2, 3} over Rational Field on the out basis
+            The subset algebra of {1, 2, 3} over Rational Field in the Out basis
             sage: x = Out.an_element()
             sage: y = Out.an_element()
+            sage: Out.product
+            <bound method ....product_by_coercion ...>
+            sage: Out.product.__module__
+            'sage.categories.magmas'
             sage: Out.product(x, y)
             Out[{}] + 4*Out[{1}] + 9*Out[{2}] + Out[{1, 2}]
-
-        .. TODO:: this method won't be needed once :trac:`8878` will be closed
         """
-        F = self.realization_of().F()
-        return self(F(x) * F(y))
+
+        def __init__(self, A):
+            r"""
+            EXAMPLES::
+
+                sage: Out = Sets().WithRealizations().example().Out(); Out
+                The subset algebra of {1, 2, 3} over Rational Field in the Out basis
+                sage: TestSuite(Out).run()
+            """
+            CombinatorialFreeModule.__init__(self,
+                A.base_ring(), A.indices(),
+                category=A.Bases(), prefix='Out', monomial_cmp=A.indices_cmp)

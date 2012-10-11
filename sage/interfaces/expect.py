@@ -41,8 +41,6 @@ AUTHORS:
 #                  http://www.gnu.org/licenses/
 #*****************************************************************************
 
-from __future__ import with_statement
-
 import os
 import sys
 import weakref
@@ -67,7 +65,7 @@ from sage.structure.parent_base import ParentWithBase
 from sage.structure.element import RingElement
 
 import sage.misc.sage_eval
-from sage.misc.misc import SAGE_ROOT, verbose, SAGE_TMP_INTERFACE, LOCAL_IDENTIFIER
+from sage.misc.misc import SAGE_EXTCODE, verbose, SAGE_TMP_INTERFACE, LOCAL_IDENTIFIER
 from sage.misc.object_multiplexer import Multiplex
 
 BAD_SESSION = -2
@@ -99,11 +97,7 @@ failed_to_start = []
 # then read back the result) we need to disable the garbage collector.
 # See TRAC #955 for a more detailed description of this problem.
 
-# This class is intended to be used with the "with" statement found
-# in Python 2.5 and above.  To use it, add the following line at the top
-# of your file:
-#   from __future__ import with_statement
-# Then to turn off the garbage collector for a particular region of code,
+# To turn off the garbage collector for a particular region of code,
 # do:
 #   with gc_disabled():
 #       ... your code goes here ...
@@ -190,8 +184,7 @@ class Expect(Interface):
         elif script_subdirectory is None:
             self.__path = '.'
         else:
-            self.__path = '%s/data/extcode/%s/%s'%(SAGE_ROOT,name,
-                                                   self.__script_subdirectory)
+            self.__path = os.path.join(SAGE_EXTCODE,name,self.__script_subdirectory)
         self.__initialized = False
         self.__seq = -1
         self._expect = None
@@ -1012,8 +1005,10 @@ If this all works, you can then make calls like:
         ::
         
             sage: t = walltime()
-            sage: try: r._expect_expr('25', timeout=0.5)
-            ... except: print 'Did not get expression'
+            sage: try:
+            ...    r._expect_expr('25', timeout=0.5)
+            ... except Exception:
+            ...    print 'Did not get expression'
             Did not get expression
         
         A quick consistency check on the time that the above took::

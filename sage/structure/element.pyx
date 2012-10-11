@@ -188,8 +188,8 @@ cdef MethodType
 from types import MethodType
 
 from sage.categories.category   import Category
-from sage.structure.parent      cimport Parent, AttributeErrorMessage
-from sage.structure.parent      import is_extension_type, getattr_from_other_class
+from sage.structure.parent      cimport Parent
+from sage.structure.misc        import is_extension_type, getattr_from_other_class, AttributeErrorMessage
 from sage.misc.lazy_format      import LazyFormat
 
 # This classes uses element.pxd.  To add data members, you
@@ -368,7 +368,7 @@ cdef class Element(sage_object.SageObject):
             sage: R.<x,y> = QQ[]
             sage: i = ideal(x^2 - y^2 + 1)
             sage: i.__getstate__()
-            (Monoid of ideals of Multivariate Polynomial Ring in x, y over Rational Field, {'_Ideal_generic__ring': Multivariate Polynomial Ring in x, y over Rational Field, '_Ideal_generic__gens': (x^2 - y^2 + 1,)})
+            (Monoid of ideals of Multivariate Polynomial Ring in x, y over Rational Field, {'_Ideal_generic__ring': Multivariate Polynomial Ring in x, y over Rational Field, '_Ideal_generic__gens': (x^2 - y^2 + 1,), '_gb_by_ordering': {}})
         """
         return (self._parent, self.__dict__)
 
@@ -1844,11 +1844,12 @@ cdef class RingElement(ModuleElement):
             sage: a = Integers(12)(5)
             sage: a.order()
             doctest... DeprecationWarning: The function order is deprecated for ring elements; use additive_order or multiplicative_order instead.
+            See http://trac.sagemath.org/5716 for details.
             12
         """
         # deprecation added 2009-05
-        from sage.misc.misc import deprecation
-        deprecation("The function order is deprecated for ring elements; use additive_order or multiplicative_order instead.")
+        from sage.misc.superseded import deprecation
+        deprecation(5716, "The function order is deprecated for ring elements; use additive_order or multiplicative_order instead.")
         return self.additive_order()
 
     def additive_order(self):
@@ -3356,7 +3357,7 @@ cdef generic_power_c(a, nn, one):
                     return a.parent().one()
                 except AttributeError:
                     return type(a)(1)
-            except:
+            except StandardError:
                 return 1 #oops, the one sucks
         else:
             return one

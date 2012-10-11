@@ -354,13 +354,22 @@ class MPolynomialRing_polydict( MPolynomialRing_macaulay2_repr, PolynomialRing_s
 
         TESTS:
 
-        Check if we still allow nonsense (#7951)::
+        Check if we still allow nonsense :trac:`7951`::
 
             sage: P = PolynomialRing(QQ, 0, '')
             sage: P('pi')
             Traceback (most recent call last):
             ...
             TypeError: Unable to coerce pi (<class 'sage.symbolic.constants.Pi'>) to Rational
+            
+        Check that it is possible to convert strings to iterated polynomial
+        rings :trac:`13327`::
+
+            sage: Rm = QQ["a"]["b, c"]
+            sage: Rm("a*b")
+            a*b
+            sage: parent(_) is Rm
+            True
         """
         from sage.rings.polynomial.multi_polynomial_element import MPolynomial_polydict
         import sage.rings.polynomial.polynomial_element as polynomial_element
@@ -454,7 +463,7 @@ class MPolynomialRing_polydict( MPolynomialRing_macaulay2_repr, PolynomialRing_s
         elif isinstance(x, str):
             try:
                 from sage.misc.sage_eval import sage_eval
-                return self(sage_eval(x, self.gens_dict()))
+                return self(sage_eval(x, self.gens_dict_recursive()))
             except NameError, e:
                 raise TypeError, "unable to convert string"
 
@@ -738,6 +747,7 @@ class MPolynomialRing_polydict_domain(integral_domain.IntegralDomain,
         
             sage: P.<x,y,z>=MPolynomialRing(ZZ,3, order='degrevlex')
             doctest:1: DeprecationWarning: MPolynomialRing is deprecated, use PolynomialRing instead!
+            See http://trac.sagemath.org/6500 for details.
             sage: P.monomial_divides(x*y*z, x^3*y^2*z^4)
             True
             sage: P.monomial_divides(x^3*y^2*z^4, x*y*z)

@@ -17,7 +17,7 @@ TESTS::
 
     sage: from sage.combinat.species.stream import Stream, _integers_from
     sage: from sage.combinat.species.generating_series import CycleIndexSeriesRing
-    sage: p = SFAPower(QQ)
+    sage: p = SymmetricFunctions(QQ).power()
     sage: CIS = CycleIndexSeriesRing(QQ)
 
 ::
@@ -77,7 +77,7 @@ from stream import Stream, _integers_from
 from sage.rings.all import Integer, moebius, lcm, divisors
 from sage.combinat.partition import Partition, Partitions
 from functools import partial
-from sage.combinat.sf.all import SFAPower
+from sage.combinat.sf.sf import SymmetricFunctions
 from sage.misc.cachefunc import cached_function
 
 @cached_function
@@ -300,7 +300,7 @@ def CycleIndexSeriesRing(R):
     
         sage: from sage.combinat.species.generating_series import CycleIndexSeriesRing
         sage: R = CycleIndexSeriesRing(QQ); R
-        Cycle Index Series Ring over Symmetric Function Algebra over Rational Field, Power symmetric functions as basis
+        Cycle Index Series Ring over Symmetric Functions over Rational Field in the powersum basis
         sage: R([1]).coefficients(4)
         [1, 1, 1, 1]
     
@@ -320,11 +320,11 @@ class CycleIndexSeriesRing_class(LazyPowerSeriesRing):
         
             sage: from sage.combinat.species.generating_series import CycleIndexSeriesRing
             sage: R = CycleIndexSeriesRing(QQ); R
-            Cycle Index Series Ring over Symmetric Function Algebra over Rational Field, Power symmetric functions as basis
+            Cycle Index Series Ring over Symmetric Functions over Rational Field in the powersum basis
             sage: R == loads(dumps(R))
             True
         """
-        R = SFAPower(R)
+        R = SymmetricFunctions(R).power()
         LazyPowerSeriesRing.__init__(self, R, CycleIndexSeries)
 
     def __repr__(self):
@@ -333,7 +333,7 @@ class CycleIndexSeriesRing_class(LazyPowerSeriesRing):
         
             sage: from sage.combinat.species.generating_series import CycleIndexSeriesRing
             sage: CycleIndexSeriesRing(QQ)
-            Cycle Index Series Ring over Symmetric Function Algebra over Rational Field, Power symmetric functions as basis
+            Cycle Index Series Ring over Symmetric Functions over Rational Field in the powersum basis
         """
         return "Cycle Index Series Ring over %s"%self.base_ring()
 
@@ -347,7 +347,7 @@ class CycleIndexSeries(LazyPowerSeries):
         EXAMPLES::
         
             sage: from sage.combinat.species.generating_series import CycleIndexSeriesRing
-            sage: p = SFAPower(QQ)
+            sage: p = SymmetricFunctions(QQ).power()
             sage: CIS = CycleIndexSeriesRing(p)
             sage: f = CIS([0, p([1]), 2*p([1,1]),3*p([2,1])])
             sage: f.count([1])
@@ -367,7 +367,7 @@ class CycleIndexSeries(LazyPowerSeries):
         EXAMPLES::
         
             sage: from sage.combinat.species.generating_series import CycleIndexSeriesRing
-            sage: p = SFAPower(QQ)
+            sage: p = SymmetricFunctions(QQ).power()
             sage: CIS = CycleIndexSeriesRing(p)
             sage: f = CIS([0, p([1]), 2*p([1,1]),3*p([2,1])])
             sage: f.coefficient_cycle_type([1])
@@ -402,7 +402,7 @@ class CycleIndexSeries(LazyPowerSeries):
         EXAMPLES::
         
             sage: from sage.combinat.species.generating_series import CycleIndexSeriesRing
-            sage: p = SFAPower(QQ)
+            sage: p = SymmetricFunctions(QQ).power()
             sage: CIS = CycleIndexSeriesRing(p)
             sage: f = CIS([p([1])])
             sage: f.stretch(3).coefficients(10)
@@ -415,7 +415,7 @@ class CycleIndexSeries(LazyPowerSeries):
         EXAMPLES::
         
             sage: from sage.combinat.species.generating_series import CycleIndexSeriesRing
-            sage: p = SFAPower(QQ)
+            sage: p = SymmetricFunctions(QQ).power()
             sage: CIS = CycleIndexSeriesRing(p)
             sage: f = CIS([p([1])])
             sage: g = f._stretch_gen(2,0)

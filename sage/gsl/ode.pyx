@@ -84,7 +84,7 @@ cdef int c_jac(double t,double *y,double *dfdy,double *dfdt,void *params):
             dfdt[i]=jac_list[y_n][i]
 
         return GSL_SUCCESS
-    except:
+    except StandardError:
         return -1
 
 cdef int c_f(double t,double* y, double* dydt,void *params):
@@ -106,7 +106,7 @@ cdef int c_f(double t,double* y, double* dydt,void *params):
         for i from 0<=i<y_n:
             dydt[i]=dydt_list[i]
         return GSL_SUCCESS
-    except:
+    except StandardError:
         return -1
 
 
@@ -512,22 +512,15 @@ class ode_solver(object):
                         sig_on()
                         status = gsl_odeiv_evolve_apply (e, c, s, &sys, &t, t_end, &h, y)
                         sig_off()
-                    except:
+                        if (status != GSL_SUCCESS):
+                            raise RuntimeError
+                    except RuntimeError:
                         gsl_odeiv_evolve_free (e)
                         gsl_odeiv_control_free (c)
                         gsl_odeiv_step_free (s)
                         sage_free(y)
                         sage_free(scale_abs_array)
-                        raise ValueError,"error solving"
-
-
-                    if (status != GSL_SUCCESS):
-                        gsl_odeiv_evolve_free (e)
-                        gsl_odeiv_control_free (c)
-                        gsl_odeiv_step_free (s)
-                        sage_free(y)
-                        sage_free(scale_abs_array)
-                        raise ValueError,"error solving"
+                        raise ValueError("error solving")
 
                 for j  from 0<=j<dim:
                     v[j]=<double> y[j]
@@ -546,24 +539,15 @@ class ode_solver(object):
                         sig_on()
                         status = gsl_odeiv_evolve_apply (e, c, s, &sys, &t, t_end, &h, y)
                         sig_off()
-                    except:
+                        if (status != GSL_SUCCESS):
+                            raise RuntimeError
+                    except RuntimeError:
                         gsl_odeiv_evolve_free (e)
                         gsl_odeiv_control_free (c)
                         gsl_odeiv_step_free (s)
                         sage_free(y)
                         sage_free(scale_abs_array)
-                        raise ValueError,"error solving"
-
-
-                    if (status != GSL_SUCCESS):
-                        gsl_odeiv_evolve_free (e)
-                        gsl_odeiv_control_free (c)
-                        gsl_odeiv_step_free (s)
-                        sage_free(y)
-                        sage_free(scale_abs_array)
-                        raise ValueError,"error solving"
-
-
+                        raise ValueError("error solving")
 
                 for j from 0<=j<dim:
                     v[j]=<double> y[j]

@@ -183,8 +183,8 @@ cdef class Matrix_symbolic_dense(matrix_generic_dense.Matrix_generic_dense):
 
         """
         if solution_set is not False:
-            import sage.misc.misc
-            sage.misc.misc.deprecation("solution_set parameter is deprecated")
+            from sage.misc.superseded import deprecation
+            deprecation(6115, "solution_set parameter is deprecated")
         maxima_evals = self._maxima_(maxima).eigenvalues()._sage_()
         if len(maxima_evals)==0:
             raise ArithmeticError, "could not determine eigenvalues exactly using symbolic matrices; try using a different type of matrix via self.change_ring(), if possible"
@@ -485,6 +485,7 @@ cdef class Matrix_symbolic_dense(matrix_generic_dense.Matrix_generic_dense):
             [    x^2 y^2 + 2]
             sage: m.is_simplified()
             doctest:...: DeprecationWarning: is_simplified is deprecated
+            See http://trac.sagemath.org/6115 for details.
             False
             sage: ms = m.simplify(); ms
             [      z       1]
@@ -495,8 +496,8 @@ cdef class Matrix_symbolic_dense(matrix_generic_dense.Matrix_generic_dense):
             sage: ms.is_simplified()
             False
         """
-        import sage.misc.misc
-        sage.misc.misc.deprecation("is_simplified is deprecated")
+        from sage.misc.superseded import deprecation
+        deprecation(6115, "is_simplified is deprecated")
         return False
 
     def simplify(self):
@@ -660,6 +661,9 @@ cdef class Matrix_symbolic_dense(matrix_generic_dense.Matrix_generic_dense):
             [              0 sin(x) + cos(x)]
             sage: h(1)
             doctest:...: DeprecationWarning: Substitution using function-call syntax and unnamed arguments is deprecated and will be removed from a future release of Sage; you can use named arguments instead, like EXPR(x=..., y=...)
+            See http://trac.sagemath.org/4513 for details.
+            doctest:...: DeprecationWarning: Substitution using function-call syntax and unnamed arguments is deprecated and will be removed from a future release of Sage; you can use named arguments instead, like EXPR(x=..., y=...)
+            See http://trac.sagemath.org/5930 for details.
             [sin(1) + cos(1)               0]
             [              0 sin(1) + cos(1)]
             sage: h(x)
@@ -723,8 +727,8 @@ cdef class Matrix_symbolic_dense(matrix_generic_dense.Matrix_generic_dense):
             #Handle the case where args are specified
 
             if args:
-                from sage.misc.misc import deprecation
-                deprecation("Substitution using function-call syntax and unnamed arguments is deprecated and will be removed from a future release of Sage; you can use named arguments instead, like EXPR(x=..., y=...)")
+                from sage.misc.superseded import deprecation
+                deprecation(4513, "Substitution using function-call syntax and unnamed arguments is deprecated and will be removed from a future release of Sage; you can use named arguments instead, like EXPR(x=..., y=...)")
             #Get all the variables
             variables = list( self.arguments() )
 

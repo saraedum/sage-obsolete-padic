@@ -100,11 +100,15 @@ Named Graphs
 - :meth:`BidiakisCube <GraphGenerators.BidiakisCube>`
 - :meth:`BiggsSmithGraph <GraphGenerators.BiggsSmithGraph>`
 - :meth:`BrinkmannGraph <GraphGenerators.BrinkmannGraph>`
-- :meth:`DoubleStarSnark <GraphGenerators.DoubleStarSnark>`
 - :meth:`ChvatalGraph <GraphGenerators.ChvatalGraph>`
+- :meth:`ClebschGraph <GraphGenerators.ClebschGraph>`
+- :meth:`CoxeterGraph <GraphGenerators.CoxeterGraph>`
+- :meth:`DoubleStarSnark <GraphGenerators.DoubleStarSnark>`
 - :meth:`DesarguesGraph <GraphGenerators.DesarguesGraph>`
 - :meth:`DurerGraph <GraphGenerators.DurerGraph>`
 - :meth:`DyckGraph <GraphGenerators.DyckGraph>`
+- :meth:`EllinghamHorton54Graph <GraphGenerators.EllinghamHorton54Graph>`
+- :meth:`EllinghamHorton78Graph <GraphGenerators.EllinghamHorton78Graph>`
 - :meth:`ErreraGraph <GraphGenerators.ErreraGraph>`
 - :meth:`FlowerSnark <GraphGenerators.FlowerSnark>`
 - :meth:`FosterGraph <GraphGenerators.FosterGraph>`
@@ -113,6 +117,7 @@ Named Graphs
 - :meth:`GoldnerHararyGraph <GraphGenerators.GoldnerHararyGraph>`
 - :meth:`GrayGraph <GraphGenerators.GrayGraph>`
 - :meth:`GrotzschGraph <GraphGenerators.GrotzschGraph>`
+- :meth:`HallJankoGraph <GraphGenerators.HallJankoGraph>`
 - :meth:`HararyGraph <GraphGenerators.HararyGraph>`
 - :meth:`HarriesGraph <GraphGenerators.HarriesGraph>`
 - :meth:`HarriesWongGraph <GraphGenerators.HarriesWongGraph>`
@@ -120,6 +125,7 @@ Named Graphs
 - :meth:`HerschelGraph <GraphGenerators.HerschelGraph>`
 - :meth:`HigmanSimsGraph <GraphGenerators.HigmanSimsGraph>`
 - :meth:`HoffmanSingletonGraph <GraphGenerators.HoffmanSingletonGraph>`
+- :meth:`HoffmanGraph <GraphGenerators.HoffmanGraph>`
 - :meth:`LjubljanaGraph <GraphGenerators.LjubljanaGraph>`
 - :meth:`McGeeGraph <GraphGenerators.McGeeGraph>`
 - :meth:`MoebiusKantorGraph <GraphGenerators.MoebiusKantorGraph>`
@@ -156,6 +162,7 @@ Families of graphs
 - :meth:`NKStarGraph <GraphGenerators.NKStarGraph>`
 - :meth:`NStarGraph <GraphGenerators.NStarGraph>`
 - :meth:`OddGraph <GraphGenerators.OddGraph>`
+- :meth:`PaleyGraph <GraphGenerators.PaleyGraph>`
 - :meth:`line_graph_forbidden_subgraphs <GraphGenerators.line_graph_forbidden_subgraphs>`
 - :meth:`PermutationGraph <GraphGenerators.PermutationGraph>`
 - :meth:`trees <GraphGenerators.trees>`
@@ -1505,6 +1512,142 @@ class GraphGenerators():
                 H.relabel(mapping)
 
         return H
+
+    def HallJankoGraph(self, from_string=True):
+        r"""
+        Returns the Hall-Janko graph.
+
+        For more information on the Hall-Janko graph, see its
+        :wikipedia:`Wikipedia page <Hall-Janko_graph>`.
+
+        The construction used to generate this graph in Sage is by
+        a 100-point permutation representation of the Janko group `J_2`,
+        as described in version 3 of the ATLAS of Finite Group
+        representations, in particular on the page `ATLAS: J2
+        — Permutation representation on 100 points
+        <http://brauer.maths.qmul.ac.uk/Atlas/v3/permrep/J2G1-p100B0>`_.
+
+        INPUT:
+
+        - ``from_string`` (boolean) -- whether to build the graph from
+          its sparse6 string or through GAP. The two methods return the
+          same graph though doing it through GAP takes more time. It is
+          set to ``True`` by default.
+
+        EXAMPLES::
+
+            sage: g = graphs.HallJankoGraph()
+            sage: g.is_regular(36)
+            True
+            sage: g.is_vertex_transitive()
+            True
+
+        Is it really strongly regular with parameters 14, 12? ::
+
+            sage: nu = set(g.neighbors(0))
+            sage: for v in range(1, 100):
+            ...     if v in nu:
+            ...        expected = 14
+            ...     else:
+            ...        expected = 12
+            ...     nv = set(g.neighbors(v))
+            ...     nv.discard(0)
+            ...     if len(nu & nv) != expected:
+            ...        print "Something is wrong here!!!"
+            ...        break
+
+        Some other properties that we know how to check::
+
+            sage: g.diameter()
+            2
+            sage: g.girth()
+            3
+            sage: factor(g.characteristic_polynomial())
+            (x - 36) * (x - 6)^36 * (x + 4)^63
+
+        TESTS::
+
+            sage: gg = graphs.HallJankoGraph(from_string=False) # long time
+            sage: g == gg # long time
+            True
+        """
+
+        string = (":~?@c__E@?g?A?w?A@GCA_?CA`OWF`W?EAW?@?_OD@_[GAgcIaGGB@OcIA"
+                  "wCE@o_K_?GB@?WGAouC@OsN_?GB@O[GB`A@@_e?@OgLB_{Q_?GC@O[GAOs"
+                  "OCWGBA?kKBPA@?_[KB_{OCPKT`o_RD`]A?o[HBOwODW?DA?cIB?wRDP[X`"
+                  "ogKB_{QD@]B@o_KBPWXE`mC@o_JB?{PDPq@?oWGA_{OCPKTDp_YEwCA@_c"
+                  "IBOwOC`OX_OGB@?WPDPcYFg?C@_gKBp?SE@cYF`{_`?SGAOoOC`_\\FwCE"
+                  "A?gKBO{QD@k[FqI??_OFA_oQE@k\\Fq?`GgCB@pGRD@_XFP{a_?SE@ocIA"
+                  "ooNCPOUEqU@?oODA?cJB_{UEqYC@_kLC@CREPk]GAGbHgCA@?SMBpCSD`["
+                  "YFq?`Ga]BA?gPC`KSD`_\\Fa?cHWGB@?[IAooPD`[WF@s^HASeIg?@@OcP"
+                  "C`KYF@w^GQ[h`O[HAooMC@CQCpSVEPk\\GaSeIG?FA?kLB_{OC`OVE@cYG"
+                  "QUA@?WLBp?PC`KVEqKgJg?DA?sMBpCSDP[WEQKfIay@?_KD@_[GC`SUE@k"
+                  "[FaKdHa[k_?OLC@CRD@WVEpo^HAWfIAciIqoo_?CB@?kMCpOUE`o\\GAKg"
+                  "IQgq_?GD@_[GB?{OCpWVE@cYFACaHAWhJR?q_?CC@_kKBpC\\GACdHa[kJ"
+                  "a{o_?CA?oOFBpGRD@o\\GaKdIQonKrOt_?WHA`?PC`KTD`k]FqSeIaolJr"
+                  "CqLWCA@OkKCPGRDpcYGAKdIAgjJAsmJr?t__OE@ogJB_{XEps`HA[gIQwn"
+                  "KWKGAOoMBpGUE`k[Fa?aHqckJbSuLw?@?_SHA_kLC@OTFPw^GaOkLg?B@?"
+                  "[HA_{PDP_XFaCbHa[gIqooKRWx_?CFBpOTE@cZFPw^GACcHQgoKrSvMwWG"
+                  "BOwQCp_YFP{`HASfJAwnKRSx_OSSDP[WEq?aGqSfIQsoKR_zNWCE@o_HA_"
+                  "sREPg^GAGcHQWfIAciKbOxNg?A@__IAooMC`KTD`g\\GAKcIasoKrOtLb["
+                  "wMbyCA?cKBp?TD`[WE`s^GQGbHqcjJrK{NRw~_oODA?sNC@CQCpOZF@s]G"
+                  "QOfIaolJrGsLbk}_?OFA_sRD@SVE`k[HQcjJa{qLb[xMb|?_OOFA?cIAos"
+                  "RDP_ZFa?aGqOfIAsuMbk{Ns@@OsQAA_sPDPWXE`o\\FqKdIQkkJrCuLr_x"
+                  "Mro}NsDAPG?@@OWFApKUE@o`IQolKRKsLrc|NsQC@OWGAOgJCpOWE`o_GQ"
+                  "KiIqwnKr_~OcLCPS]A?oWHA_oMBpKSDP[\\FagjKBWxMbk{OSQ@@O_IAoo"
+                  "LBpCSD`g\\FaGbHQWgIQgmKRKwMRl?PgGC@OWHB@KSE@c[FqCaGqSeIAkk"
+                  "KBCqLBSuMBpGQWCA@?cKBOwRDPWVE@k^GqOfJr?pKbKtLrs}OSHDQwKIBO"
+                  "wPD@WWEQ?`HQWfIQglKBOtLbo}Ns@@OsTE_?kLCpWWHA[gIqomKBGwMRgz"
+                  "NBw~OSPDPc\\H_?CFAOoLCPSVE`o\\GAOeJAwpKbKtMrx?Qcq??OKFA?gJ"
+                  "B`?QDpcYEpo]FqKfIAgjJB?qKr_{NS@A__SE@o_HBO{PC`OTD`{_HaciIq"
+                  "{vMbt?OcPFQCeB@?SKBOwRD@SXE`k[FPw`HQ_lKRKxNRxBPC\\HQclK_?K"
+                  "EB?sOC`OTDa?`GqWgJRCrNBw~OSHFQStMRtDQ_?KC@OoQE`k_GaOdHa[gI"
+                  "q{tMBg|Nb|?OcPMSDDQSwCB@_cJB_{OCpOVFP{dHa[jJQwqKrk}NsHBQCd"
+                  "MRtMA?oSEA_wPDp_YEpo]GAOeIq{pLBk}NsLEQCtNTDU??OKEA_oLC@[[G"
+                  "aKnKBOtLbk~OCPFQStNSDLSTgGKC@GSD`[WEpw_GQGcIAciJAwpKb_xMbk"
+                  "~QShJRc|R`_wNCPcZF@s^GAGbHA_hJR?qKrOvMRg|NsDEPsxTTgCB@?gJB"
+                  "?sMC@CUDp_]FqCaHQcjJQwtLrhCPS\\IRCtQTw?B@?SHA_wPC`_aGqOiJa"
+                  "{oKRKvMRpFQChKRtXVUTi??ocNC@KUE@cYFaGdHa_mJrKsLb[yMro|OcXI"
+                  "RdPTTddZaOgJB@?UEPk[FQCfIaolJrSvMBczNR|AOsXFQCtOTtaB@?WGAP"
+                  "?TEPo\\GAGdHqgmKBCqLR[xMb|?PC`HQs|TTt`XUtu@?o[HB?sNCPGXF@{"
+                  "_GQKcIqolJb_yNCLDPs`MRtDRTTdYUwSEA?kLB`CWF@s]FqGgIqooLRgzN"
+                  "RxFQSlMSDDQTDXVUTi@?_KDAOoLBpKUEQOfIa{oLB_xMrt?Os\\HQcpMST"
+                  "HSTtl[VT}A@ocJBOwSD`_XEpo_Ha_mJrKtLbgzNSTGQspLRtDUUDp\\WG["
+                  "HB`CQCp[WFQGgIQgkJQ{rLbc{Nc@APsdLRt@PSt\\WUtt_Wn")
+
+        if from_string:
+            g = graph.Graph(string, loops = False, multiedges = False)
+        else:
+
+            # The following construction is due to version 3 of the ATLAS of
+            # Finite Group Representations, specifically the page at
+            # http://brauer.maths.qmul.ac.uk/Atlas/v3/permrep/J2G1-p100B0 .
+
+            from sage.interfaces.gap import gap
+            gap.eval("g1 := (1,84)(2,20)(3,48)(4,56)(5,82)(6,67)(7,55)(8,41)"
+                     "(9,35)(10,40)(11,78)(12,100)(13,49)(14,37)(15,94)(16,76)"
+                     "(17,19)(18,44)(21,34)(22,85)(23,92)(24,57)(25,75)(26,28)"
+                     "(27,64)(29,90)(30,97)(31,38)(32,68)(33,69)(36,53)(39,61)"
+                     "(42,73)(43,91)(45,86)(46,81)(47,89)(50,93)(51,96)(52,72)"
+                     "(54,74)(58,99)(59,95)(60,63)(62,83)(65,70)(66,88)(71,87)"
+                     "(77,98)(79,80);")
+
+            gap.eval("g2 := (1,80,22)(2,9,11)(3,53,87)(4,23,78)(5,51,18)"
+                     "(6,37,24)(8,27,60)(10,62,47)(12,65,31)(13,64,19)"
+                     "(14,61,52)(15,98,25)(16,73,32)(17,39,33)(20,97,58)"
+                     "(21,96,67)(26,93,99)(28,57,35)(29,71,55)(30,69,45)"
+                     "(34,86,82)(38,59,94)(40,43,91)(42,68,44)(46,85,89)"
+                     "(48,76,90)(49,92,77)(50,66,88)(54,95,56)(63,74,72)"
+                     "(70,81,75)(79,100,83);")
+
+            gap.eval("G := Group([g1,g2]);")
+            edges = gap('Orbit(G,[1,5],OnSets)').sage()
+            g = graph.Graph([(int(u), int(v)) for u,v in edges])
+            g.relabel()
+
+        _circle_embedding(g, range(100))
+        g.name("Hall-Janko graph")
+        return g
 
     def HararyGraph( self, k, n ):
         r"""
@@ -3210,6 +3353,78 @@ class GraphGenerators():
 
         return graph.Graph(networkx.chvatal_graph(), pos=pos_dict, name="Chvatal graph")
 
+    def ClebschGraph(self):
+        r"""
+        Return the Clebsch graph.
+
+        EXAMPLES::
+
+            sage: g = graphs.ClebschGraph()
+            sage: g.automorphism_group().cardinality()
+            1920
+            sage: g.girth()
+            4
+            sage: g.chromatic_number()
+            4
+            sage: g.diameter()
+            2
+            sage: g.show(figsize=[10, 10]) # long time
+        """
+        g = graph.Graph(pos={})
+        x = 0
+        for i in range(8):
+            g.add_edge(x % 16, (x + 1) % 16)
+            g.add_edge(x % 16, (x + 6) % 16)
+            g.add_edge(x % 16, (x + 8) % 16)
+            x += 1
+            g.add_edge(x % 16, (x + 3) % 16)
+            g.add_edge(x % 16, (x + 2) % 16)
+            g.add_edge(x % 16, (x + 8) % 16)
+            x += 1
+
+        _circle_embedding(g, range(16), shift=.5)
+        g.name("Clebsch graph")
+
+        return g
+
+    def CoxeterGraph(self):
+        r"""
+        Return the Coxeter graph.
+
+        See the :wikipedia:`Wikipedia page on the Coxeter graph
+        <Coxeter_graph>`.
+
+        EXAMPLES::
+
+            sage: g = graphs.CoxeterGraph()
+            sage: g.automorphism_group().cardinality()
+            336
+            sage: g.girth()
+            7
+            sage: g.chromatic_number()
+            3
+            sage: g.diameter()
+            4
+            sage: g.show(figsize=[10, 10]) # long time
+        """
+        g = graph.Graph({
+                27: [6, 22, 14],
+                24: [0, 7, 18],
+                25: [8, 15, 2],
+                26: [10, 16, 23],
+                }, pos={})
+
+        g.add_cycle(range(24))
+        g.add_edges([(5, 11), (9, 20), (12, 1), (13, 19), (17, 4), (3, 21)])
+
+        _circle_embedding(g, range(24))
+        _circle_embedding(g, [24, 25, 26], radius=.5)
+        g.get_pos()[27] = (0, 0)
+
+        g.name("Coxeter Graph")
+
+        return g
+
     def DesarguesGraph(self):
         """
         Returns the Desargues graph.
@@ -3387,6 +3602,174 @@ class GraphGenerators():
         }
 
         return graph.Graph(edge_dict, pos=pos_dict, name="Dyck graph")
+
+    def EllinghamHorton54Graph(self):
+        r"""
+        Returns the Ellingham-Horton 54-graph.
+
+        For more information, see the :wikipedia:`Wikipedia page on the
+        Ellingham-Horton graphs <Ellingham-Horton_graph>`
+
+        EXAMPLE:
+
+        This graph is 3-regular::
+
+            sage: g = graphs.EllinghamHorton54Graph()
+            sage: g.is_regular(k=3)
+            True
+
+        It is 3-connected and bipartite::
+
+            sage: g.vertex_connectivity() # not tested - too long
+            3
+            sage: g.is_bipartite()
+            True
+
+        It is not Hamiltonian::
+
+            sage: g.is_hamiltonian() # not tested - too long
+            False
+
+        ... and it has a nice drawing ::
+
+            sage: g.show(figsize=[10, 10]) # not tested - too long
+
+        TESTS::
+
+            sage: g.show() # long time
+        """
+        up = graphs.CycleGraph(16)
+        low = 2*graphs.CycleGraph(6)
+
+        for v in range(6):
+            low.add_edge(v, v + 12)
+            low.add_edge(v + 6, v + 12)
+        low.add_edge(12, 15)
+        low.delete_edge(1, 2)
+        low.delete_edge(8, 7)
+        low.add_edge(1, 8)
+        low.add_edge(7, 2)
+
+
+        # The set of vertices on top is 0..15
+        # Bottom left is 16..33
+        # Bottom right is 34..52
+        # The two other vertices are 53, 54
+        g = up + 2*low
+        g.name("Ellingham-Horton 54-graph")
+        g.set_pos({})
+
+        g.add_edges([(15, 4), (3, 8), (7, 12), (11, 0), (2, 13), (5, 10)])
+        g.add_edges([(30, 6), (29, 9), (48, 14), (47, 1)])
+        g.add_edge(32, 52)
+        g.add_edge(50, 52)
+        g.add_edge(33, 53)
+        g.add_edge(51, 53)
+        g.add_edge(52, 53)
+
+        # Top
+        _circle_embedding(g, range(16), center=(0, .5), shift=.5, radius=.5)
+
+        # Bottom-left
+        _circle_embedding(g, range(16, 22), center=(-1.5, -1))
+        _circle_embedding(g, range(22, 28), center=(-1.5, -1), radius=.5)
+        _circle_embedding(g, range(28, 34), center=(-1.5, -1), radius=.7)
+
+        # Bottom right
+        _circle_embedding(g, range(34, 40), center=(1.5, -1))
+        _circle_embedding(g, range(40, 46), center=(1.5, -1), radius=.5)
+        _circle_embedding(g, range(46, 52), center=(1.5, -1), radius=.7)
+
+        d = g.get_pos()
+        d[52] = (-.3, -2.5)
+        d[53] = (.3, -2.5)
+        d[31] = (-2.2, -.9)
+        d[28] = (-.8, -.9)
+        d[46] = (2.2, -.9)
+        d[49] = (.8, -.9)
+
+
+        return g
+
+    def EllinghamHorton78Graph(self):
+        r"""
+        Returns the Ellingham-Horton 78-graph.
+
+        For more information, see the :wikipedia:`Wikipedia page on the
+        Ellingham-Horton graphs
+        <http://en.wikipedia.org/wiki/Ellingham%E2%80%93Horton_graph>`
+
+        EXAMPLE:
+
+        This graph is 3-regular::
+
+            sage: g = graphs.EllinghamHorton78Graph()
+            sage: g.is_regular(k=3)
+            True
+
+        It is 3-connected and bipartite::
+
+            sage: g.vertex_connectivity() # not tested - too long
+            3
+            sage: g.is_bipartite()
+            True
+
+        It is not Hamiltonian::
+
+            sage: g.is_hamiltonian() # not tested - too long
+            False
+
+        ... and it has a nice drawing ::
+
+            sage: g.show(figsize=[10,10]) # not tested - too long
+
+        TESTS::
+
+            sage: g.show(figsize=[10, 10]) # not tested - too long
+        """
+        g = graph.Graph({
+                0: [1, 5, 60], 1: [2, 12], 2: [3, 7], 3: [4, 14], 4: [5, 9],
+                5: [6], 6: [7, 11], 7: [15], 8: [9, 13, 22], 9: [10],
+                10: [11, 72], 11: [12], 12: [13], 13: [14], 14: [72],
+                15: [16, 20], 16: [17, 27], 17: [18, 22], 18: [19, 29],
+                19: [20, 24], 20: [21], 21: [22, 26], 23: [24, 28, 72],
+                24: [25], 25: [26, 71], 26: [27], 27: [28], 28: [29],
+                29: [69], 30: [31, 35, 52], 31: [32, 42], 32: [33, 37],
+                33: [34, 43], 34: [35, 39], 35: [36], 36: [41, 63],
+                37: [65, 66], 38: [39, 59, 74], 39: [40], 40: [41, 44],
+                41: [42], 42: [74], 43: [44, 74], 44: [45], 45: [46, 50],
+                46: [47, 57], 47: [48, 52], 48: [49, 75], 49: [50, 54],
+                50: [51], 51: [52, 56], 53: [54, 58, 73], 54: [55],
+                55: [56, 59], 56: [57], 57: [58], 58: [75], 59: [75],
+                60: [61, 64], 61: [62, 71], 62: [63, 77], 63: [67],
+                64: [65, 69], 65: [77], 66: [70, 73], 67: [68, 73],
+                68: [69, 76], 70: [71, 76], 76: [77]}, pos={})
+
+        _circle_embedding(g, range(15), center=(-2.5, 1.5))
+        _circle_embedding(g, range(15, 30), center=(-2.5, -1.5))
+        _circle_embedding(g, [30, 31, 32, 33, 34, 35, 36, 37, 38, 39, 40, 41,
+            42, 74, 43, 44], center=(2.5, 1.5))
+        _circle_embedding(g, [45, 46, 47, 48, 49, 50, 51, 52, 53, 54, 55, 56,
+            57, 58, 75, 59], center=(2.5, -1.5))
+
+        d = g.get_pos()
+
+        d[76] = (-.2, -.1)
+        d[77] = (.2, .1)
+        d[38] = (2.2, .1)
+        d[52] = (2.3, -.1)
+        d[15] = (-2.1, -.1)
+        d[72] = (-2.1, .1)
+
+        _line_embedding(g, [60, 61, 62, 63], first=(-1, 2), last=(1, 2))
+        _line_embedding(g, [64, 65, 37], first=(-.5, 1.5), last=(1.2, 1.5))
+        _line_embedding(g, [66, 73, 67, 68, 69], first=(1.2, -2),
+                last=(-.8, -2))
+        _line_embedding(g, [66, 70, 71], first=(.7, -1.5), last=(-1, -1.5))
+
+        g.name("Ellingham-Horton 78-graph")
+
+        return g
 
     def ErreraGraph(self):
         r"""
@@ -4208,6 +4591,98 @@ class GraphGenerators():
         H.set_pos(pos_dict)
         return H
 
+    def HoffmanGraph(self):
+        r"""
+        Returns the Hoffman Graph.
+
+        See the :wikipedia:`Wikipedia page on the Hoffman graph
+        <Hoffman_graph>`.
+
+        EXAMPLES::
+
+            sage: g = graphs.HoffmanGraph()
+            sage: g.is_bipartite()
+            True
+            sage: g.is_hamiltonian() # long time
+            True
+            sage: g.radius()
+            3
+            sage: g.diameter()
+            4
+            sage: g.automorphism_group().cardinality()
+            48
+        """
+        g = graph.Graph({
+                0: [1, 7, 8, 13],
+                1: [2, 9, 14],
+                2: [3, 8, 10],
+                3: [4, 9, 15],
+                4: [5, 10, 11],
+                5: [6, 12, 14],
+                6: [7, 11, 13],
+                7: [12, 15],
+                8: [12, 14],
+                9: [11, 13],
+                10: [12, 15],
+                11: [14],
+                13: [15]})
+        g.set_pos({})
+        _circle_embedding(g, range(8))
+        _circle_embedding(g, range(8, 14), radius=.7, shift=.5)
+        _circle_embedding(g, [14, 15], radius=.1)
+
+        g.name("Hoffman Graph")
+
+        return g
+
+    def HoltGraph(self):
+        r"""
+        Returns the Holt Graph.
+
+        See the :wikipedia:`Wikipedia page on the Holt graph
+        <Holt_graph>`.
+
+        EXAMPLES::
+
+            sage: g = graphs.HoltGraph()
+            sage: g.chromatic_number()
+            3
+            sage: g.is_hamiltonian() # long time
+            True
+            sage: g.radius()
+            3
+            sage: g.diameter()
+            4
+            sage: g.girth()
+            5
+            sage: g.automorphism_group().cardinality()
+            18
+        """
+        g = graph.Graph({
+                0: [9, 12],
+                1: [11, 14],
+                2: [13, 16],
+                3: [15, 18],
+                4: [17, 20],
+                5: [19, 22],
+                6: [21, 24],
+                7: [23, 26],
+                8: [10, 25]
+                },pos={})
+
+        g.add_vertices(range(27))
+        g.add_cycle(range(9))
+
+        g.add_cycle([13,21,11,19,9,17,25,15,23])
+        g.add_cycle([12,16,20, 24, 10, 14, 18, 22, 26])
+
+        _circle_embedding(g, range(9), shift = .75)
+        _circle_embedding(g, range(9, 27), radius = .7, shift = 0)
+
+        g.name("Holt graph")
+
+        return g
+
     def LjubljanaGraph(self, embedding=1):
         r"""
         Returns the Ljubljana Graph.
@@ -5000,31 +5475,27 @@ class GraphGenerators():
 
         TESTS:
 
-        We only consider balanced trees whose root node has degree `r \geq 2`::
+         Normally we would only consider balanced trees whose root node
+         has degree `r \geq 2`, but the construction degenerates
+         gracefully::
 
-            sage: graphs.BalancedTree(1, randint(1, 10^6))
-            Traceback (most recent call last):
-            ...
-            NetworkXError: Invalid graph description, r should be >=2
-            sage: graphs.BalancedTree(randint(-10^6, 1), randint(1, 10^6))
-            Traceback (most recent call last):
-            ...
-            NetworkXError: Invalid graph description, r should be >=2
+            sage: graphs.BalancedTree(1, 10)
+            Balanced tree: Graph on 2 vertices
 
-        The tree must have height `h \geq 1`::
+            sage: graphs.BalancedTree(-1, 10)
+            Balanced tree: Graph on 1 vertex
 
-            sage: graphs.BalancedTree(randint(2, 10^6), 0)
-            Traceback (most recent call last):
-            ...
-            NetworkXError: Invalid graph description, h should be >=1
-            sage: graphs.BalancedTree(randint(2, 10^6), randint(-10^6, 0))
-            Traceback (most recent call last):
-            ...
-            NetworkXError: Invalid graph description, h should be >=1
-            sage: graphs.BalancedTree(randint(-10^6, 1), randint(-10^6, 0))
-            Traceback (most recent call last):
-            ...
-            NetworkXError: Invalid graph description, r should be >=2
+        Similarly, we usually want the tree must have height `h \geq 1`
+        but the algorithm also degenerates gracefully here::
+
+            sage: graphs.BalancedTree(3, 0)
+            Balanced tree: Graph on 1 vertex
+
+            sage: graphs.BalancedTree(5, -2)
+            Balanced tree: Graph on 0 vertices
+
+            sage: graphs.BalancedTree(-2,-2)
+            Balanced tree: Graph on 0 vertices
         """
         import networkx
         return graph.Graph(networkx.balanced_tree(r, h), name="Balanced tree")
@@ -6121,6 +6592,33 @@ class GraphGenerators():
         g.name("Odd Graph with parameter %s" % n)
         return g
 
+    def PaleyGraph(self,q):
+        r"""
+        Paley graph with `q` vertices
+
+        Parameter `q` must be the power of a prime number and congruent
+        to 1 mod 4.
+
+        EXAMPLES::
+
+            sage: G=graphs.PaleyGraph(9);G
+            Paley graph with parameter 9: Graph on 9 vertices
+            sage: G.is_regular()
+            True
+
+        A Paley graph is always self-complementary::
+
+            sage: G.complement().is_isomorphic(G)
+            True
+        """
+        from sage.rings.finite_rings.integer_mod import mod
+        from sage.rings.finite_rings.constructor import FiniteField
+        assert q.is_prime_power(), "Parameter q must be a prime power"
+        assert mod(q,4)==1, "Parameter q must be congruent to 1 mod 4"
+        g = graph.Graph([FiniteField(q,'a'), lambda i,j: (i-j).is_square()],
+        loops=False, name = "Paley graph with parameter %d"%q)
+        return g
+
 
     def PermutationGraph(self, second_permutation, first_permutation = None):
         r"""
@@ -6614,7 +7112,8 @@ class GraphGenerators():
         ::
         
             sage: graphs.RandomHolmeKim(8, 2, 0.5).edges(labels=False)
-            [(0, 2), (0, 4), (1, 2), (1, 3), (2, 3), (3, 4), (3, 5), (3, 6), (3, 7), (4, 5), (4, 6)]
+            [(0, 2), (0, 5), (1, 2), (1, 3), (2, 3), (2, 4), (2, 6), (2, 7),
+             (3, 4), (3, 6), (3, 7), (4, 5)]
         
         ::
         
@@ -6909,7 +7408,7 @@ class GraphGenerators():
         import networkx
         try:
             return graph.Graph(networkx.random_powerlaw_tree(n, gamma, seed=seed, tries=tries))
-        except:
+        except networkx.NetworkXError:
             return False
 
     def RandomRegular(self, d, n, seed=None):
@@ -6960,7 +7459,7 @@ class GraphGenerators():
             N = networkx.random_regular_graph(d, n, seed=seed)
             if N is False: return False
             return graph.Graph(N, sparse=True)
-        except:
+        except StandardError:
             return False
 
     def RandomShell(self, constructor, seed=None):
@@ -7655,7 +8154,7 @@ class GraphGenerators():
         
             sage: G = graphs.DegreeSequenceExpected([1,2,3,2,3])
             sage: G.edges(labels=False)
-            [(0, 2), (1, 1), (1, 3), (2, 2), (2, 4), (3, 3)]
+            [(0, 2), (0, 3), (1, 1), (1, 4), (2, 3), (2, 4), (3, 4), (4, 4)]
             sage: G.show()  # long time
         
         REFERENCE:
@@ -7721,11 +8220,11 @@ class GraphGenerators():
           pages 306-324.
         """
         from sage.graphs.all import Graph
-        from sage.misc.misc import deprecation
+        from sage.misc.superseded import deprecation
         from copy import copy as copyfun
 
         if deg_seq is not None:
-            deprecation("The argument name deg_seq is deprecated. It will be " 
+            deprecation(11927, "The argument name deg_seq is deprecated. It will be "
                         "removed in a future release of Sage. So, please use "
                         "degree_sequence instead.")  
         if degree_sequence is None:
@@ -8571,6 +9070,8 @@ def _circle_embedding(g, vertices, center=(0, 0), radius=1, shift=0):
     c_x, c_y = center
     n = len(vertices)
     d = g.get_pos()
+    if d is None:
+        d = {}
 
     for i,v in enumerate(vertices):
         i += shift
@@ -8603,6 +9104,9 @@ def _line_embedding(g, vertices, first=(0, 0), last=(0, 1)):
     dy = (last[1] - first[1])/n
 
     d = g.get_pos()
+    if d is None:
+        d = {}
+
     for v in vertices:
         d[v] = (fx, fy)
         fx += dx

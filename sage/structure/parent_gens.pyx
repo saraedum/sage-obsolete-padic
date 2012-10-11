@@ -512,7 +512,7 @@ cdef class ParentWithAdditiveAbelianGens(ParentWithGens):
 
 
 
-class localvars:
+cdef class localvars:
     r"""
     Context manager for safely temporarily changing the variables
     names of an object with generators.
@@ -535,11 +535,6 @@ class localvars:
     to the new names.  If you give normalize=True, then the names are
     assumed to be a tuple of the correct number of strings.
 
-    If you're writing Python library code, you currently have
-    to put ``from __future__ import with_statement`` in your file
-    in order to use the ``with`` statement.  This restriction will
-    disappear in Python 2.6. 
-
     EXAMPLES::
     
         sage: R.<x,y> = PolynomialRing(QQ,2)
@@ -559,6 +554,11 @@ class localvars:
 
     - William Stein (2006-10-31)
     """
+    cdef object _obj
+    cdef object _names
+    cdef object _latex_names
+    cdef object _orig
+    
     def __init__(self, obj, names, latex_names=None, normalize=True):
         self._obj = obj
         if normalize:

@@ -12,6 +12,8 @@ cdef extern from "pb_wrap.h":
         pbdp_asc        "CTypes::dp_asc"
         pbblock_dlex    "CTypes::block_dlex"
         pbblock_dp_asc  "CTypes::block_dp_asc"
+        pbdp            "17"
+        pbblock_dp      "19"
 
     cdef enum comparecodes "CCompareEnums::comparecodes":
         less_than               "CTypes::less_than"
@@ -438,9 +440,10 @@ cdef extern from "pb_wrap.h":
 
 
     ctypedef struct PBConstant "struct BooleConstant":
-        bint is_zero()
-        bint is_one()
-        bint is_constant()
+        bint isZero()
+        bint isOne()
+        bint isConstant()
+        bint hasConstantPart()
         int deg()
 
     PBConstant* PBConstant_construct "Construct_p<BooleConstant, int>" \

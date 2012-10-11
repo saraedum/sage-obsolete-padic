@@ -10,8 +10,12 @@ AUTHOR:
 Functions and Methods
 ----------------------
 """
+
+
+from sage.misc.superseded import deprecated_function_alias
 from sage.modules.free_module_element import vector
 from sage.rings.real_double import RDF
+
 
 def find_root(f, a, b, xtol=10e-13, rtol=4.5e-16, maxiter=100, full_output=False):
     """
@@ -49,8 +53,8 @@ def find_root(f, a, b, xtol=10e-13, rtol=4.5e-16, maxiter=100, full_output=False
         0.124999...
         sage: find_root(f, -20,-10)
         -17.0
-    
-    In Pomerance book on primes he asserts that the famous Riemann
+
+    In Pomerance's book on primes he asserts that the famous Riemann
     Hypothesis is equivalent to the statement that the function `f(x)`
     defined below is positive for all `x \geq 2.01`::
 
@@ -80,7 +84,7 @@ def find_root(f, a, b, xtol=10e-13, rtol=4.5e-16, maxiter=100, full_output=False
     if left > 0 and right > 0:
         # Refine further -- try to find a point where this
         # function is negative in the interval
-        val, s = find_minimum_on_interval(f, a, b)
+        val, s = find_local_minimum(f, a, b)
         if val > 0:
             if val < rtol:
                 if full_output:
@@ -94,7 +98,7 @@ def find_root(f, a, b, xtol=10e-13, rtol=4.5e-16, maxiter=100, full_output=False
 
     elif left < 0 and right < 0:
         # Refine further
-        val, s = find_maximum_on_interval(f, a, b)
+        val, s = find_local_maximum(f, a, b)
         if val < 0:
             if abs(val) < rtol:
                 if full_output:
@@ -108,32 +112,41 @@ def find_root(f, a, b, xtol=10e-13, rtol=4.5e-16, maxiter=100, full_output=False
     return scipy.optimize.brentq(f, a, b,
                                  full_output=full_output, xtol=xtol, rtol=rtol, maxiter=maxiter)
 
-def find_maximum_on_interval(f, a, b, tol=1.48e-08, maxfun=500):
+def find_local_maximum(f, a, b, tol=1.48e-08, maxfun=500):
     """
-    Numerically find the maximum of the expression `f` on the interval
+    Numerically find a local maximum of the expression `f` on the interval
     `[a,b]` (or `[b,a]`) along with the point at which the maximum is attained.
 
-    See the documentation for :meth:`.find_minimum_on_interval`
-    for more details.
+    Note that this function only finds a *local* maximum, and not the
+    global maximum on that interval -- see the examples with
+    :func:`find_local_maximum`.
+
+    See the documentation for :func:`find_local_maximum` for more
+    details and possible workarounds for finding the global minimum on
+    an interval.
 
     EXAMPLES::
 
         sage: f = lambda x: x*cos(x)
-        sage: find_maximum_on_interval(f, 0,5)
+        sage: find_local_maximum(f, 0, 5)
         (0.561096338191..., 0.8603335890...)
-        sage: find_maximum_on_interval(f, 0,5, tol=0.1, maxfun=10)
+        sage: find_local_maximum(f, 0, 5, tol=0.1, maxfun=10)
         (0.561090323458..., 0.857926501456...)
+        sage: find_local_maximum(fast_float(8*e^(-x)*sin(x) - 1, x), 0, 7)
+        (1.579175535558..., 0.7853981...)
     """
-    minval, x = find_minimum_on_interval(lambda z: -f(z), a=a, b=b, tol=tol, maxfun=maxfun)
+    minval, x = find_local_minimum(lambda z: -f(z), a=a, b=b, tol=tol, maxfun=maxfun)
     return -minval, x
 
-def find_minimum_on_interval(f, a, b, tol=1.48e-08, maxfun=500):
+def find_local_minimum(f, a, b, tol=1.48e-08, maxfun=500):
     """
-    Numerically find the minimum of the expression ``f`` on the
+    Numerically find a local minimum of the expression ``f`` on the
     interval `[a,b]` (or `[b,a]`) and the point at which it attains that
     minimum.  Note that ``f`` must be a function of (at most) one
     variable.
 
+    Note that this function only finds a *local* minimum, and not the
+    global minimum on that interval -- see the examples below.
 
     INPUT:
 
@@ -157,20 +170,45 @@ def find_minimum_on_interval(f, a, b, tol=1.48e-08, maxfun=500):
     EXAMPLES::
 
         sage: f = lambda x: x*cos(x)
-        sage: find_minimum_on_interval(f, 1, 5)
+        sage: find_local_minimum(f, 1, 5)
         (-3.28837139559..., 3.4256184695...)
-        sage: find_minimum_on_interval(f, 1, 5, tol=1e-3)
+        sage: find_local_minimum(f, 1, 5, tol=1e-3)
         (-3.28837136189098..., 3.42575079030572...)
-        sage: find_minimum_on_interval(f, 1, 5, tol=1e-2, maxfun=10)
+        sage: find_local_minimum(f, 1, 5, tol=1e-2, maxfun=10)
         (-3.28837084598..., 3.4250840220...)
         sage: show(plot(f, 0, 20))
-        sage: find_minimum_on_interval(f, 1, 15)
+        sage: find_local_minimum(f, 1, 15)
         (-9.4772942594..., 9.5293344109...)
 
+    Only local minima are found; if you enlarge the interval, the
+    returned minimum may be *larger*! See :trac:`2607`.
 
-    ALGORITHM: 
+    ::
 
-    Uses scipy.optimize.fminbound which uses Brent's method.
+        sage: f(x) = -x*sin(x^2)
+        sage: find_local_minimum(f, -2.5, -1)
+        (-2.182769784677722, -2.1945027498534686)
+
+    Enlarging the interval returns a larger minimum::
+
+        sage: find_local_minimum(f, -2.5, 2)
+        (-1.3076194129914434, 1.3552111405712108)
+
+    One work-around is to plot the function and grab the minimum from
+    that, although the plotting code does not necessarily do careful
+    numerics (observe the small number of decimal places that we
+    actually test)::
+
+        sage: plot(f, (x,-2.5, -1)).ymin()
+        -2.1827...
+        sage: plot(f, (x,-2.5, 2)).ymin()
+        -2.1827...
+
+    ALGORITHM:
+
+    Uses `scipy.optimize.fminbound
+    <http://docs.scipy.org/doc/scipy/reference/generated/scipy.optimize.fminbound.html>`_
+    which uses Brent's method.
 
 
     AUTHOR:
@@ -178,13 +216,17 @@ def find_minimum_on_interval(f, a, b, tol=1.48e-08, maxfun=500):
     - William Stein (2007-12-07)
     """
     try:
-        return f.find_minimum_on_interval(a=a, b=b, tol=tol,maxfun=maxfun)
+        return f.find_local_minimum(a=a, b=b, tol=tol, maxfun=maxfun)
     except AttributeError:
         pass
     a = float(a); b = float(b)
     import scipy.optimize
     xmin, fval, iter, funcalls = scipy.optimize.fminbound(f, a, b, full_output=1, xtol=tol, maxfun=maxfun)
     return fval, xmin
+
+
+find_maximum_on_interval = deprecated_function_alias(2607, find_local_maximum)
+find_minimum_on_interval = deprecated_function_alias(2607, find_local_minimum)
 
 
 def minimize(func,x0,gradient=None,hessian=None,algorithm="default",**args):

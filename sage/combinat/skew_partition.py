@@ -142,7 +142,7 @@ import sage.combinat.composition
 import sage.combinat.partition
 from sage.rings.all import QQ
 from sage.sets.set import Set
-from sage.graphs.all import DiGraph
+from sage.graphs.digraph import DiGraph
 from combinat import CombinatorialClass, CombinatorialObject
 from sage.matrix.matrix_space import MatrixSpace
 from sage.rings.infinity import PlusInfinity
@@ -471,10 +471,19 @@ class SkewPartition_class(CombinatorialObject):
 
 
     def r_quotient(self, length):
-      """ *** deprecate *** """
-      from sage.misc.misc import deprecation
-      deprecation('r_quotient is deprecated. Use quotient instead.')
-      return self.quotient(self,length)
+      """
+      This method is deprecated.
+
+      EXAMPLES::
+
+          sage: SkewPartition([[3, 3, 2, 1], [2, 1]]).r_quotient(2)
+          doctest:1: DeprecationWarning: r_quotient is deprecated. Use quotient instead.
+          See http://trac.sagemath.org/5790 for details.
+          [[[3], []], [[], []]]
+      """
+      from sage.misc.superseded import deprecation
+      deprecation(5790, 'r_quotient is deprecated. Use quotient instead.')
+      return self.quotient(length)
 
     def quotient(self, k):
         """
@@ -590,11 +599,11 @@ class SkewPartition_class(CombinatorialObject):
         """
         p = self.outer()
         q = self.inner()
-        import sage.combinat.sf.sfa as sfa
+        from sage.combinat.sf.sf import SymmetricFunctions
         if len(p) == 0 and len(q) == 0:
-            return MatrixSpace(sfa.SFAHomogeneous(QQ), 0)(0)
+            return MatrixSpace(SymmetricFunctions(QQ).homogeneous(), 0)(0)
         nn = len(p)
-        h = sfa.SFAHomogeneous(QQ)
+        h = SymmetricFunctions(QQ).homogeneous()
         H = MatrixSpace(h, nn)
 
         q  = q + [0]*int(nn-len(q))
@@ -811,7 +820,7 @@ class SkewPartitions_all(CombinatorialClass):
         try:
             if len(x) != 2:
                 return False
-        except:
+        except TypeError:
             return False
 
         p = sage.combinat.partition.Partitions()

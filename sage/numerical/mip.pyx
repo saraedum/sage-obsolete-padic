@@ -440,6 +440,34 @@ cdef class MixedIntegerLinearProgram:
       """
       return self._backend.nrows()
 
+    cpdef int number_of_variables(self):
+      r"""
+      Returns the number of variables used so far. Note that this is
+      backend-dependent, i.e. we count solver's variables rather than
+      user's variables. An example of the latter can be seen below:
+      Gurobi converts double inequalities, i.e. inequalities like
+      `m <= c^T x <= M`, with `m<M`,  into equations, by adding extra
+      variables: `c^T x + y = M`, `0 <= y <= M-m`.
+
+      EXAMPLE::
+            sage: p = MixedIntegerLinearProgram()
+            sage: p.add_constraint(p[0] - p[2], max = 4)
+            sage: p.number_of_variables()
+            2
+            sage: p.add_constraint(p[0] - 2*p[1], min = 1)
+            sage: p.number_of_variables()
+            3
+            sage: p = MixedIntegerLinearProgram(solver="glpk")
+            sage: p.add_constraint(p[0] - p[2], min = 1, max = 4)
+            sage: p.number_of_variables()
+            2
+            sage: p = MixedIntegerLinearProgram(solver="gurobi")   # optional - Gurobi
+            sage: p.add_constraint(p[0] - p[2], min = 1, max = 4)  # optional - Gurobi
+            sage: p.number_of_variables()                          # optional - Gurobi
+            3
+      """
+      return self._backend.ncols()
+
     def constraints(self, indices = None):
         r"""
         Returns a list of constraints, as 3-tuples.
@@ -1640,7 +1668,7 @@ cdef class MixedIntegerLinearProgram:
         else:
             self._backend.solver_parameter(name, value)
 
-class MIPSolverException(Exception):
+class MIPSolverException(RuntimeError):
     r"""
     Exception raised when the solver fails.
     """
@@ -1659,7 +1687,7 @@ class MIPSolverException(Exception):
 
         TESTS:
 
-         No continuous solution::
+        No continuous solution::
 
             sage: p=MixedIntegerLinearProgram(solver="GLPK")
             sage: v=p.new_variable()
@@ -1667,14 +1695,14 @@ class MIPSolverException(Exception):
             sage: p.add_constraint(v[0],min=7.6)
             sage: p.set_objective(v[0])
 
-         Tests of GLPK's Exceptions::
+        Tests of GLPK's Exceptions::
 
             sage: p.solve()
             Traceback (most recent call last):
             ...
             MIPSolverException: 'GLPK : Solution is undefined'
 
-         No integer solution::
+        No integer solution::
 
             sage: p=MixedIntegerLinearProgram(solver="GLPK")
             sage: v=p.new_variable()
@@ -1683,7 +1711,7 @@ class MIPSolverException(Exception):
             sage: p.set_objective(v[0])
             sage: p.set_integer(v)
 
-         Tests of GLPK's Exceptions::
+        Tests of GLPK's Exceptions::
 
             sage: p.solve()
             Traceback (most recent call last):

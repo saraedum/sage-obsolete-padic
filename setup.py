@@ -224,7 +224,7 @@ def execute_list_of_commands_in_parallel(command_list, nthreads):
     commands may be run at the same time.
     """
     from multiprocessing import Pool
-    import twisted.persisted.styles #doing this import will allow instancemethods to be pickable
+    import fpickle_setup #doing this import will allow instancemethods to be pickable
     p = Pool(nthreads)
     process_command_results(p.imap(apply_pair, command_list))
 
@@ -739,7 +739,7 @@ def compile_command0(p):
             cplus = ''
 
         # call cython, abort if it failed
-        cmd = "python `which cython` %s --old-style-globals --disable-function-redefinition --embed-positions --directive cdivision=True,autotestdict=False,fast_getattr=True -I%s -o %s %s"%(cplus, os.getcwd(), outfile, f)
+        cmd = "python `which cython` %s --old-style-globals --embed-positions --directive cdivision=True,autotestdict=False,fast_getattr=True -I%s -o %s %s"%(cplus, os.getcwd(), outfile, f)
         r = run_command(cmd)
         if r:
             return r
@@ -823,7 +823,7 @@ if not sdist:
     ##     f = open(CYTHON_DEPS_FILE)
     ##     deps = pickle.load(open(CYTHON_DEPS_FILE))
     ##     f.close()
-    ## except:
+    ## except StandardError:
     ##     deps = DependencyTree()
     deps = DependencyTree()
     queue = compile_command_list(ext_modules, deps)
@@ -868,8 +868,10 @@ code = setup(name = 'sage',
 
                      'sage.combinat',
                      'sage.combinat.crystals',
+                     'sage.combinat.rigged_configurations',
                      'sage.combinat.designs',
                      'sage.combinat.sf',
+                     'sage.combinat.ncsf_qsym',
                      'sage.combinat.root_system',
                      'sage.combinat.matrices',
                      'sage.combinat.posets',
@@ -982,6 +984,11 @@ code = setup(name = 'sage',
                      'sage.tests.french_book',
 
                      'sage.sandpiles',
+
+                     'sage.sat',
+                     'sage.sat.converters',
+                     'sage.sat.solvers',
+                     'sage.sat.solvers.cryptominisat',
                      
                      'sage.sets',
                      

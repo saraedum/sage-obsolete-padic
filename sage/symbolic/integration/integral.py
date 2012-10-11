@@ -280,6 +280,7 @@ def _normalize_integral_input(f, v=None, a=None, b=None):
         sage: _normalize_integral_input(x^2, [0, 3], None, None)
         doctest:...: DeprecationWarning:
         Variable of integration should be specified explicitly.
+        See http://trac.sagemath.org/12438 for details.
         (x^2, x, 0, 3)
         sage: _normalize_integral_input(x^2, [x], None, None)
         (x^2, x, None, None)
@@ -299,8 +300,8 @@ def _normalize_integral_input(f, v=None, a=None, b=None):
         # two arguments, must be endpoints
         v, a, b = None, v, a
     if v is None:
-        from sage.misc.misc import deprecation
-        deprecation("Variable of integration should be specified explicitly.")
+        from sage.misc.superseded import deprecation
+        deprecation(12438, "Variable of integration should be specified explicitly.")
         v = f.default_variable()
         if isinstance(f, Function):  # a bare function like sin
             f = f(v)
@@ -613,7 +614,9 @@ def integrate(expression, v=None, a=None, b=None, algorithm=None):
     Test deprecation warning when variable is not specified::
 
         sage: x.integral()
-        doctest:...: DeprecationWarning: Variable of integration should be specified explicitly.
+        doctest:...: DeprecationWarning:
+        Variable of integration should be specified explicitly.
+        See http://trac.sagemath.org/12438 for details.
         1/2*x^2
 
     Test that #8729 is fixed::
@@ -648,7 +651,7 @@ def integrate(expression, v=None, a=None, b=None, algorithm=None):
     the previous (wrong) answer of zero. See :trac:`10914`::
 
         sage: f = abs(sin(x))
-        sage: integrate(f, x, 0, 2*pi)
+        sage: integrate(f, x, 0, 2*pi)  # long time (4s on sage.math, 2012)
         integrate(abs(sin(x)), x, 0, 2*pi)
 
     Another incorrect integral fixed upstream in Maxima, from

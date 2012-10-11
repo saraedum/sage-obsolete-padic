@@ -121,6 +121,7 @@ def var(*args, **kwds):
         NameError: name 'q' is not defined
         sage: var('q',ns=1)
         doctest:...: DeprecationWarning: The new (Pynac) symbolics are now the only symbolics; please do not use keyword 'ns' any longer.
+        See http://trac.sagemath.org/6559 for details.
         q
     """
     if len(args)==1:
@@ -130,8 +131,8 @@ def var(*args, **kwds):
     G = globals()  # this is the reason the code must be in Cython.
     if kwds.has_key('ns'):
         if kwds['ns']:
-            from sage.misc.misc import deprecation
-            deprecation("The new (Pynac) symbolics are now the only symbolics; please do not use keyword 'ns' any longer.")
+            from sage.misc.superseded import deprecation
+            deprecation(6559, "The new (Pynac) symbolics are now the only symbolics; please do not use keyword 'ns' any longer.")
         else:
             raise NotImplementedError, "The new (Pynac) symbolics are now the only symbolics; please do not use keyword `ns` any longer."
         kwds.pop('ns')

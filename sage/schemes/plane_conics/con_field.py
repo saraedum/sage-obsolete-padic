@@ -373,6 +373,18 @@ class ProjectiveConic_field(ProjectiveCurve_generic):
         Points are cached whenever they are found. Cached information
         is used if and only if ``read_cache`` is True.
         
+        ALGORITHM:
+        
+        The parameter ``algorithm`` specifies the algorithm
+        to be used:
+        
+         - ``'default'`` -- If the base field is real or complex,
+           use an elementary native Sage implementation.
+           
+         - ``'magma'`` (requires Magma to be installed) --
+           delegates the task to the Magma computer algebra
+           system.
+        
         EXAMPLES:
 
             sage: Conic(RR, [1, 1, 1]).has_rational_point()
@@ -382,6 +394,48 @@ class ProjectiveConic_field(ProjectiveCurve_generic):
             
             sage: Conic(RR, [1, 2, -3]).has_rational_point(point = True)
             (True, (1.73205080756888 : 0.000000000000000 : 1.00000000000000))
+            
+        Conics over polynomial rings can not be solved yet without Magma::
+        
+            sage: R.<t> = QQ[]
+            sage: C = Conic([-2,t^2+1,t^2-1])
+            sage: C.has_rational_point()
+            Traceback (most recent call last):
+            ...
+            NotImplementedError: has_rational_point not implemented for conics over base field Fraction Field of Univariate Polynomial Ring in t over Rational Field
+            
+        But they can be solved with Magma::
+
+            sage: C.has_rational_point(algorithm='magma') # optional - magma
+            True
+            sage: C.has_rational_point(algorithm='magma', point=True) # optional - magma
+            (True, (t : 1 : 1))
+            
+            sage: D = Conic([t,1,t^2])
+            sage: D.has_rational_point(algorithm='magma') # optional - magma
+            False
+
+        TESTS:
+
+        One of the following fields comes with an embedding into the complex
+        numbers, one does not. Check that they are both handled correctly by
+        the Magma interface.::
+
+            sage: K.<i> = QuadraticField(-1)
+            sage: K.coerce_embedding()
+            Generic morphism:
+              From: Number Field in i with defining polynomial x^2 + 1
+              To:   Complex Lazy Field
+              Defn: i -> 1*I
+            sage: Conic(K, [1,1,1]).rational_point(algorithm='magma') # optional - magma
+            (-i : 1 : 0)
+
+            sage: x = QQ['x'].gen()
+            sage: L.<i> = NumberField(x^2+1, embedding=None)
+            sage: Conic(L, [1,1,1]).rational_point(algorithm='magma') # optional - magma
+            (-i : 1 : 0)
+            sage: L == K
+            False
         """
         if read_cache:
             if self._rational_point is not None:
@@ -389,7 +443,57 @@ class ProjectiveConic_field(ProjectiveCurve_generic):
                     return True, self._rational_point
                 else:
                     return True
+
         B = self.base_ring()
+
+        if algorithm == 'magma':
+            from sage.interfaces.magma import magma
+            M = magma(self)
+            b = M.HasRationalPoint().sage()
+            if not point:
+                return b
+            if not b:
+                return False, None
+            M_pt = M.HasRationalPoint(nvals=2)[1]
+            
+            # Various attempts will be made to convert `pt` to
+            # a Sage object. The end result will always be checked
+            # by self.point().
+            
+            pt = [M_pt[1], M_pt[2], M_pt[3]]
+            
+            # The first attempt is to use sequences. This is efficient and
+            # succeeds in cases where the Magma interface fails to convert
+            # number field elements, because embeddings between number fields
+            # may be lost on conversion to and from Magma.
+            # This should deal with all absolute number fields.
+            try:
+                return True, self.point([B(c.Eltseq().sage()) for c in pt])
+            except TypeError:
+                pass
+
+            # The second attempt tries to split Magma elements into
+            # numerators and denominators first. This is neccessary
+            # for the field of rational functions, because (at the moment of
+            # writing) fraction field elements are not converted automatically
+            # from Magma to Sage.
+            try:
+                return True, self.point( \
+                  [B(c.Numerator().sage()/c.Denominator().sage()) for c in pt])
+            except (TypeError, NameError):
+                pass
+
+            # Finally, let the Magma interface handle conversion.
+            try:
+                return True, self.point([B(c.sage()) for c in pt])
+            except (TypeError, NameError):
+                pass
+
+            raise NotImplementedError, "No correct conversion implemented for converting the Magma point %s on %s to a correct Sage point on self (=%s)" % (M_pt, M, self)
+            
+        if algorithm != 'default':
+            raise ValueError, "Unknown algorithm: %s" % algorithm
+        
         if is_ComplexField(B):
             if point:
                 [_,_,_,d,e,f] = self._coefficients
@@ -601,28 +705,28 @@ class ProjectiveConic_field(ProjectiveCurve_generic):
         EXAMPLES::
         
             sage: C = Conic(QQ, [1,2,3])
-            sage: C._magma_init_(magma)                          # optional - magma
-            'Conic([_sage_ref1|1/1,2/1,3/1,0/1,0/1,0/1])'
-            sage: C = Conic(GF(41), [-1,2,5])                    # optional - magma
-            sage: C._magma_init_(magma)                          # optional - magma
-            'Conic([_sage_ref2|GF(41)!40,GF(41)!2,GF(41)!5,GF(41)!0,GF(41)!0,GF(41)!0])'
+            sage: C._magma_init_(magma)                     # optional - magma
+            'Conic([_sage_ref...|1/1,2/1,3/1,0/1,0/1,0/1])'
+            sage: C = Conic(GF(41), [-1,2,5])               # optional - magma
+            sage: C._magma_init_(magma)                     # optional - magma
+            'Conic([_sage_ref...|GF(41)!40,GF(41)!2,GF(41)!5,GF(41)!0,GF(41)!0,GF(41)!0])'
             sage: F.<a> = GF(25)
             sage: C = Conic([3,0,1,4,a,2])
             sage: C
             Projective Conic Curve over Finite Field in a of size 5^2 defined by -2*x^2 - y^2 + x*z + (a)*y*z + 2*z^2
-            sage: magma(C)                                       # optional - magma
+            sage: magma(C)                                  # optional - magma
             Conic over GF(5^2) defined by
             3*X^2 + 4*Y^2 + X*Z + a*Y*Z + 2*Z^2
-            sage: magma(Conic([1/2,2/3,-4/5,6/7,8/9,-10/11]))    # optional - magma
+            sage: magma(Conic([1/2,2/3,-4/5,6/7,8/9,-10/11])) # optional - magma
             Conic over Rational Field defined by
             1/2*X^2 + 2/3*X*Y + 6/7*Y^2 - 4/5*X*Z + 8/9*Y*Z - 10/11*Z^2
             sage: R.<x> = Frac(QQ['x'])
-            sage: magma(Conic([x,1+x,1-x]))                      # optional - magma
+            sage: magma(Conic([x,1+x,1-x]))                 # optional - magma
             Conic over Univariate rational function field over Rational Field defined by
             x*X^2 + (x + 1)*Y^2 + (-x + 1)*Z^2
             sage: P.<x> = QQ[]
             sage: K.<b> = NumberField(x^3+x+1)
-            sage: magma(Conic([b,1,2]))                          # optional - magma
+            sage: magma(Conic([b,1,2]))                     # optional - magma
             Conic over Number Field with defining polynomial x^3 + x + 1 over the Rational Field defined by
             b*X^2 + Y^2 + 2*Z^2
         """
@@ -867,9 +971,54 @@ class ProjectiveConic_field(ProjectiveCurve_generic):
             sage: P.<x> = QQ[]
             sage: L.<b> = NumberField(x^3-5)
             sage: C = Conic(L, [3, 2, -5])
-            sage: C.rational_point(algorithm = 'rnfisnorm')  # long time (1/2 second), output is random
-            (37632*b^2 + 88168*b - 260801 : -99528*b^2 + 153348*b + 28799 : 1)
-        
+            sage: p = C.rational_point(algorithm = 'rnfisnorm')
+            sage: p                                         # output is random
+            (60*b^2 - 196*b + 161 : -120*b^2 - 6*b + 361 : 1)
+            sage: C.defining_polynomial()(list(p))
+            0
+
+            sage: K.<i> = QuadraticField(-1)
+            sage: D = Conic(K, [3, 2, 5])
+            sage: D.rational_point(algorithm = 'rnfisnorm') # output is random
+            (-3 : 4*i : 1)
+
+            sage: L.<s> = QuadraticField(2)
+            sage: Conic(QQ, [1, 1, -3]).has_rational_point()
+            False
+            sage: E = Conic(L, [1, 1, -3])
+            sage: E.rational_point()                        # output is random
+            (-1 : -s : 1)
+
+        Currently Magma is better at solving conics over number fields than
+        Sage, so it helps to use the algorithm 'magma' if Magma is installed::
+
+            sage: q = C.rational_point(algorithm = 'magma', read_cache=False) # optional - magma
+            sage: q                       # output is random, optional - magma
+            (-1 : -1 : 1)
+            sage: C.defining_polynomial()(list(p))          # optional - magma
+            0
+            sage: len(str(p)) / len(str(q)) > 2             # optional - magma
+            True
+            
+            sage: D.rational_point(algorithm = 'magma', read_cache=False) # random, optional - magma
+            (1 : 2*i : 1)
+            
+            sage: E.rational_point(algorithm='magma', read_cache=False) # random, optional - magma
+            (-s : 1 : 1)
+            
+            sage: F = Conic([L.gen(), 30, -20])
+            sage: q = F.rational_point(algorithm='magma')   # optional - magma
+            sage: q                       # output is random, optional - magma
+            (-10/7*s + 40/7 : 5/7*s - 6/7 : 1)
+            sage: p = F.rational_point(read_cache=False)
+            sage: p                       # output is random
+            (788210*s - 1114700 : -171135*s + 242022 : 1)
+            sage: len(str(p)) > len(str(q))                 # optional - magma
+            True
+            
+            sage: Conic([L.gen(), 30, -21]).has_rational_point(algorithm='magma') # optional - magma
+            False
+
         Examples over finite fields ::
         
             sage: F.<a> = FiniteField(7^20)
@@ -877,7 +1026,7 @@ class ProjectiveConic_field(ProjectiveCurve_generic):
             Projective Conic Curve over Finite Field in a of size 7^20 defined by x^2 + (a)*y^2 + 2*z^2
             sage: C.rational_point()  # output is random
             (4*a^19 + 5*a^18 + 4*a^17 + a^16 + 6*a^15 + 3*a^13 + 6*a^11 + a^9 + 3*a^8 + 2*a^7 + 4*a^6 + 3*a^5 + 3*a^4 + a^3 + a + 6 : 5*a^18 + a^17 + a^16 + 6*a^15 + 4*a^14 + a^13 + 5*a^12 + 5*a^10 + 2*a^9 + 6*a^8 + 6*a^7 + 6*a^6 + 2*a^4 + 3 : 1)
-             
+            
         Examples over `\RR` and `\CC` ::
 
             sage: Conic(CC, [1, 2, 3]).rational_point()

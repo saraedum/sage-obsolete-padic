@@ -162,8 +162,9 @@ class ModularForm_abstract(ModuleElement):
         
             sage: f = ModularForms(DirichletGroup(17).0^2,2).2
 
-            sage: f(7) ## indirect doctest
-            -4851*zeta8^2 - 16464*zeta8 + 92372
+            sage: q = f.q_expansion().parent().gen()
+            sage: f(q^2 + O(q^7))
+            q^2 + (-zeta8^2 + 2)*q^4 + (zeta8 + 3)*q^6 + O(q^7)
 
             sage: f(0)
             0
@@ -190,7 +191,7 @@ class ModularForm_abstract(ModuleElement):
             return self.__valuation
         except AttributeError:
             v = self.qexp().valuation()
-            if not (v is rings.infinity):
+            if v != self.qexp().prec():
                 self.__valuation = v
                 return v
             v = self.qexp(self.parent().sturm_bound()).valuation()
@@ -248,7 +249,7 @@ class ModularForm_abstract(ModuleElement):
         """
         try:
             self._ensure_is_compatible(other)
-        except:
+        except StandardError:
             return self.parent().__cmp__(other.parent())
         if self.element() == other.element():
             return 0
@@ -685,7 +686,7 @@ class Newform(ModularForm_abstract):
         """
         try:
             self._ensure_is_compatible(other)
-        except:
+        except StandardError:
             return False
         if isinstance(other, Newform):
             if self.q_expansion(self.parent().sturm_bound()) == other.q_expansion(other.parent().sturm_bound()):
@@ -714,7 +715,7 @@ class Newform(ModularForm_abstract):
         """
         try:
             self._ensure_is_compatible(other)
-        except:
+        except StandardError:
             return self.parent().__cmp__(other.parent())
         if isinstance(other, Newform):
             if self.q_expansion(self.parent().sturm_bound()) == other.q_expansion(other.parent().sturm_bound()):

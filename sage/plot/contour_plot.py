@@ -507,6 +507,15 @@ def contour_plot(f, xrange, yrange, **options):
         xy_data_array[mask] = numpy.ma.masked
 
     g = Graphics()
+
+    # Reset aspect_ratio to 'automatic' in case scale is 'semilog[xy]'.
+    # Otherwise matplotlib complains.
+    scale = options.get('scale', None)
+    if isinstance(scale, (list, tuple)):
+        scale = scale[0]
+    if scale == 'semilogy' or scale == 'semilogx':
+        options['aspect_ratio'] = 'automatic'
+
     g._set_extra_kwds(Graphics._extract_kwds_for_show(options, ignore=['xmin', 'xmax']))
     g.add_primitive(ContourPlot(xy_data_array, xrange, yrange, options))
     return g        
@@ -549,6 +558,25 @@ def implicit_plot(f, xrange, yrange, **options):
       defined in :mod:`sage.plot.colors`; try ``colors?`` to see them all.
 
     - ``legend_label`` -- the label for this item in the legend
+
+    - ``base`` - (default: 10) the base of the logarithm if
+      a logarithmic scale is set. This must be greater than 1. The base
+      can be also given as a list or tuple ``(basex, basey)``.
+      ``basex`` sets the base of the logarithm along the horizontal
+      axis and ``basey`` sets the base along the vertical axis.
+
+    - ``scale`` -- (default: ``"linear"``) string. The scale of the axes.
+      Possible values are ``"linear"``, ``"loglog"``, ``"semilogx"``,
+      ``"semilogy"``.
+
+      The scale can be also be given as single argument that is a list
+      or tuple ``(scale, base)`` or ``(scale, basex, basey)``.
+
+      The ``"loglog"`` scale sets both the horizontal and vertical axes to
+      logarithmic scale. The ``"semilogx"`` scale sets the horizontal axis
+      to logarithmic scale. The ``"semilogy"`` scale sets the vertical axis
+      to logarithmic scale. The ``"linear"`` scale is the default value
+      when :class:`~sage.plot.graphics.Graphics` is initialized.
 
     EXAMPLES:
 
@@ -629,6 +657,10 @@ def implicit_plot(f, xrange, yrange, **options):
 
         sage: implicit_plot(lambda x,y: x^2+y^2-2, (x,-3,3), (y,-3,3), fill=True, plot_points=500) # long time
 
+    An example of an implicit plot on 'loglog' scale::
+
+        sage: implicit_plot(x^2+y^2 == 200, (x,1,200), (y,1,200), scale='loglog')
+
     TESTS::
 
         sage: f(x,y) = x^2 + y^2 - 2
@@ -707,6 +739,25 @@ def region_plot(f, xrange, yrange, plot_points, incol, outcol, bordercol, border
  
     - ``legend_label`` -- the label for this item in the legend
 
+    - ``base`` - (default: 10) the base of the logarithm if
+      a logarithmic scale is set. This must be greater than 1. The base
+      can be also given as a list or tuple ``(basex, basey)``.
+      ``basex`` sets the base of the logarithm along the horizontal
+      axis and ``basey`` sets the base along the vertical axis.
+
+    - ``scale`` -- (default: ``"linear"``) string. The scale of the axes.
+      Possible values are ``"linear"``, ``"loglog"``, ``"semilogx"``,
+      ``"semilogy"``.
+
+      The scale can be also be given as single argument that is a list
+      or tuple ``(scale, base)`` or ``(scale, basex, basey)``.
+
+      The ``"loglog"`` scale sets both the horizontal and vertical axes to
+      logarithmic scale. The ``"semilogx"`` scale sets the horizontal axis
+      to logarithmic scale. The ``"semilogy"`` scale sets the vertical axis
+      to logarithmic scale. The ``"linear"`` scale is the default value
+      when :class:`~sage.plot.graphics.Graphics` is initialized.
+
 
     EXAMPLES:
 
@@ -766,6 +817,10 @@ def region_plot(f, xrange, yrange, plot_points, incol, outcol, bordercol, border
 
         sage: region_plot(s>0,(s,-2,2),(t,-2,2))
 
+    An example of a region plot in 'loglog' scale::
+
+        sage: region_plot(x^2+y^2<100, (x,1,10), (y,1,10), scale='loglog')
+
     """
 
     from sage.plot.all import Graphics
@@ -797,6 +852,15 @@ def region_plot(f, xrange, yrange, plot_points, incol, outcol, bordercol, border
     cmap.set_under(incol)
     
     g = Graphics()
+
+    # Reset aspect_ratio to 'automatic' in case scale is 'semilog[xy]'.
+    # Otherwise matplotlib complains.
+    scale = options.get('scale', None)
+    if isinstance(scale, (list, tuple)):
+        scale = scale[0]
+    if scale == 'semilogy' or scale == 'semilogx':
+        options['aspect_ratio'] = 'automatic'
+
     g._set_extra_kwds(Graphics._extract_kwds_for_show(options, ignore=['xmin', 'xmax']))
     g.add_primitive(ContourPlot(xy_data_array, xrange,yrange, 
                                 dict(contours=[-1e307, 0, 1e307], cmap=cmap, fill=True, **options)))

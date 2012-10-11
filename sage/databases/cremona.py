@@ -23,7 +23,7 @@ database spkg file, using a command of the form::
     !sage -i database_cremona_ellcurve-*.spkg
 
 Both the mini and full versions of John Cremona's tables are stored in
-SAGE_DATA/cremona as SQLite databases. The mini version has the layout::
+SAGE_SHARE/cremona as SQLite databases. The mini version has the layout::
 
     CREATE TABLE t_class(conductor INTEGER, class TEXT PRIMARY KEY, rank INTEGER);
     CREATE TABLE t_curve(class TEXT, curve TEXT PRIMARY KEY, eqn TEXT UNIQUE, tors INTEGER);
@@ -53,7 +53,7 @@ from sage.misc.prandom import randint
 import sage.schemes.elliptic_curves.constructor as elliptic
 from sql_db import SQLDatabase, verify_column
 from sage.misc.package import optional_packages
-from sage.misc.misc import SAGE_DATA, walltime
+from sage.misc.misc import SAGE_SHARE, walltime
 
 import re
 import string
@@ -115,8 +115,8 @@ def build(name, data_tgz, largest_conductor=0, mini=False, decompress=True):
         sage: d = sage.databases.cremona.build('cremona','ecdata.tgz')   # not tested
     """
     t = name.replace(' ','_')
-    if os.path.exists("%s/cremona/%s.db"%(SAGE_DATA, t)):
-        raise RuntimeError("Please (re)move %s/cremona/%s.db"%(SAGE_DATA, t)
+    if os.path.exists("%s/cremona/%s.db"%(SAGE_SHARE, t)):
+        raise RuntimeError("Please (re)move %s/cremona/%s.db"%(SAGE_SHARE, t)
         + " before rebuilding database.")
     if not os.path.exists(data_tgz):
         raise IOError, "The data file is not at %s"%data_tgz
@@ -280,16 +280,22 @@ def old_cremona_letter_code(n):
     label = chr(k)*int(n//26 + 1)
     return label
 
+cremona_label_regex = re.compile(r'(\d+)([a-z]*)(\d*)$')
+lmfdb_label_regex = re.compile(r'(\d+)\.([a-z]+)(\d*)$')
+
 def parse_cremona_label(label):
     """
     Given a Cremona label that defines an elliptic
-    curve, e.g., 11A1 or 37B3, parse the label and return the
+    curve, e.g., 11a1 or 37b3, parse the label and return the
     conductor, isogeny class label, and number.
 
-    The isogeny number may be omitted, in which case it defaults to 1.
-    If the isogeny number and letter are both omitted, so label is just
-    a string representing a conductor, then the label defaults to 'A'
-    and the number to 1.
+    For this function, the curve number may be omitted, in which case
+    it defaults to 1.  If the curve number and isogeny class are both
+    omitted (label is just a string representing a conductor), then
+    the isogeny class defaults to 'a' and the number to 1.  Valid
+    labels consist of one or more digits, followed by zero or more
+    letters (in either upper or lower case, which will be lowered),
+    followed by zero or more digits.
 
     INPUT:
 
@@ -310,21 +316,83 @@ def parse_cremona_label(label):
         (37, 'b', 1)
         sage: parse_cremona_label('10bb2')
         (10, 'bb', 2)
+        sage: parse_cremona_label('11a')
+        (11, 'a', 1)
+        sage: parse_cremona_label('11')
+        (11, 'a', 1)
+
+    TESTS::
+
+        sage: from sage.databases.cremona import parse_cremona_label
+        sage: parse_cremona_label('x11')
+        Traceback (most recent call last):
+        ...
+        ValueError: x11 is not a valid Cremona label
     """
-    if not isinstance(label, str):
-        label = str(label)
-    i=0
-    while i<len(label) and label[i]>='0' and label[i]<='9':
-        i += 1
-    j=i+1
-    if j>len(label):
-        label += "a"
-    while j<len(label) and not (label[j]>='0' and label[j]<='9'):
-        j += 1
-    if j>=len(label):
-        label += "1"
-    conductor, iso, num = int(label[:i]), label[i:j], int(label[j:])
-    return conductor, iso, num
+    m = cremona_label_regex.match(str(label).lower())
+    if m is None:
+        raise ValueError(label + " is not a valid Cremona label")
+    conductor, iso, num = m.groups()
+    if len(iso) == 0:
+        iso = "a"
+    if len(num) == 0:
+        num = "1"
+    return int(conductor), iso, int(num)
+
+def parse_lmfdb_label(label):
+    """
+    Given an LMFDB label that defines an elliptic curve, e.g., 11.a1
+    or 37.b3, parse the label and return the conductor, isogeny class
+    label, and number.
+
+    The LMFDB label (named after the L-functions and modular forms
+    database), is determined by the following two orders:
+
+    - Isogeny classes with the same conductor are ordered
+      lexicographically by the coefficients in the q-expansion of the
+      associated modular form.
+
+    - Curves within the same isogeny class are ordered
+      lexicographically by the a-invariants of the minimal model.
+
+    The format is <conductor>.<iso><curve>, where the isogeny class is
+    encoded using the same base-26 encoding into letters used in
+    Cremona's labels.  For example, 990.h3 is the same as Cremona's 990j1
+
+    For this function, the curve number may be omitted, in which case
+    it defaults to 1.  If the curve number and isogeny class are both
+    omitted (label is just a string representing a conductor), then
+    the isogeny class defaults to 'a' and the number to 1.
+
+    INPUT:
+
+    -  ``label`` - str
+
+    OUTPUT:
+
+    -  ``int`` - the conductor
+    -  ``str`` - the isogeny class label
+    -  ``int`` - the number
+
+    EXAMPLES::
+
+        sage: from sage.databases.cremona import parse_lmfdb_label
+        sage: parse_lmfdb_label('37.a2')
+        (37, 'a', 2)
+        sage: parse_lmfdb_label('37.b')
+        (37, 'b', 1)
+        sage: parse_lmfdb_label('10.bb2')
+        (10, 'bb', 2)
+    """
+    m = lmfdb_label_regex.match(str(label).lower())
+    if m is None:
+        raise ValueError(label + " is not a valid LMFDB label")
+    conductor, iso, num = m.groups()
+    if len(iso) == 0:
+        iso = "a"
+    if len(num) == 0:
+        num = "1"
+    return int(conductor), iso, int(num)
 
 def split_code(key):
     """
@@ -384,6 +452,117 @@ def cmp_code(key1,key2):
     if d!=0:  return d
     return cmp(cu1,cu2)
 
+def cremona_to_lmfdb(cremona_label, CDB=None):
+    """
+    Converts a Cremona label into an LMFDB label.
+
+    See :func:`parse_lmfdb_label` for an explanation of LMFDB labels.
+
+    INPUT:
+
+    - ``cremona_label`` -- a string, the Cremona label of a curve.
+      This can be the label of a curve (e.g. '990j1') or of an isogeny
+      class (e.g. '990j')
+    - ``CDB`` -- the Cremona database in which to look up the isogeny
+      classes of the same conductor.
+
+    OUTPUT:
+
+    - ``lmfdb_label`` -- a string, the corresponding LMFDB label.
+
+    EXAMPLES::
+
+        sage: from sage.databases.cremona import cremona_to_lmfdb, lmfdb_to_cremona
+        sage: cremona_to_lmfdb('990j1')
+        '990.h3'
+        sage: lmfdb_to_cremona('990.h3')
+        '990j1'
+
+    TESTS::
+
+        sage: for label in ['5077a1','66a3','102b','420c2']:
+        ...       assert(lmfdb_to_cremona(cremona_to_lmfdb(label)) == label)
+        sage: for label in ['438.c2','306.b','462.f3']:
+        ...       assert(cremona_to_lmfdb(lmfdb_to_cremona(label)) == label)
+    """
+    from sage.libs.pari.all import pari
+    m = cremona_label_regex.match(cremona_label)
+    if m is None:
+        raise ValueError("Invalid Cremona label")
+    N, cremona_iso, cremona_number = m.groups()
+    if CDB is None:
+        CDB = CremonaDatabase()
+    classes = CDB.isogeny_classes(N)
+    ft = int(53)
+    tff = int(255) # This should be enough to distinguish between curves (using heuristics from Sato-Tate for example)
+    isos = []
+    for i, iso in enumerate(classes):
+        alist = iso[0][0]
+        E = pari(alist).ellinit(precision=ft)
+        isos.append((E.ellan(tff, python_ints=True), cremona_letter_code(i)))
+    isos.sort()
+    sorted_letters = [iso[1] for iso in isos]
+    lmfdb_iso = cremona_letter_code(sorted_letters.index(cremona_iso))
+    if len(cremona_number) > 0:
+        iso_class = [(curve[0],str(i+1)) for i,curve in enumerate(classes[class_to_int(cremona_iso)])]
+        iso_class.sort()
+        sorted_numbers = [curve[1] for curve in iso_class]
+        lmfdb_number = str(sorted_numbers.index(cremona_number)+1)
+        return N + '.' + lmfdb_iso + lmfdb_number
+    else:
+        return N + '.' + lmfdb_iso
+
+def lmfdb_to_cremona(lmfdb_label, CDB=None):
+    """
+    Converts an LMFDB labe into a Cremona label.
+
+    See :func:`parse_lmfdb_label` for an explanation of LMFDB labels.
+
+    INPUT:
+
+    - ``lmfdb_label`` -- a string, the LMFDB label of a curve.
+      This can be the label of a curve (e.g. '990.j1') or of an isogeny
+      class (e.g. '990.j')
+    - ``CDB`` -- the Cremona database in which to look up the isogeny
+      classes of the same conductor.
+
+    OUTPUT:
+
+    - ``cremona_label`` -- a string, the corresponding Cremona label.
+
+    EXAMPLES::
+
+        sage: from sage.databases.cremona import cremona_to_lmfdb, lmfdb_to_cremona
+        sage: lmfdb_to_cremona('990.h3')
+        '990j1'
+        sage: cremona_to_lmfdb('990j1')
+        '990.h3'
+    """
+    from sage.libs.pari.all import pari
+    m = lmfdb_label_regex.match(lmfdb_label)
+    if m is None:
+        raise ValueError("Invalid LMFDB label")
+    N, lmfdb_iso, lmfdb_number = m.groups()
+    if CDB is None:
+        CDB = CremonaDatabase()
+    classes = CDB.isogeny_classes(N)
+    ft = int(53)
+    tff = int(255) # This should be enough to distinguish between curves (using heuristics from Sato-Tate for example)
+    isos = []
+    for i, iso in enumerate(classes):
+        alist = iso[0][0]
+        E = pari(alist).ellinit(precision=ft)
+        isos.append((E.ellan(tff, python_ints=True), cremona_letter_code(i)))
+    isos.sort()
+    cremona_iso = isos[class_to_int(lmfdb_iso)][1]
+    if len(lmfdb_number) > 0:
+        iso_class = [(curve[0],i+1) for i,curve in enumerate(classes[class_to_int(cremona_iso)])]
+        iso_class.sort()
+        cremona_number = str(iso_class[int(lmfdb_number)-1][1])
+        return N + cremona_iso + cremona_number
+    else:
+        return N + cremona_iso
+
 class MiniCremonaDatabase(SQLDatabase):
     """
     The Cremona database of elliptic curves.
@@ -412,12 +591,12 @@ class MiniCremonaDatabase(SQLDatabase):
                 raise RuntimeError('The database must not be read_only.')
             self.name = name
             name = name.replace(' ','_')
-            SQLDatabase.__init__(self, '%s/cremona/%s.db'%(SAGE_DATA, name), \
+            SQLDatabase.__init__(self, '%s/cremona/%s.db'%(SAGE_SHARE, name), \
                 read_only=read_only, skeleton=_miniCremonaSkeleton)
             return
         self.name = name
         name = name.replace(' ','_')
-        SQLDatabase.__init__(self, '%s/cremona/%s.db'%(SAGE_DATA, name), \
+        SQLDatabase.__init__(self, '%s/cremona/%s.db'%(SAGE_SHARE, name), \
             read_only=read_only)
         if self.get_skeleton() != _miniCremonaSkeleton:
             raise RuntimeError('Database at %s does '%(self.__dblocation__) \
@@ -608,9 +787,15 @@ class MiniCremonaDatabase(SQLDatabase):
 
         INPUT:
 
-        -  ``label`` - str (Cremona label)
+        -  ``label`` - str (Cremona or LMFDB label)
 
-        OUTPUT: EllipticCurve
+        OUTPUT:
+
+        - an :class:`sage.schemes.elliptic_curves.ell_rational_field.EllipticCurve_rational_field`
+
+        .. note::
+
+            For more details on LMFDB labels see :func:`parse_lmfdb_label`.
 
         EXAMPLES::
 
@@ -623,8 +808,22 @@ class MiniCremonaDatabase(SQLDatabase):
             Traceback (most recent call last):
             ...
             ValueError: There is no elliptic curve with label 48c1 in the database (note: use lower case letters!)
+
+        You can also use LMFDB labels::
+
+            sage: c.elliptic_curve('462.f3')
+            Elliptic Curve defined by y^2 + x*y = x^3 - 363*x + 1305 over Rational Field
         """
-        N, iso, num = parse_cremona_label(label)
+        # There are two possible strings: the Cremona label and the LMFDB label.
+        # They are distinguished by the presence of a period.
+        if label.find('.') == -1:
+            cremona_label = label
+            lmfdb_label = None
+        else:
+            cremona_label = lmfdb_to_cremona(label)
+            lmfdb_label = label
+
+        N, iso, num = parse_cremona_label(cremona_label)
         label = str(N)+iso+str(num)
         if self.get_skeleton() == _miniCremonaSkeleton:
             q = self.__connection__.cursor().execute("SELECT eqn,rank,tors " \
@@ -640,6 +839,8 @@ class MiniCremonaDatabase(SQLDatabase):
             F._set_rank(c[1])
             F._set_torsion_order(c[2])
             F._set_conductor(N)
+            if lmfdb_label:
+                F._lmfdb_label = lmfdb_label
             if len(c) > 3:
                 if num == 1:
                     F._set_modular_degree(c[3])
@@ -1112,12 +1313,12 @@ class LargeCremonaDatabase(MiniCremonaDatabase):
                 raise RuntimeError('The database must not be read_only.')
             self.name = name
             name = name.replace(' ','_')
-            SQLDatabase.__init__(self, '%s/cremona/%s.db'%(SAGE_DATA, name), \
+            SQLDatabase.__init__(self, '%s/cremona/%s.db'%(SAGE_SHARE, name), \
                 read_only=read_only, skeleton=_cremonaSkeleton)
             return
         self.name = name
         name = name.replace(' ','_')
-        SQLDatabase.__init__(self, '%s/cremona/%s.db'%(SAGE_DATA, name), \
+        SQLDatabase.__init__(self, '%s/cremona/%s.db'%(SAGE_SHARE, name), \
             read_only=read_only)
         if self.get_skeleton() != _cremonaSkeleton:
             raise RuntimeError('Database at %s does '%(self.__dblocation__) \
@@ -1348,13 +1549,13 @@ def CremonaDatabase(name=None,mini=None,set_global=None):
     if name is None and not set_global:
         return _db
     if set_global and name is None:
-        if os.path.isfile('%s/cremona/cremona.db'%SAGE_DATA):
+        if os.path.isfile('%s/cremona/cremona.db'%SAGE_SHARE):
             name = 'cremona'
-        elif os.path.isfile('%s/cremona/cremona_mini.db'%SAGE_DATA):
+        elif os.path.isfile('%s/cremona/cremona_mini.db'%SAGE_SHARE):
             name = 'cremona mini'
         else:
             raise RuntimeError('Could not find valid cremona database. ' \
-                + 'Please make sure SAGE_DATA is set correctly.')
+                + 'Please make sure SAGE_SHARE is set correctly.')
     if name == 'cremona':
         mini = False
     elif name == 'cremona mini':

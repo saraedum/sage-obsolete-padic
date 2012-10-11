@@ -15,7 +15,7 @@ Yang-Baxter Graphs
 #
 #                  http://www.gnu.org/licenses/
 #*****************************************************************************
-from sage.graphs.all import DiGraph
+from sage.graphs.digraph import DiGraph
 from sage.structure.sage_object import SageObject
 from sage.misc.lazy_attribute import lazy_attribute
 from sage.combinat.partition import Partition
@@ -316,11 +316,12 @@ class YangBaxterGraph_generic(SageObject):
             Yang-Baxter graph with root vertex (1, 0, 2, 1, 0)
             sage: B = Y.copy(); B
             doctest:...: DeprecationWarning: the .copy() method is deprecated; please use the copy() function instead, for example, copy(g)
+            See http://trac.sagemath.org/6522 for details.
             Yang-Baxter graph with root vertex (1, 0, 2, 1, 0)
         """
         from copy import copy
-        import sage.misc.misc
-        sage.misc.misc.deprecation("the .copy() method is deprecated; please use the copy() function instead, for example, copy(g)")
+        from sage.misc.superseded import deprecation
+        deprecation(6522, "the .copy() method is deprecated; please use the copy() function instead, for example, copy(g)")
         return copy(self)
 
 
@@ -624,11 +625,12 @@ class YangBaxterGraph_partition(YangBaxterGraph_generic):
             Yang-Baxter graph of [3, 2], with top vertex (1, 0, 2, 1, 0)
             sage: B = Y.copy(); B
             doctest:...: DeprecationWarning: the .copy() method is deprecated; please use the copy() function instead, for example, copy(g)
+            See http://trac.sagemath.org/6522 for details.
             Yang-Baxter graph of [3, 2], with top vertex (1, 0, 2, 1, 0)
         """
         from copy import copy
-        import sage.misc.misc
-        sage.misc.misc.deprecation("the .copy() method is deprecated; please use the copy() function instead, for example, copy(g)")
+        from sage.misc.superseded import deprecation
+        deprecation(6522, "the .copy() method is deprecated; please use the copy() function instead, for example, copy(g)")
         return copy(self)
 
     @lazy_attribute

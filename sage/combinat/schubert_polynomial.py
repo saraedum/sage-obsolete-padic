@@ -23,6 +23,8 @@ from sage.rings.all import Integer, is_MPolynomial, PolynomialRing
 import permutation
 import sage.libs.symmetrica.all as symmetrica
 
+from sage.combinat.permutation import Permutations
+
 def SchubertPolynomialRing(R):
     """
     Returns the Schubert polynomial ring over R on the X basis.
@@ -134,7 +136,7 @@ class SchubertPolynomial_class(CombinatorialFreeModule.Element):
             X[1, 3, 4, 6, 2, 5]
             sage: Permutation([1, 3, 4, 6, 2, 5, 7]).to_lehmer_code()
             [0, 1, 1, 2, 0, 0, 0]
-            sage: s = SFASchur(ZZ)
+            sage: s = SymmetricFunctions(ZZ).schur()
             sage: c = s([2,1,1])
             sage: b.scalar_product(a).expand()
             x0^2*x1*x2 + x0*x1^2*x2 + x0*x1*x2^2 + x0^2*x1*x3 + x0*x1^2*x3 + x0^2*x2*x3 + 3*x0*x1*x2*x3 + x1^2*x2*x3 + x0*x2^2*x3 + x1*x2^2*x3 + x0*x1*x3^2 + x0*x2*x3^2 + x1*x2*x3^2
@@ -201,16 +203,33 @@ class SchubertPolynomialRing_xbasis(CombinatorialAlgebra):
             sage: X._element_constructor_(Permutation([2,1,3]))
             X[2, 1]
         
-        ::
-        
             sage: R.<x1, x2, x3> = QQ[]
             sage: X(x1^2*x2)
             X[3, 2, 1]
+            
+        TESTS:
+
+        We check that :trac:`12924` is fixed::
+        
+            sage: X = SchubertPolynomialRing(QQ)
+            sage: X._element_constructor_([1,2,1])
+            Traceback (most recent call last):
+            ...
+            ValueError: The input [1, 2, 1] is not a valid permutation
+            sage: X._element_constructor_(Permutation([1,2,1]))
+            Traceback (most recent call last):
+            ...
+            ValueError: The input [1, 2, 1] is not a valid permutation
         """
         if isinstance(x, list):
+            #checking the input to avoid symmetrica crashing Sage, see trac 12924
+            if not x in Permutations():
+                raise ValueError, "The input %s is not a valid permutation"%(x)
             perm = permutation.Permutation_class(x).remove_extra_fixed_points()
             return self._from_dict({ perm: self.base_ring()(1) })
         elif isinstance(x, permutation.Permutation_class):
+            if not list(x) in Permutations():
+                raise ValueError, "The input %s is not a valid permutation"%(x)
             perm = x.remove_extra_fixed_points()
             return self._from_dict({ perm: self.base_ring()(1) })
         elif is_MPolynomial(x):

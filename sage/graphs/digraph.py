@@ -91,7 +91,7 @@ Methods
 """
 
 from sage.rings.integer import Integer
-from sage.misc.misc import deprecated_function_alias
+from sage.misc.superseded import deprecated_function_alias
 import sage.graphs.generic_graph_pyx as generic_graph_pyx
 from sage.graphs.generic_graph import GenericGraph
 from sage.graphs.dot2tex_utils import have_dot2tex
@@ -162,6 +162,7 @@ class DiGraph(GenericGraph):
         ...      g.subgraph(component).plot()
 
     The same methods works for strongly connected components ::
+
         sage: for component in g.strongly_connected_components():
         ...      g.subgraph(component).plot()
     
@@ -622,7 +623,7 @@ class DiGraph(GenericGraph):
                 try:
                     e = int(e)
                     assert e >= 0
-                except:
+                except StandardError:
                     if weighted is False:
                         raise ValueError("Non-weighted digraph's"+
                         " adjacency matrix must have only nonnegative"+
@@ -1151,7 +1152,7 @@ class DiGraph(GenericGraph):
         """
         return iter(set(self._backend.iterator_in_nbrs(vertex)))
 
-    predecessor_iterator = deprecated_function_alias(neighbor_in_iterator, 'Sage Version 4.3') 
+    predecessor_iterator = deprecated_function_alias(7634, neighbor_in_iterator)
 
     def neighbors_in(self, vertex):
         """
@@ -1167,7 +1168,7 @@ class DiGraph(GenericGraph):
         """
         return list(self.neighbor_in_iterator(vertex))
 
-    predecessors = deprecated_function_alias(neighbors_in, 'Sage Version 4.3') 
+    predecessors = deprecated_function_alias(7634, neighbors_in)
 
     def neighbor_out_iterator(self, vertex):
         """
@@ -1186,7 +1187,7 @@ class DiGraph(GenericGraph):
         """
         return iter(set(self._backend.iterator_out_nbrs(vertex)))
 
-    successor_iterator = deprecated_function_alias(neighbor_out_iterator, 'Sage Version 4.3') 
+    successor_iterator = deprecated_function_alias(7634, neighbor_out_iterator)
 
     def neighbors_out(self, vertex):
         """
@@ -1202,7 +1203,7 @@ class DiGraph(GenericGraph):
         """
         return list(self.neighbor_out_iterator(vertex))
 
-    successors = deprecated_function_alias(neighbors_out, 'Sage Version 4.3') 
+    successors = deprecated_function_alias(7634, neighbors_out)
 
     ### Degree functions
 
@@ -2582,35 +2583,40 @@ class DiGraph(GenericGraph):
 
     def topological_sort(self, implementation = "default"):
         """
-        Returns a topological sort of the digraph if it is acyclic, and raises a
-        TypeError if the digraph contains a directed cycle.
-        
-        A topological sort is an ordering of the vertices of the digraph such
-        that each vertex comes before all of its successors. That is, if `u`
-        comes before `v` in the sort, then there may be a directed path from `u`
-        to `v`, but there will be no directed path from `v` to `u`.
+        Returns a topological sort of the digraph if it is acyclic, and
+        raises a TypeError if the digraph contains a directed cycle. As
+        topological sorts are not necessarily unique, different
+        implementations may yield different results.
+
+        A topological sort is an ordering of the vertices of the digraph
+        such that each vertex comes before all of its successors. That
+        is, if `u` comes before `v` in the sort, then there may be
+        a directed path from `u` to `v`, but there will be no directed
+        path from `v` to `u`.
 
         INPUT:
 
         - ``implementation`` -- Use the default Cython implementation
-          (``implementation = default``) or the NetworkX library
-          (``implementation = "NetworkX"``)
+          (``implementation = default``), the default NetworkX library
+          (``implementation = "NetworkX"``) or the recursive NetworkX
+          implementation (``implementation = "recursive"``)
 
         .. SEEALSO::
 
-            - :meth:`is_directed_acyclic` -- Tests whether a directed graph is
-              acyclic (can also join a certificate -- a topological sort or a
-              circuit in the graph1).
-        
+            - :meth:`is_directed_acyclic` -- Tests whether a directed
+              graph is acyclic (can also join a certificate --
+              a topological sort or a circuit in the graph1).
+
         EXAMPLES::
 
-            sage: D = DiGraph({ 0:[1,2,3], 4:[2,5], 1:[8], 2:[7], 3:[7], 5:[6,7], 7:[8], 6:[9], 8:[10], 9:[10] })
+            sage: D = DiGraph({ 0:[1,2,3], 4:[2,5], 1:[8], 2:[7], 3:[7],
+            ...     5:[6,7], 7:[8], 6:[9], 8:[10], 9:[10] })
             sage: D.plot(layout='circular').show()
             sage: D.topological_sort()
             [4, 5, 6, 9, 0, 1, 2, 3, 7, 8, 10]
-        
+
         ::
-        
+
             sage: D.add_edge(9,7)
             sage: D.topological_sort()
             [4, 5, 6, 9, 0, 1, 2, 3, 7, 8, 10]
@@ -2620,26 +2626,34 @@ class DiGraph(GenericGraph):
             sage: D.topological_sort(implementation = "NetworkX")
             [4, 5, 6, 9, 0, 1, 2, 3, 7, 8, 10]
 
+        Using the NetworkX recursive implementation ::
+
+            sage: D.topological_sort(implementation = "recursive")
+            [4, 5, 6, 9, 0, 3, 2, 7, 1, 8, 10]
+
         ::
-        
+
             sage: D.add_edge(7,4)
             sage: D.topological_sort()
             Traceback (most recent call last):
             ...
-            TypeError: Digraph is not acyclic-- there is no topological sort.
-        
+            TypeError: Digraph is not acyclic-- there is no topological
+            sort.
+
         .. note::
 
-           There is a recursive version of this in NetworkX, but it has
-           problems::
-        
+           There is a recursive version of this in NetworkX, it used to
+           have problems in earlier versions but they have since been
+           fixed::
+
               sage: import networkx
-              sage: D = DiGraph({ 0:[1,2,3], 4:[2,5], 1:[8], 2:[7], 3:[7], 5:[6,7], 7:[8], 6:[9], 8:[10], 9:[10] })
+              sage: D = DiGraph({ 0:[1,2,3], 4:[2,5], 1:[8], 2:[7], 3:[7],
+              ...     5:[6,7], 7:[8], 6:[9], 8:[10], 9:[10] })
               sage: N = D.networkx_graph()
               sage: networkx.topological_sort(N)
               [4, 5, 6, 9, 0, 1, 2, 3, 7, 8, 10]
-              sage: networkx.topological_sort_recursive(N) is None
-              True
+              sage: networkx.topological_sort_recursive(N)
+              [4, 5, 6, 9, 0, 3, 2, 7, 1, 8, 10]
 
         TESTS:
 
@@ -2648,7 +2662,8 @@ class DiGraph(GenericGraph):
             sage: D.topological_sort(implementation = "cloud-reading")
             Traceback (most recent call last):
             ...
-            ValueError: implementation must be set to one of "default" or "NetworkX"
+            ValueError: implementation must be set to one of "default"
+            or "NetworkX"
         """
 
         if implementation == "default":
@@ -2658,9 +2673,12 @@ class DiGraph(GenericGraph):
             else:
                 raise TypeError('Digraph is not acyclic-- there is no topological sort.')
                 
-        elif implementation == "NetworkX":
+        elif implementation == "NetworkX" or implementation == "recursive":
             import networkx
-            S = networkx.topological_sort(self.networkx_graph(copy=False))
+            if implementation == "NetworkX":
+                S = networkx.topological_sort(self.networkx_graph(copy=False))
+            else:
+                S = networkx.topological_sort_recursive(self.networkx_graph(copy=False))
             if S is None:
                 raise TypeError('Digraph is not acyclic-- there is no topological sort.')
             else:

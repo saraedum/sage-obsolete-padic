@@ -24,9 +24,6 @@ AUTHORS:
 #                  http://www.gnu.org/licenses/
 #*****************************************************************************
 
-from __future__ import with_statement
-
-
 import ring_element
 
 from sage.interfaces.singular import singular as singular_default
@@ -662,6 +659,8 @@ class QuotientRingElement(ring_element.RingElement):
             [a]
             sage: (a+a*b).monomials()
             [a*b, a]
+            sage: R.zero().monomials()
+            []
         """
         return [self.parent()(m) for m in self.__rep.monomials()]
 

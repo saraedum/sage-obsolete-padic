@@ -1147,7 +1147,7 @@ class Polyhedron_base(SageObject):
         """
         try:
             return self._equations
-        except:
+        except AttributeError:
             self._equations = [list(eq) for eq in self.equation_generator()]
             return self._equations
 
@@ -1195,7 +1195,7 @@ class Polyhedron_base(SageObject):
         """
         try:
             return self._vertices
-        except:
+        except AttributeError:
             self._vertices = [list(x) for x in self.vertex_generator()]
             return self._vertices
 
@@ -1270,7 +1270,7 @@ class Polyhedron_base(SageObject):
         """
         try:
             return self._rays
-        except:
+        except AttributeError:
             self._rays = [list(x) for x in self.ray_generator()]
             return self._rays
 
@@ -1310,7 +1310,7 @@ class Polyhedron_base(SageObject):
         """
         try:
             return self._lines
-        except:
+        except AttributeError:
             self._lines = [list(x) for x in self.line_generator()]
             return self._lines
 
@@ -1842,21 +1842,23 @@ class Polyhedron_base(SageObject):
 
             sage: Polyhedron(vertices = [[5,0,0],[0,5,0],[5,5,0],[2,2,5]]
             ...             ).triangulated_facial_incidences()
-            doctest:...: DeprecationWarning: (Since Sage Version 4.7.1)
-            This method is deprecated. Use triangulate() instead.
+            doctest:...: DeprecationWarning: This method is
+            deprecated. Use triangulate() instead.
+            See http://trac.sagemath.org/11634 for details.
             [[0, [0, 1, 2]], [1, [0, 1, 3]], [2, [0, 2, 3]], [3, [1, 2, 3]]]
                              
         Otherwise some faces get split up to triangles::
 
             sage: Polyhedron(vertices = [[2,0,0],[4,1,0],[0,5,0],[5,5,0],
             ...       [1,1,0],[0,0,1]]).triangulated_facial_incidences()
-            doctest:...: DeprecationWarning: (Since Sage Version 4.7.1)
-            This method is deprecated. Use triangulate() instead.
+            doctest:...: DeprecationWarning: This method is
+            deprecated. Use triangulate() instead.
+            See http://trac.sagemath.org/11634 for details.
             [[0, [1, 2, 5]], [0, [2, 5, 3]], [0, [5, 3, 4]], [1, [0, 1, 2]],
              [2, [0, 2, 3]], [3, [0, 3, 4]], [4, [0, 4, 5]], [5, [0, 1, 5]]]
         """
-        from sage.misc.misc import deprecation
-        deprecation('This method is deprecated. Use triangulate() instead.', 'Sage Version 4.7.1')
+        from sage.misc.superseded import deprecation
+        deprecation(11634, 'This method is deprecated. Use triangulate() instead.')
         try:
             return self._triangulated_facial_incidences
         except AttributeError:
@@ -1923,16 +1925,17 @@ class Polyhedron_base(SageObject):
 
             sage: p = polytopes.cuboctahedron()
             sage: sc = p.simplicial_complex()
-            doctest:...: DeprecationWarning: (Since Sage Version 4.7.1)
+            doctest:...: DeprecationWarning:
             This method is deprecated. Use triangulate().simplicial_complex() instead.
-            doctest:...: DeprecationWarning: (Since Sage Version 4.7.1)
+            See http://trac.sagemath.org/11634 for details.
+            doctest:...: DeprecationWarning:
             This method is deprecated. Use triangulate() instead.
+            See http://trac.sagemath.org/11634 for details.
             sage: sc
             Simplicial complex with 13 vertices and 20 facets
         """
-        from sage.misc.misc import deprecation
-        deprecation('This method is deprecated. Use triangulate().simplicial_complex() instead.',
-                    'Sage Version 4.7.1')
+        from sage.misc.superseded import deprecation
+        deprecation(11634, 'This method is deprecated. Use triangulate().simplicial_complex() instead.')
         from sage.homology.simplicial_complex import SimplicialComplex
         return SimplicialComplex(vertex_set = self.n_vertices(),
                                  maximal_faces = [x[1] for x in self.triangulated_facial_incidences()])
@@ -2049,12 +2052,13 @@ class Polyhedron_base(SageObject):
         EXAMPLES::
         
             sage: Polyhedron(vertices=[[0]]).union( Polyhedron(vertices=[[1]]) )
-            doctest:...: DeprecationWarning: (Since Sage Version 4.4.4)
+            doctest:...: DeprecationWarning:
             The function union is replaced by convex_hull.
+            See http://trac.sagemath.org/11634 for details.
             A 1-dimensional polyhedron in QQ^1 defined as the convex hull of 2 vertices
         """
-        from sage.misc.misc import deprecation
-        deprecation('The function union is replaced by convex_hull.', 'Sage Version 4.4.4')
+        from sage.misc.superseded import deprecation
+        deprecation(11634, 'The function union is replaced by convex_hull.')
         return self.convex_hull(other)
 
 
@@ -2570,7 +2574,7 @@ class Polyhedron_base(SageObject):
 
             sage: p = Polyhedron([[1,2,],[1,1],[0,0]])
             sage: p_wireframe = p.render_wireframe()
-            sage: p_wireframe._Graphics__objects
+            sage: p_wireframe._objects
             [Line defined by 2 points, Line defined by 2 points, Line defined by 2 points]
         """
         proj = self.projection()

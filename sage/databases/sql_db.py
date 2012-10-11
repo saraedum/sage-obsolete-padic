@@ -253,7 +253,7 @@ def construct_skeleton(database):
     skeleton = {}
     cur = database.__connection__.cursor()
     exe = cur.execute("SELECT name FROM sqlite_master WHERE TYPE='table'")
-    from sage.misc.misc import SAGE_DATA
+    from sage.misc.misc import SAGE_SHARE
     for table in exe.fetchall():
         skeleton[table[0]] = {}
         exe1 = cur.execute("PRAGMA table_info(%s)"%table[0])
@@ -267,7 +267,8 @@ def construct_skeleton(database):
         exe2 = cur.execute("PRAGMA index_list(%s)"%table[0])
         for col in exe2.fetchall():
             if col[1].find('sqlite') == -1:
-                if database.__dblocation__ == SAGE_DATA + '/graphs/graphs.db':
+                if database.__dblocation__ == \
+                        os.path.join(SAGE_SHARE,'graphs','graphs.db'):
                     name = col[1]
                 else:
                     name = col[1][len(table[0])+3:]
@@ -662,7 +663,7 @@ class SQLQuery(SageObject):
         try:
             cur = self.__database__.__connection__.cursor()
             cur.execute(self.__query_string__, self.__param_tuple__)
-        except:
+        except StandardError:
             raise RuntimeError('Failure to fetch query.')
 
         print _create_print_table(cur, [des[0] for des in cur.description], \
@@ -1280,7 +1281,7 @@ class SQLDatabase(SageObject):
         try:
             cur = self.__connection__.cursor()
             cur.execute('SELECT * FROM ' + table_name)
-        except:
+        except StandardError:
             raise RuntimeError('Failure to fetch data.')
         print _create_print_table(cur, [des[0] for des in cur.description], \
                 **kwds)
@@ -2068,7 +2069,7 @@ class SQLDatabase(SageObject):
         try:
             cur = self.get_cursor()
             cur.execute(delete_statement, query.__param_tuple__)
-        except:
+        except StandardError:
             raise RuntimeError('Failure to complete delete. Check your data.')
 
     def add_rows(self, table_name, rows, entry_order=None):

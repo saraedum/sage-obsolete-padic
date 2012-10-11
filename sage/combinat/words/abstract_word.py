@@ -1249,14 +1249,15 @@ class Word_class(SageObject):
             sage: w = Word('abaccefa')
             sage: w. alphabet()
             doctest:1: DeprecationWarning: alphabet() is deprecated, use parent().alphabet() instead
+            See http://trac.sagemath.org/8429 for details.
             Python objects
             sage: y = Words('456')('64654564')
             sage: y.alphabet()
             Ordered Alphabet ['4', '5', '6']
 
         """
-        from sage.misc.misc import deprecation
-        deprecation("alphabet() is deprecated, use parent().alphabet() instead")
+        from sage.misc.superseded import deprecation
+        deprecation(8429, "alphabet() is deprecated, use parent().alphabet() instead")
         return self.parent().alphabet()
 
     def _partial_sums_iterator(self, start, mod=None):

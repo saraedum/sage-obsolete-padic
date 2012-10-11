@@ -23,7 +23,7 @@ import sage.categories.posets
 from sage.combinat.permutation import Permutations, Permutation
 from sage.combinat.posets.posets import Poset, FinitePosets_n
 from sage.combinat.posets.lattices import LatticePoset
-from sage.graphs.all import DiGraph
+from sage.graphs.digraph import DiGraph
 from sage.rings.integer import Integer
 
 class Posets(object):
@@ -351,13 +351,13 @@ class Posets(object):
         """
         try:
             n = Integer(n)
-        except:
+        except TypeError:
             raise TypeError("number of elements must be an integer, not {0}".format(n))
         if n < 0:
             raise ValueError("number of elements must be non-negative, not {0}".format(n))
         try:
             p = float(p)
-        except:
+        except StandardError:
             raise TypeError("probability must be a real number, not {0}".format(p))
         if p < 0 or p> 1:
             raise ValueError("probability must be between 0 and 1, not {0}".format(p))
@@ -371,6 +371,60 @@ class Posets(object):
                     if not D.is_directed_acyclic():
                         D.delete_edge(i,j)
         return Poset(D,cover_relations=False)
+
+    @staticmethod
+    def SSTPoset(s,f=None):
+        """
+        The poset on semistandard tableaux of shape s and largest entry f that is ordered by componentwise comparison of the entries.
+    
+        INPUT:
+
+        - ``s`` - shape of the tableaux
+
+        - ``f`` - maximum fill number.  This is an optional argument.  If no maximal number is given, it will use the number of cells in the shape.
+    
+        NOTE: This is basic implementation and most certainly not the most efficient.
+    
+        EXAMPLES::
+    
+            sage: Posets.SSTPoset([2,1])
+            Finite poset containing 8 elements
+    
+            sage: Posets.SSTPoset([2,1],4)
+            Finite poset containing 20 elements
+
+            sage: Posets.SSTPoset([2,1],2).cover_relations()
+            [[[[1, 1], [2]], [[1, 2], [2]]]]
+
+            sage: Posets.SSTPoset([3,2]).bottom()  # long time (6s on sage.math, 2012)
+            [[1, 1, 1], [2, 2]]
+
+            sage: Posets.SSTPoset([3,2],4).maximal_elements()
+            [[[3, 3, 4], [4, 4]]]
+        """
+        from sage.combinat.tableau import SemistandardTableaux
+        def tableaux_is_less_than(a,b):
+            atstring = []
+            btstring = []
+            c=0
+            d=0
+            for i in range(len(a)):
+                atstring=atstring+a[i]
+            for i in range(len(b)):
+                btstring=btstring+b[i]
+            for i in range(len(atstring)):
+                if atstring[i] > btstring[i]:
+                    c = c+1
+            if c == 0:
+                return True
+            else:
+                return False
+        if f is None:
+            f=0
+            for i in range(len(s)):
+                f = f+s[i]
+        E = SemistandardTableaux(s,max_entry=f)
+        return Poset((E, tableaux_is_less_than ))
 
     @staticmethod
     def SymmetricGroupBruhatOrderPoset(n):

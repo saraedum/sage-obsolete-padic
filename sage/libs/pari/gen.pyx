@@ -187,18 +187,6 @@ cdef extern from "mpz_pylong.h":
 # rather than silently corrupting memory.
 cdef long mpz_t_offset = 1000000000
 
-# The unique running Pari instance.
-cdef PariInstance pari_instance, P
-pari_instance = PariInstance(16000000, 500000)
-P = pari_instance   # shorthand notation
-
-# PariInstance.__init__ must not create gen objects because their parent is not constructed yet
-sig_on()
-pari_instance.PARI_ZERO = pari_instance.new_gen_noclear(gen_0)
-pari_instance.PARI_ONE  = pari_instance.new_gen_noclear(gen_1)
-pari_instance.PARI_TWO  = pari_instance.new_gen_noclear(gen_2)
-sig_off()
-
 # so Galois groups are represented in a sane way
 # See the polgalois section of the PARI users manual.
 new_galois_format = 1   
@@ -364,6 +352,19 @@ def prec_words_to_dec(int prec_in_words):
         [(3, 19), (4, 38), (5, 57), (6, 77), (7, 96), (8, 115), (9, 134)] # 64-bit
     """
     return prec_bits_to_dec(prec_words_to_bits(prec_in_words))
+
+
+# The unique running Pari instance.
+cdef PariInstance pari_instance, P
+pari_instance = PariInstance(16000000, 500000)
+P = pari_instance   # shorthand notation
+
+# PariInstance.__init__ must not create gen objects because their parent is not constructed yet
+sig_on()
+pari_instance.PARI_ZERO = pari_instance.new_gen_noclear(gen_0)
+pari_instance.PARI_ONE  = pari_instance.new_gen_noclear(gen_1)
+pari_instance.PARI_TWO  = pari_instance.new_gen_noclear(gen_2)
+sig_off()
 
 # Also a copy of PARI accessible from external pure python code.
 pari = pari_instance
@@ -5041,10 +5042,11 @@ cdef class gen(sage.structure.element.RingElement):
             
             sage: pari(100).lngamma()
             doctest:...: DeprecationWarning: The method lngamma() is deprecated. Use log_gamma() instead.
+            See http://trac.sagemath.org/6992 for details.
             359.134205369575
         """
-        from sage.misc.misc import deprecation
-        deprecation("The method lngamma() is deprecated. Use log_gamma() instead.")
+        from sage.misc.superseded import deprecation
+        deprecation(6992, "The method lngamma() is deprecated. Use log_gamma() instead.")
         return x.log_gamma(precision)
 
     def log_gamma(gen x, precision=0):
@@ -7420,6 +7422,75 @@ cdef class gen(sage.structure.element.RingElement):
             r = nfhilbert(self.g, t0, t1)
         P.clear_stack()
         return r
+
+
+    def nfhnf(self,x):
+        """
+        nfhnf(nf,x) : given a pseudo-matrix (A, I) or an integral pseudo-matrix (A,I,J), finds a 
+        pseudo-basis in Hermite normal form of the module it generates.  
+        
+        A pseudo-matrix is a 2-component row vector (A, I) where A is a relative m x n matrix and 
+        I an ideal list of length n. An integral pseudo-matrix is a 3-component row vector (A, I, J).  
+        
+        .. NOTE:: 
+        
+            The definition of a pseudo-basis ([Cohen]_):
+            Let M be a finitely generated, torsion-free R-module, and set V = KM.  If `\mathfrak{a}_i` are 
+            fractional ideals of R and `w_i` are elements of V, we say that 
+            `(w_i, \mathfrak{a}_k)_{1 \leq i \leq k}` 
+            is a pseudo-basis of M if 
+            `M = \mathfrak{a}_1 w_1 \oplus \cdots \oplus \mathfrak{a}_k w_k.`
+        
+        REFERENCES:
+        
+        .. [Cohen] Cohen, "Advanced Topics in Computational Number Theory"
+        
+        EXAMPLES::
+        
+            sage: F.<a> = NumberField(x^2-x-1)
+            sage: Fp = pari(F)
+            sage: A = matrix(F,[[1,2,a,3],[3,0,a+2,0],[0,0,a,2],[3+a,a,0,1]])
+            sage: I = [F.ideal(-2*a+1),F.ideal(7), F.ideal(3),F.ideal(1)]
+            sage: Fp.nfhnf([pari(A),[pari(P) for P in I]])
+            [[1, [-969/5, -1/15]~, [15, -2]~, [-1938, -3]~; 0, 1, 0, 0; 0, 0, 1, 0;
+            0, 0, 0, 1], [[3997, 1911; 0, 7], [15, 6; 0, 3], [1, 0; 0, 1], [1, 0; 0,
+            1]]]
+            sage: K.<b> = NumberField(x^3-2)
+            sage: Kp = pari(K)
+            sage: A = matrix(K,[[1,0,0,5*b],[1,2*b^2,b,57],[0,2,1,b^2-3],[2,0,0,b]])
+            sage: I = [K.ideal(2),K.ideal(3+b^2),K.ideal(1),K.ideal(1)]
+            sage: Kp.nfhnf([pari(A),[pari(P) for P in I]])
+            [[1, -225, 72, -31; 0, 1, [0, -1, 0]~, [0, 0, -1/2]~; 0, 0, 1, [0, 0,
+            -1/2]~; 0, 0, 0, 1], [[1116, 756, 612; 0, 18, 0; 0, 0, 18], [2, 0, 0; 0,
+            2, 0; 0, 0, 2], [1, 0, 0; 0, 1, 0; 0, 0, 1], [2, 0, 0; 0, 1, 0; 0, 0,
+            1]]]
+            
+        An example where the ring of integers of the number field is not a PID::
+        
+            sage: K.<b> = NumberField(x^2+5)
+            sage: Kp = pari(K)
+            sage: A = matrix(K,[[1,0,0,5*b],[1,2*b^2,b,57],[0,2,1,b^2-3],[2,0,0,b]])
+            sage: I = [K.ideal(2),K.ideal(3+b^2),K.ideal(1),K.ideal(1)]
+            sage: Kp.nfhnf([pari(A),[pari(P) for P in I]])
+            [[1, [15, 6]~, [0, -54]~, [113, 72]~; 0, 1, [-4, -1]~, [0, -1]~; 0, 0,
+            1, 0; 0, 0, 0, 1], [[360, 180; 0, 180], [6, 4; 0, 2], [1, 0; 0, 1], [1,
+            0; 0, 1]]]
+            sage: A = matrix(K,[[1,0,0,5*b],[1,2*b,b,57],[0,2,1,b-3],[2,0,b,b]])
+            sage: I = [K.ideal(2).factor()[0][0],K.ideal(3+b),K.ideal(1),K.ideal(1)]
+            sage: Kp.nfhnf([pari(A),[pari(P) for P in I]])
+            [[1, [7605, 4]~, [5610, 5]~, [7913, -6]~; 0, 1, 0, -1; 0, 0, 1, 0; 0, 0,
+            0, 1], [[19320, 13720; 0, 56], [2, 1; 0, 1], [1, 0; 0, 1], [1, 0; 0,
+            1]]]
+            
+        AUTHORS:
+
+        - Aly Deines (2012-09-19)    
+        """
+        t0GEN(x)
+        sig_on()
+        return self.new_gen(nfhnf(self.g,t0))
+        
+    
 
 
     def nfinit(self, long flag=0, long precision=0):
@@ -10398,7 +10469,7 @@ class PariError (RuntimeError):
 # THE TRY CODE IS NOT REENTRANT -- NO CALLS TO PARI FROM HERE !!!
 #              - Gonzalo Tornario
 
-cdef void _pari_trap "_pari_trap" (long errno, long retries) except *:
+cdef public void _pari_trap "_pari_trap" (long errno, long retries) except *:
     """
     TESTS::
     
@@ -10410,7 +10481,7 @@ cdef void _pari_trap "_pari_trap" (long errno, long retries) except *:
         P.allocatemem(silent=True)
     elif errno == user:
         sig_off()
-        raise Exception, "PARI user exception"
+        raise RuntimeError("PARI user exception")
     else:
         sig_off()
         raise PariError, errno
@@ -10465,5 +10536,4 @@ cdef _factor_int_when_pari_factor_failed(x, failed_factorization):
         m[i,0] = w[i][0]
         m[i,1] = w[i][1]
     return m
-
 

@@ -60,7 +60,7 @@ class CombinatorialFreeModuleElement(Element):
 
         ::
 
-            sage: s = SFASchur(QQ)
+            sage: s = SymmetricFunctions(QQ).schur()
             sage: a = s([2,1]) + s([3])
             sage: [i for i in sorted(a)]
             [([2, 1], 1), ([3], 1)]
@@ -84,7 +84,7 @@ class CombinatorialFreeModuleElement(Element):
 
         ::
 
-            sage: s = SFASchur(QQ)
+            sage: s = SymmetricFunctions(QQ).schur()
             sage: a = s([2,1]) + s([3])
             sage: Partition([2,1]) in a
             True
@@ -120,7 +120,7 @@ class CombinatorialFreeModuleElement(Element):
 
         ::
 
-            sage: s = SFASchur(QQ)
+            sage: s = SymmetricFunctions(QQ).schur()
             sage: a = s([2,1])+2*s([3,2])
             sage: d = a.monomial_coefficients()
             sage: type(d)
@@ -330,7 +330,7 @@ class CombinatorialFreeModuleElement(Element):
 
         EXAMPLES::
 
-            sage: s = SFASchur(QQ)
+            sage: s = SymmetricFunctions(QQ).schur()
             sage: a = s([2,1])
             sage: b = s([1,1,1])
             sage: cmp(a,b) #indirect doctest
@@ -356,7 +356,7 @@ class CombinatorialFreeModuleElement(Element):
 
         ::
 
-            sage: s = SFASchur(QQ)
+            sage: s = SymmetricFunctions(QQ).schur()
             sage: s([2,1]) + s([5,4]) # indirect doctest
             s[2, 1] + s[5, 4]
             sage: a = s([2,1]) + 0
@@ -381,7 +381,7 @@ class CombinatorialFreeModuleElement(Element):
 
         ::
 
-            sage: s = SFASchur(QQ)
+            sage: s = SymmetricFunctions(QQ).schur()
             sage: -s([2,1]) # indirect doctest
             -s[2, 1]
         """
@@ -399,7 +399,7 @@ class CombinatorialFreeModuleElement(Element):
 
         ::
 
-            sage: s = SFASchur(QQ)
+            sage: s = SymmetricFunctions(QQ).schur()
             sage: s([2,1]) - s([5,4]) # indirect doctest
             s[2, 1] - s[5, 4]
         """
@@ -416,7 +416,7 @@ class CombinatorialFreeModuleElement(Element):
 
             sage: p = Partition([2,1])
             sage: q = Partition([1,1,1])
-            sage: s = SFASchur(QQ)
+            sage: s = SymmetricFunctions(QQ).schur()
             sage: a = s(p)
             sage: a._coefficient_fast([2,1])
             Traceback (most recent call last):
@@ -500,7 +500,7 @@ class CombinatorialFreeModuleElement(Element):
 
         ::
 
-            sage: s = SFASchur(QQ)
+            sage: s = SymmetricFunctions(QQ).schur()
             sage: s([2,1]).is_zero()
             False
             sage: s(0).is_zero()
@@ -527,7 +527,7 @@ class CombinatorialFreeModuleElement(Element):
 
         ::
 
-            sage: s = SFASchur(QQ)
+            sage: s = SymmetricFunctions(QQ).schur()
             sage: z = s([4]) + s([2,1]) + s([1,1,1]) + s([1])
             sage: len(z)
             4
@@ -549,7 +549,7 @@ class CombinatorialFreeModuleElement(Element):
 
         ::
 
-            sage: s = SFASchur(QQ)
+            sage: s = SymmetricFunctions(QQ).schur()
             sage: z = s([4]) + s([2,1]) + s([1,1,1]) + s([1])
             sage: z.length()
             4
@@ -573,7 +573,7 @@ class CombinatorialFreeModuleElement(Element):
 
         ::
 
-            sage: s = SFASchur(QQ)
+            sage: s = SymmetricFunctions(QQ).schur()
             sage: z = s([4]) + s([2,1]) + s([1,1,1]) + s([1])
             sage: z.support()
             [[1], [1, 1, 1], [2, 1], [4]]
@@ -595,6 +595,9 @@ class CombinatorialFreeModuleElement(Element):
             sage: f = B['a'] + 2*B['c']
             sage: f.monomials()
             [B['a'], B['c']]
+
+            sage: (F.zero()).monomials()
+            []
         """
         P = self.parent()
         BR = P.base_ring()
@@ -642,7 +645,7 @@ class CombinatorialFreeModuleElement(Element):
 
         ::
 
-            sage: s = SFASchur(QQ)
+            sage: s = SymmetricFunctions(QQ).schur()
             sage: z = s([4]) + s([2,1]) + s([1,1,1]) + s([1])
             sage: z.coefficients()
             [1, 1, 1, 1]
@@ -1213,25 +1216,6 @@ class CombinatorialFreeModule(UniqueRepresentation, Module):
         """
         return self.element_class
 
-    @cached_method
-    def basis(self):
-        """
-        Returns the basis of self.
-
-        EXAMPLES::
-
-            sage: F = CombinatorialFreeModule(QQ, ['a','b','c'])
-            sage: F.basis()
-            Finite family {'a': B['a'], 'c': B['c'], 'b': B['b']}
-
-        ::
-
-            sage: QS3 = SymmetricGroupAlgebra(QQ,3)
-            sage: list(QS3.basis())
-            [[1, 2, 3], [1, 3, 2], [2, 1, 3], [2, 3, 1], [3, 1, 2], [3, 2, 1]]
-        """
-        return Family(self._basis_keys, self.monomial) #.
-
     def _an_element_(self):
         """
         EXAMPLES::
@@ -1261,7 +1245,7 @@ class CombinatorialFreeModule(UniqueRepresentation, Module):
             g = iter(self.basis().keys())
             for c in range(1,4):
                 x = x + self.term(g.next(), R(c))
-        except:
+        except (StandardError, StopIteration):
             pass
         return x
 
@@ -1455,16 +1439,17 @@ class CombinatorialFreeModule(UniqueRepresentation, Module):
             sage: F = CombinatorialFreeModule(QQ, ['a', 'b', 'c'])
             sage: F.combinatorial_class()
             doctest:...: DeprecationWarning: "FM.combinatorial_class()" is deprecated. Use "F.basis().keys()" instead !
+            See http://trac.sagemath.org/6136 for details.
             {'a', 'b', 'c'}
 
         ::
 
-            sage: s = SFASchur(QQ)
+            sage: s = SymmetricFunctions(QQ).schur()
             sage: s.combinatorial_class()
             Partitions
         """
-        from sage.misc.misc import deprecation
-        deprecation('"FM.combinatorial_class()" is deprecated. Use "F.basis().keys()" instead !')
+        from sage.misc.superseded import deprecation
+        deprecation(6136, '"FM.combinatorial_class()" is deprecated. Use "F.basis().keys()" instead !')
         return self._basis_keys
 
     def dimension(self):
@@ -1484,7 +1469,7 @@ class CombinatorialFreeModule(UniqueRepresentation, Module):
 
         ::
 
-            sage: s = SFASchur(QQ)
+            sage: s = SymmetricFunctions(QQ).schur()
             sage: s.dimension()
             +Infinity
         """
@@ -1829,7 +1814,7 @@ class CombinatorialFreeModule(UniqueRepresentation, Module):
 
         EXAMPLES::
 
-            sage: s = SFASchur(QQ)
+            sage: s = SymmetricFunctions(QQ).schur()
             sage: a = s([3]) + s([2,1]) + s([1,1,1])
             sage: b = 2*a
             sage: f = lambda part: Integer( len(part) )
@@ -1874,7 +1859,7 @@ class CombinatorialFreeModule(UniqueRepresentation, Module):
 
         EXAMPLES::
 
-            sage: s = SFASchur(QQ)
+            sage: s = SymmetricFunctions(QQ).schur()
             sage: f = lambda part: 2*s(part.conjugate())
             sage: s._apply_module_endomorphism( s([2,1]) + s([1,1,1]), f)
             2*s[2, 1] + 2*s[3]
@@ -2105,8 +2090,8 @@ class CombinatorialFreeModule(UniqueRepresentation, Module):
 
         EXAMPLES::
 
-            sage: e = SFAElementary(QQ)
-            sage: s = SFASchur(QQ)
+            sage: e = SymmetricFunctions(QQ).elementary()
+            sage: s = SymmetricFunctions(QQ).schur()
             sage: a = e([2,1]) + e([1,1,1]); a
             e[1, 1, 1] + e[2, 1]
             sage: s._from_dict(a.monomial_coefficients())

@@ -1995,7 +1995,7 @@ class Worksheet:
                 #print "Saving ", self.directory()  
                 self.save()  # make sure the worksheet.txt file is up to date.
                 del d['_Worksheet__cells']
-            except:
+            except StandardError:
                 # It is important to catch all exceptions.  If
                 # *anything* goes wrong here we must catch it or the
                 # whole notebook sobj could get messed up,
@@ -2719,7 +2719,7 @@ class Worksheet:
             
         try:
             os.kill(pid, 9)
-        except:
+        except StandardError:
             pass
 
         del self.__sage
@@ -2916,9 +2916,6 @@ class Worksheet:
             input += 'print "CPU time: %.2f s,  Wall time: %.2f s"%(cputime(__SAGE_t__), walltime(__SAGE_w__))\n'
 
         input = self.synchronize(input)
-        # Unfortunately, this has to go here at the beginning of the file until Python 2.6,
-        # in order to support use of the with statement in the notebook.  Very annoying. 
-        input = 'from __future__ import with_statement\n' + input
 
         # This magic comment at the very start of the file allows utf8
         # characters in the file
@@ -3352,7 +3349,7 @@ class Worksheet:
                 try:
                     cell = completions[r + l*c]
                     row.append(cell)
-                except:
+                except StandardError:
                     pass
             rows.append(row)
         return format_completions_as_html(id, rows)
@@ -4115,7 +4112,7 @@ def dictify(s):
             a, b = v.strip().split('=')
             try:
                 b = eval(b)
-            except:
+            except StandardError:
                 pass
             w.append([a, b])
     except ValueError:

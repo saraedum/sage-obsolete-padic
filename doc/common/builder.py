@@ -5,7 +5,7 @@ import glob, logging, optparse, os, shutil, subprocess, sys, textwrap
 #so that we import sage from the proper spot
 try:
     sys.path.remove(os.path.realpath(os.getcwd()))
-except:
+except ValueError:
     pass
 
 from sage.misc.cachefunc import cached_method
@@ -260,7 +260,8 @@ class AllBuilder(object):
         documents = []
         for lang in LANGUAGES:
             for document in os.listdir(os.path.join(SAGE_DOC, lang)):
-                if document not in OMIT:
+                if (document not in OMIT
+                    and os.path.isdir(os.path.join(SAGE_DOC, lang, document))):
                     documents.append(os.path.join(lang, document))
 
         # Ensure that the reference guide is compiled first so that links from
@@ -391,7 +392,7 @@ class ReferenceBuilder(DocBuilder):
         file = open(self.cache_filename(), 'rb')
         try:
             cache = cPickle.load(file)
-        except:
+        except StandardError:
             logger.debug("Cache file '%s' is corrupted; ignoring it..."% filename)
             cache = {}
         else:
@@ -791,7 +792,7 @@ def help_examples(s=u""):
     s += "    sage -docbuild -FDC all\n"
     s += "    sage -docbuild constructions pdf\n"
     s += "    sage -docbuild reference html -jv3\n"
-    s += "    sage -docbuild --jsmath tutorial html\n"
+    s += "    sage -docbuild --mathjax tutorial html\n"
     s += "    sage -docbuild reference print_unincluded_modules\n"
     s += "    sage -docbuild developer -j html --sphinx-opts -q,-aE --verbose 2"
     return s
@@ -964,9 +965,9 @@ def setup_parser():
                         default=False, action="store_true",
                         help="include variables prefixed with '_' in reference manual; may be slow, may fail for PDF output")
 
-    standard.add_option("-j", "--jsmath", dest="jsmath",
+    standard.add_option("-j", "--mathjax", "--jsmath", dest="mathjax",
                         action="store_true",
-                        help="render math using jsMath; FORMATs: html, json, pickle, web")
+                        help="render math using MathJax; FORMATs: html, json, pickle, web")
     standard.add_option("--no-pdf-links", dest="no_pdf_links",
                         action="store_true",
                         help="do not include PDF links in DOCUMENT 'website'; FORMATs: html, json, pickle, web")
@@ -1074,8 +1075,9 @@ if __name__ == '__main__':
     logger = setup_logger(options.verbose, options.color)
 
     # Process selected options.
-    if options.jsmath:
-        os.environ['SAGE_DOC_JSMATH'] = "True"
+    if (options.mathjax or (os.environ.get('SAGE_DOC_MATHJAX', False))
+        or (os.environ.get('SAGE_DOC_JSMATH', False))):
+        os.environ['SAGE_DOC_MATHJAX'] = "True"
 
     if options.check_nested:
         os.environ['SAGE_CHECK_NESTED'] = 'True'

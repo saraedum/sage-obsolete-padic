@@ -134,7 +134,7 @@ class IncidenceStructure(object):
                 y = block[:]
                 y.sort()
                 bs.append(y)
-            except:
+            except StandardError:
                 bs.append(block)
         bs.sort(cmp)
         self.v = v
@@ -376,7 +376,7 @@ class IncidenceStructure(object):
            gB.append([x+1 for x in b])
         return "BlockDesign("+str(v)+","+str(gB)+")"
 
-    @rename_keyword(deprecated='Sage version 4.6', method="algorithm")
+    @rename_keyword(deprecation=6094, method="algorithm")
     def dual_incidence_structure(self, algorithm=None):
         """
         Wraps GAP Design's DualBlockDesign (see [1]). The dual of a block

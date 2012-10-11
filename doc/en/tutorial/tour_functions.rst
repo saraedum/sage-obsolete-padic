@@ -94,7 +94,7 @@ By itself, ``sin`` cannot be differentiated, at least not to produce
 
 ::
 
-       sage: f = sin	
+       sage: f = sin
        sage: f.derivative()
        Traceback (most recent call last):
        ...
@@ -118,9 +118,9 @@ Here are some common problems, with explanations:
 
        sage: def h(x):
        ...       if x<2:
-       ...	     return 0
+       ...           return 0
        ...       else:
-       ...	     return x-2
+       ...           return x-2
 
 The issue: ``plot(h(x), 0, 4)`` plots the line `y=x-2`, not the
 multi-line function defined by ``h``.  The reason? In the command

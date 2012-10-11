@@ -41,6 +41,8 @@ cdef class FiniteRingElement(CommutativeRingElement):
             sage: a = Zmod(17)(13)
             sage: a._nth_root_common(4, True, "Johnston", False)
             [3, 5, 14, 12]
+            sage: a._nth_root_common(4, True, "Johnston", cunningham = True) # optional - cunningham
+            [3, 5, 14, 12]
         """
         K = self.parent()
         q = K.order()
@@ -69,7 +71,8 @@ cdef class FiniteRingElement(CommutativeRingElement):
             else: raise ValueError, "no nth root"
         self = self**alpha
         if cunningham:
-            F = n._factor_cunningham()
+            from sage.rings.factorint import factor_cunningham
+            F = factor_cunningham(n)
         else:
             F = n.factor()
         from sage.groups.generic import discrete_log
@@ -184,8 +187,8 @@ cdef class FinitePolyExtElement(FiniteRingElement):
             doctest:1: DeprecationWarning:The function vector is replaced by _vector_.
             (1, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0)
         """
-        from sage.misc.misc import deprecation
-        deprecation("The function vector is replaced by _vector_.")
+        from sage.misc.superseded import deprecation
+        deprecation(8218, "The function vector is replaced by _vector_.")
         return self._vector_()
 
     def _vector_(self, reverse=False):
@@ -265,8 +268,8 @@ cdef class FinitePolyExtElement(FiniteRingElement):
             [0 0 0 0 0 0 0 0 0 0 0 0 1 0 1 0]
             [0 0 0 0 0 0 0 0 0 0 0 0 0 1 0 1]
         """
-        from sage.misc.misc import deprecation
-        deprecation("The function matrix is replaced by _matrix_.")
+        from sage.misc.superseded import deprecation
+        deprecation(8218, "The function matrix is replaced by _matrix_.")
         return self._matrix_()
         
 

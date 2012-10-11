@@ -262,8 +262,12 @@ class AlgebrasWithBasis(Category_over_base_ring):
             :meth:`Magmas.ParentMethods.product()
             <sage.categories.magmas.Magmas.ParentMethods.product>`
 
-            By default, this is implemented from
-            :meth:`.product_on_basis`, if available.
+            By default, this is implemented using one of the following methods,
+            in the specified order:
+
+            - :meth:`.product_on_basis`
+            - :meth:`._multiply` or :meth:`._multiply_basis`
+            - :meth:`.product_by_coercion`
 
             EXAMPLES::
 
@@ -278,11 +282,26 @@ class AlgebrasWithBasis(Category_over_base_ring):
 #                                                                                          position = 1)
             elif hasattr(self, "_multiply") or hasattr(self, "_multiply_basis"):
                 return self._product_from_combinatorial_algebra_multiply
+            elif hasattr(self, "product_by_coercion"):
+                return self.product_by_coercion
             else:
                 return NotImplemented
 
         # Provides a product using the product_on_basis by calling linear_combination only once
         def _product_from_product_on_basis_multiply( self, left, right ):
+            r"""
+            Computes the product of two elements by extending
+            bilinearly the method :meth:`product_on_basis`.
+
+            EXAMPLES::
+
+                sage: A = AlgebrasWithBasis(QQ).example(); A
+                An example of an algebra with basis: the free algebra on the generators ('a', 'b', 'c') over Rational Field
+                sage: (a,b,c) = A.algebra_generators()
+                sage: A._product_from_product_on_basis_multiply(a*b + 2*c, a - b)
+                B[word: aba] - B[word: abb] + 2*B[word: ca] - 2*B[word: cb]
+
+            """
             return self.linear_combination( ( self.product_on_basis( mon_left, mon_right ), coeff_left * coeff_right ) for ( mon_left, coeff_left ) in left.monomial_coefficients().iteritems() for ( mon_right, coeff_right ) in right.monomial_coefficients().iteritems() )
 
         # Backward compatibility temporary cruft to help migrating form CombinatorialAlgebra
@@ -294,7 +313,7 @@ class AlgebrasWithBasis(Category_over_base_ring):
 
             EXAMPLES::
 
-                sage: s = SFASchur(QQ)
+                sage: s = SymmetricFunctions(QQ).schur()
                 sage: a = s([2])
                 sage: s._product_from_combinatorial_algebra_multiply(a,a)
                 s[2, 2] + s[3, 1] + s[4]

@@ -1,3 +1,4 @@
+# -*- encoding: utf-8 -*-
 r"""
 Graphics objects
 
@@ -9,6 +10,7 @@ This file contains the definition of the classes :class:`Graphics` and
 AUTHORS:
 
 - Jeroen Demeyer (2012-04-19): split off this file from plot.py (:trac:`12857`)
+- Punarbasu Purkayastha (2012-05-20): Add logarithmic scale (:trac:`4529`)
 
 """
 
@@ -95,7 +97,7 @@ def is_Graphics(x):
 
 class Graphics(SageObject):
     """
-    The Graphics object is an empty list of graphics objects It is
+    The Graphics object is an empty list of graphics objects. It is
     useful to use this object when initializing a for loop where
     different graphics object will be added to the empty object.
     
@@ -116,6 +118,11 @@ class Graphics(SageObject):
         ...        l = [[0,x*sqrt(3)],[-x/2,-x*sqrt(3)/2],[x/2,-x*sqrt(3)/2],[0,x*sqrt(3)]]
         ...        G+=line(l,color=hue(c + p*(x/h)))
         sage: G.show(figsize=[5,5])
+
+    We can change the scale of the axes in the graphics before displaying.::
+
+        sage: G = plot(exp, 1, 10)
+        sage: G.show(scale='semilogy')
 
     TESTS:
 
@@ -147,17 +154,17 @@ class Graphics(SageObject):
         
             sage: G = Graphics()
         """
-        self.__fontsize = 10
-        self.__show_axes = True
-        self.__show_legend = False
-        self.__legend_opts = {}
-        self.__axes_color = (0, 0, 0)
-        self.__axes_label_color = (0, 0, 0)
-        self.__tick_label_color = (0, 0, 0)
-        self.__axes_width = 0.8
-        self.__objects = []
+        self._axes_color = (0, 0, 0)
+        self._axes_label_color = (0, 0, 0)
+        self._axes_width = 0.8
+        self._bbox_extra_artists = []
         self._extra_kwds = {}
-        self.__bbox_extra_artists = []
+        self._fontsize = 10
+        self._legend_opts = {}
+        self._objects = []
+        self._show_axes = True
+        self._show_legend = False
+        self._tick_label_color = (0, 0, 0)
 
     def set_aspect_ratio(self, ratio):
         """
@@ -269,9 +276,9 @@ class Graphics(SageObject):
             sage: P # show with the legend
         """
         if show is None:
-            return self.__show_legend
+            return self._show_legend
         else:
-            self.__show_legend = bool(show)
+            self._show_legend = bool(show)
 
     def set_legend_options(self, **kwds):
         r"""
@@ -385,9 +392,9 @@ class Graphics(SageObject):
             sage: p.set_legend_options(loc=(0.5,0.5)); p # aligns the bottom of the box to the center
         """
         if len(kwds) == 0:
-            return self.__legend_opts
+            return self._legend_opts
         else:
-            self.__legend_opts.update(kwds)
+            self._legend_opts.update(kwds)
     
 
     def get_axes_range(self):
@@ -456,10 +463,10 @@ class Graphics(SageObject):
             {'xmin': -1.0}
         """
         try:
-            return self.__axes_range
+            return self._axes_range
         except AttributeError:
-            self.__axes_range = {}
-            return self.__axes_range
+            self._axes_range = {}
+            return self._axes_range
 
     def fontsize(self, s=None):
         """
@@ -488,11 +495,11 @@ class Graphics(SageObject):
         """
         if s is None:
             try:
-                return self.__fontsize
+                return self._fontsize
             except AttributeError:
-                self.__fontsize = 10
-                return self.__fontsize
-        self.__fontsize = int(s)
+                self._fontsize = 10
+                return self._fontsize
+        self._fontsize = int(s)
 
     def axes(self, show=None):
         """
@@ -534,11 +541,11 @@ class Graphics(SageObject):
         """
         if show is None:
             try:
-                return self.__show_axes
+                return self._show_axes
             except AttributeError:
-                self.__show_axes = True
-                return self.__show_axes
-        self.__show_axes = bool(show)
+                self._show_axes = True
+                return self._show_axes
+        self._show_axes = bool(show)
 
     def axes_color(self, c=None):
         """
@@ -579,12 +586,12 @@ class Graphics(SageObject):
         """
         if c is None:
             try:
-                return self.__axes_color
+                return self._axes_color
             
             except AttributeError:
-                self.__axes_color = (0.0, 0.0, 0.0)
-                return self.__axes_color
-        self.__axes_color = rgbcolor(c)
+                self._axes_color = (0.0, 0.0, 0.0)
+                return self._axes_color
+        self._axes_color = rgbcolor(c)
 
     def axes_labels(self, l=None):
         """
@@ -620,18 +627,32 @@ class Graphics(SageObject):
         typeset::
 
             sage: plot(sin(x), (x, 0, 10), axes_labels=['x','y'])
+
+        TESTS:
+
+        Unicode strings are acceptable; see :trac:`13161`. Note that
+        this does not guarantee that matplotlib will handle the strings
+        properly, although it should.
+
+        ::
+
+            sage: c = circle((0,0), 1)
+            sage: c.axes_labels(['axe des abscisses', u'axe des ordonnées'])
+            sage: c._axes_labels
+            ('axe des abscisses', u'axe des ordonn\xc3\xa9es')
+
         """
         if l is None:
             try:
-                return self.__axes_labels
+                return self._axes_labels
             except AttributeError:
-                self.__axes_labels = None
-                return self.__axes_labels
+                self._axes_labels = None
+                return self._axes_labels
         if not isinstance(l, (list, tuple)):
             raise TypeError, "l must be a list or tuple"
         if len(l) != 2:
             raise ValueError, "l must have length 2"
-        self.__axes_labels = (str(l[0]), str(l[1]))
+        self._axes_labels = tuple(l)
 
     def axes_label_color(self, c=None):
         r"""
@@ -678,11 +699,11 @@ class Graphics(SageObject):
         """
         if c is None:
             try:
-                return self.__axes_label_color
+                return self._axes_label_color
             except AttributeError:
-                self.__axes_label_color = (0, 0, 0)
-                return self.__axes_label_color
-        self.__axes_label_color = rgbcolor(c)
+                self._axes_label_color = (0, 0, 0)
+                return self._axes_label_color
+        self._axes_label_color = rgbcolor(c)
 
 
     def axes_width(self, w=None):
@@ -719,11 +740,11 @@ class Graphics(SageObject):
         """
         if w is None:
             try:
-                return self.__axes_width
+                return self._axes_width
             except AttributeError:
-                self.__axes_width = True
-                return self.__axes_width
-        self.__axes_width = float(w)
+                self._axes_width = True
+                return self._axes_width
+        self._axes_width = float(w)
 
     def tick_label_color(self, c=None):
         """
@@ -750,11 +771,11 @@ class Graphics(SageObject):
         """
         if c is None:
             try:
-                return self.__tick_label_color
+                return self._tick_label_color
             except AttributeError:
-                self.__tick_label_color = (0, 0, 0)
-                return self.__tick_label_color
-        self.__tick_label_color = rgbcolor(c)
+                self._tick_label_color = (0, 0, 0)
+                return self._tick_label_color
+        self._tick_label_color = rgbcolor(c)
 
     def _repr_(self):
         r"""
@@ -843,10 +864,6 @@ class Graphics(SageObject):
         
             sage: show_default(True)
         """
-        pr, i = '', 0
-        for x in self:
-            pr += '\n\t%s -- %s'%(i, x)
-            i += 1
         s = "Graphics object consisting of %s graphics primitives"%(len(self))
         if len(self) == 1:
             s = s[:-1]
@@ -863,7 +880,7 @@ class Graphics(SageObject):
             sage: G[1]
             Circle defined by (2.0,2.0) with r=5.0
         """
-        return self.__objects[i]
+        return self._objects[i]
 
     def __len__(self):
         """
@@ -877,7 +894,7 @@ class Graphics(SageObject):
             sage: len(G)
             3
         """
-        return len(self.__objects)
+        return len(self._objects)
 
     def __delitem__(self, i):
         """
@@ -896,7 +913,7 @@ class Graphics(SageObject):
             sage: len(G)
             2
         """
-        del self.__objects[int(i)]
+        del self._objects[int(i)]
 
     def __setitem__(self, i, x):
         """
@@ -921,7 +938,7 @@ class Graphics(SageObject):
         from sage.plot.primitive import GraphicPrimitive
         if not isinstance(x, GraphicPrimitive):
             raise TypeError, "x must be a GraphicPrimitive"
-        self.__objects[int(i)] = x
+        self._objects[int(i)] = x
 
     def __radd__(self, other):
         """
@@ -992,7 +1009,7 @@ class Graphics(SageObject):
             sage: p1.set_legend_options(back_color = 'white')
             sage: p2.set_legend_options(shadow = True)
             sage: p3 = p1 + p2
-            sage: p3._Graphics__legend_opts
+            sage: p3._legend_opts
             {'shadow': True, 'back_color': 'white'}
 
         If the same legend option is specified more than once, the
@@ -1003,7 +1020,7 @@ class Graphics(SageObject):
             sage: p1.set_legend_options(shadow = True)
             sage: p2.set_legend_options(shadow = False)
             sage: p3 = p1 + p2
-            sage: p3._Graphics__legend_opts
+            sage: p3._legend_opts
             {'shadow': False}
 
         """
@@ -1015,18 +1032,18 @@ class Graphics(SageObject):
                 return self.plot3d() + other
             raise TypeError, "other (=%s) must be a Graphics objects"%other
         g = Graphics()
-        g.__objects = self.__objects + other.__objects
-        g.__show_legend = self.__show_legend or other.__show_legend
+        g._objects = self._objects + other._objects
+        g._show_legend = self._show_legend or other._show_legend
         g._extra_kwds.update(self._extra_kwds)
         g._extra_kwds.update(other._extra_kwds)
-        g._Graphics__legend_opts.update(self._Graphics__legend_opts)
-        g._Graphics__legend_opts.update(other._Graphics__legend_opts)
+        g._legend_opts.update(self._legend_opts)
+        g._legend_opts.update(other._legend_opts)
         if self.aspect_ratio()=='automatic':
             g.set_aspect_ratio(other.aspect_ratio())
         elif other.aspect_ratio()=='automatic':
             g.set_aspect_ratio(self.aspect_ratio())
         else:
-            g.set_aspect_ratio( max(self.aspect_ratio(), other.aspect_ratio()))
+            g.set_aspect_ratio(max(self.aspect_ratio(), other.aspect_ratio()))
         return g
   
     def add_primitive(self, primitive):
@@ -1046,7 +1063,7 @@ class Graphics(SageObject):
             sage: G.add_primitive(A)
             sage: G
         """
-        self.__objects.append(primitive)
+        self._objects.append(primitive)
 
     def plot(self, *args, **kwds):
         """
@@ -1072,7 +1089,7 @@ class Graphics(SageObject):
             sage: sum([plot(z*sin(x), 0, 10).plot3d(z) for z in range(6)]) # long time
         """
         from sage.plot.plot3d.base import Graphics3dGroup
-        g = Graphics3dGroup([g.plot3d(**kwds) for g in self.__objects])
+        g = Graphics3dGroup([g.plot3d(**kwds) for g in self._objects])
         if z:
             g = g.translate(0,0,z)
         return g
@@ -1123,6 +1140,93 @@ class Graphics(SageObject):
         """
         self._extra_kwds = kwds
 
+    def _set_scale(self, figure, scale=None, base=None):
+        """
+        Set the scale of the axes in the current figure. This function is
+        only for internal use.
+
+        INPUT:
+        - ``figure`` -- the matplotlib figure instance.
+        - ``scale`` -- the scale of the figure. Values it can take are
+          ``"linear"``, ``"loglog"``, ``"semilogx"``, ``"semilogy"``. See
+          :meth:`show` for other options it can take.
+        - ``base`` -- the base of the logarithm if a logarithmic scale is
+          set. See :meth:`show` for the options it can take.
+
+        OUTPUT:
+        The scale in the form of a tuple: (xscale, yscale, basex, basey)
+
+        EXAMPLES::
+
+            sage: p = plot(x,1,10)
+            sage: fig = p.matplotlib()
+            sage: p._set_scale(fig, scale='linear', base=2)
+            ('linear', 'linear', 10, 10)
+            sage: p._set_scale(fig, scale='semilogy', base=2)
+            ('linear', 'log', 10, 2)
+            sage: p._set_scale(fig, scale=('loglog', 2, 3))
+            ('log', 'log', 2, 3)
+            sage: p._set_scale(fig, scale=['semilogx', 2])
+            ('log', 'linear', 2, 10)
+
+        TESTS::
+
+            sage: p._set_scale(fig, 'log')
+            Traceback (most recent call last):
+            ...
+            ValueError: The scale must be one of 'linear', 'loglog', 'semilogx' or 'semilogy' -- got 'log'
+            sage: p._set_scale(fig, ('loglog', 1))
+            Traceback (most recent call last):
+            ...
+            ValueError: The base of the logarithm must be greater than 1
+        """
+        if scale is None:
+            return ('linear', 'linear', 10, 10)
+        if isinstance(scale, (list, tuple)):
+            if len(scale) != 2 and len(scale) != 3:
+                raise ValueError("If the input is a tuple, it must be of "
+                    "the form (scale, base) or (scale, basex, basey)")
+            if len(scale) == 2:
+                base = scale[1]
+            else:
+                base = scale[1:]
+            scale = scale[0]
+
+        if scale not in ('linear', 'loglog', 'semilogx', 'semilogy'):
+            raise ValueError("The scale must be one of 'linear', 'loglog',"
+                    " 'semilogx' or 'semilogy' -- got '{0}'".format(scale))
+
+        if isinstance(base, (list, tuple)):
+            basex, basey = base
+        elif base is None:
+            basex = basey = 10
+        else:
+            basex = basey = base
+
+        if basex <= 1 or basey <= 1:
+            raise ValueError("The base of the logarithm must be greater "
+                             "than 1")
+
+        ax = figure.get_axes()[0]
+        xscale = yscale = 'linear'
+        if scale == 'linear':
+            basex = basey = 10
+        elif scale == 'loglog':
+            ax.set_xscale('log', basex=basex)
+            ax.set_yscale('log', basey=basey)
+            xscale = yscale = 'log'
+        elif scale == 'semilogx':
+            ax.set_xscale('log', basex=basex)
+            basey = 10
+            xscale = 'log'
+        elif scale == 'semilogy':
+            ax.set_yscale('log', basey=basey)
+            basex = 10
+            yscale = 'log'
+
+        return (xscale, yscale, basex, basey)
+
+
     # This dictionary has the default values for the keywords to show(). When
     # show is invoked with keyword arguments, those arguments are merged with
     # this dictionary to create a set of keywords with the defaults filled in.
@@ -1131,23 +1235,34 @@ class Graphics(SageObject):
     # NOTE: If you intend to use a new parameter in show(), you should update
     # this dictionary to contain the default value for that parameter.
 
-    SHOW_OPTIONS = dict(xmin=None, xmax=None, ymin=None, ymax=None,
-                        figsize=None, fig_tight=True,
-                        filename=None,
-                        dpi=DEFAULT_DPI, axes=None, axes_labels=None,frame=False,
-                        fontsize=None,
-                        aspect_ratio=None,
+    SHOW_OPTIONS = dict(filename=None,
+                        # axes options
+                        axes=None, axes_labels=None, axes_pad=.02,
+                        base=None, scale=None,
+                        xmin=None, xmax=None, ymin=None, ymax=None,
+                        # Figure options
+                        aspect_ratio=None, dpi=DEFAULT_DPI, fig_tight=True,
+                        figsize=None, fontsize=None, frame=False,
+                        title=None, transparent=False,
+                        # Grid options
                         gridlines=None, gridlinesstyle=None,
-                        vgridlinesstyle=None, hgridlinesstyle=None,transparent=False,
-                        show_legend=None, legend_options={},
-                        axes_pad=.02, ticks_integer=False,
-                        ticks=None, tick_formatter=None)
+                        hgridlinesstyle=None, vgridlinesstyle=None,
+                        # Legend options
+                        legend_options={}, show_legend=None,
+                        # Ticks options
+                        ticks=None, tick_formatter=None, ticks_integer=False)
 
-    @suboptions('legend', numpoints=2, borderpad=0.6, markerscale=0.6, shadow=False,
-                labelspacing=0.02, handlelength=0.05, handletextpad=0.5, borderaxespad=None,
-                loc='best', font_size='medium', font_family='sans-serif', font_style='normal',
-                font_weight='medium', font_variant='normal', back_color=(0.9, 0.9, 0.9),
-                title=None, ncol=1, columnspacing=None, fancybox=False)
+    @suboptions('legend',
+                back_color=(0.9, 0.9, 0.9), borderpad=0.6,
+                borderaxespad=None,
+                columnspacing=None,
+                fancybox=False, font_family='sans-serif',
+                font_size='medium', font_style='normal',
+                font_variant='normal', font_weight='medium',
+                handlelength=0.05, handletextpad=0.5,
+                labelspacing=0.02, loc='best',
+                markerscale=0.6, ncol=1, numpoints=2,
+                shadow=False, title=None)
     def show(self, **kwds):
         """
         Show this graphics image with the default image viewer.
@@ -1277,17 +1392,52 @@ class Graphics(SageObject):
             `e`, or `sqrt(2)`, ticks will be formatted nicely at rational
             multiples of this constant.
 
-          .. warning:: This should only be used with the ``ticks`` option
-             using nice rational multiples of that constant!
+          .. warning::
+
+             This should only be used with the ``ticks`` option using nice
+             rational multiples of that constant!
 
           - If one of the entries is the string ``"latex"``, then the
             formatting will be nice typesetting of the ticks.  This is
             intended to be used when the tick locator for at least one of
             the axes is a list including some symbolic elements.  See examples.
 
+        - ``title`` - (default: None) The title for the plot
+
         - ``show_legend`` - (default: None) If True, show the legend
 
         - ``legend_*`` - all the options valid for :meth:`set_legend_options` prefixed with ``legend_``
+
+        - ``base`` - (default: 10) the base of the logarithm if
+          a logarithmic scale is set. This must be greater than 1. The base
+          can be also given as a list or tuple ``(basex, basey)``.
+          ``basex`` sets the base of the logarithm along the horizontal
+          axis and ``basey`` sets the base along the vertical axis.
+
+        - ``scale`` -- (default: ``"linear"``) string. The scale of the axes.
+          Possible values are
+
+          - ``"linear"`` -- linear scaling of both the axes
+          - ``"loglog"`` -- sets both the horizontal and vertical axes to
+            logarithmic scale
+          - ``"semilogx"`` -- sets only the horizontal axis to logarithmic
+            scale.
+          - ``"semilogy"`` -- sets only the vertical axis to logarithmic
+            scale.
+
+          The scale can be also be given as single argument that is a list
+          or tuple ``(scale, base)`` or ``(scale, basex, basey)``.
+
+          .. note::
+
+            - If the ``scale`` is ``"linear"``, then irrespective of what
+              ``base`` is set to, it will default to 10 and will remain
+              unused.
+
+            - Although it is possible to provide a noninteger ``base``, the
+              tick labeling and formatting is not ideal. Hence, in case you
+              do use noninteger ``base`` for the logarithm, then provide
+              your own tick formatter using the option ``tick_formatter``.
 
         EXAMPLES::
         
@@ -1297,23 +1447,88 @@ class Graphics(SageObject):
         You could also just make the picture larger by changing ``figsize``::
 
             sage: c.show(figsize=8, xmin=-1, xmax=3, ymin=-1, ymax=3)
-        
+
         You can turn off the drawing of the axes::
-        
+
             sage: show(plot(sin,-4,4), axes=False)
-        
+
         You can also label the axes.  Putting something in dollar
         signs formats it as a mathematical expression::
-        
+
             sage: show(plot(sin,-4,4), axes_labels=('$x$','$y$'))
-        
+
+        You can add a title to a plot::
+
+            sage: show(plot(sin,-4,4), title='A plot of $\sin(x)$')
+
         You can turn on the drawing of a frame around the plots::
-        
+
             sage: show(plot(sin,-4,4), frame=True)
-        
+
         You can make the background transparent::
 
             sage: plot(sin(x), (x, -4, 4), transparent=True)
+
+        We can change the scale of the axes in the graphics before
+        displaying::
+
+            sage: G = plot(exp, 1, 10)
+            sage: G.show(scale='semilogy')
+
+        We can change the base of the logarithm too. The following changes
+        the vertical axis to be on log scale, and with base 2. Note that
+        the ``base`` argument will ignore any changes to the axis which is
+        in linear scale.::
+
+            sage: G.show(scale='semilogy', base=2) # y axis as powers of 2
+
+        ::
+
+            sage: G.show(scale='semilogy', base=(3,2)) # base ignored for x-axis
+
+        The scale can be also given as a 2-tuple or a 3-tuple.::
+
+            sage: G.show(scale=('loglog', 2)) # both x and y axes in base 2
+
+        ::
+
+            sage: G.show(scale=('loglog', 2, 3)) # x in base 2, y in base 3
+
+        The base need not be an integer, though it does have to be made
+        a float.  Also, currently the formatting is wrong for non-integer bases,
+        such as in this example::
+
+            sage: G.show(scale='semilogx', base=float(e)) # base is e
+
+        Logarithmic scale can be used for various kinds of plots. Here are
+        some examples.::
+
+            sage: G = list_plot(map(lambda i: 10**i, range(10)))
+            sage: G.show(scale='semilogy')
+
+        ::
+
+            sage: G = parametric_plot((x, x**2), (x, 1, 10))
+            sage: G.show(scale='loglog')
+
+        ::
+
+            sage: disk((5,5), 4, (0, 3*pi/2)).show(scale='loglog',base=2)
+
+        ::
+
+            sage: x, y = var('x, y')
+            sage: G =  plot_vector_field((2^x,y^2),(x,1,10),(y,1,100))
+            sage: G.show(scale='semilogx',base=2)
+
+        But be sure to only plot things that will have a wide enough range
+        for the logarithmic scale to be interpretable::
+
+            sage: G = arc((2,3), 2, 1, angle=pi/2, sector=(0,pi/2))
+            sage: G.show(scale=('loglog', 2))
+            Traceback (most recent call last):
+            ...
+            ValueError: Either expand the range of the dependent variable to allow two different integer powers of your `base`, or change your `base` to a smaller number.
 
         Add grid lines at the major ticks of the axes.
         
@@ -1495,6 +1710,18 @@ class Graphics(SageObject):
 
             sage: plot(arcsin(x),(x,-1,1),ticks=[None,pi/6],tick_formatter=[None,pi]) # Not so nice-looking
 
+        When using logarithmic scale along the axis, make sure to have
+        enough room for two ticks so that the user can tell what the scale
+        is. This can be effected by increasing the range of the independent
+        variable, or by changing the ``base``.::
+
+            sage: p = list_plot(range(1, 10), plotjoined=True)
+            sage: p.show(scale='loglog')
+            Traceback (most recent call last):
+            ...
+            ValueError: Either expand the range of the dependent variable to allow two different integer powers of your `base`, or change your `base` to a smaller number.
+            sage: p.show(scale='loglog', base=8) # this works.
+
         """
 
         # This option should not be passed on to save().
@@ -1606,7 +1833,7 @@ class Graphics(SageObject):
             sage: list(sorted(g.get_minmax_data().items()))
             [('xmax', 3.0), ('xmin', -1.0), ('ymax', 2.0), ('ymin', 1.0)]
         """
-        objects = self.__objects
+        objects = self._objects
         if objects:
             minmax_data = [o.get_minmax_data() for o in objects]
             xmin = min(d['xmin'] for d in minmax_data)
@@ -1633,7 +1860,150 @@ class Graphics(SageObject):
             ymin -= 1
             ymax += 1
         return {'xmin':xmin, 'xmax':xmax, 'ymin':ymin, 'ymax':ymax}
-        
+
+    def _matplotlib_tick_formatter(self, subplot, base=(10, 10),
+                            locator_options={}, scale=('linear', 'linear'),
+                            tick_formatter=(None, None), ticks=(None, None),
+                            xmax=None, xmin=None, ymax=None, ymin=None):
+        r"""
+        Take a matplotlib subplot instance representing the graphic and set
+        the ticks formatting. This function is only for internal use.
+
+        INPUT:
+        - ``subplot`` -- the subplot instance.
+
+        EXAMPLES::
+
+            sage: from matplotlib.figure import Figure
+            sage: p = plot(x); d = p.get_minmax_data()
+            sage: subplot = Figure().add_subplot(111)
+            sage: p._objects[0]._render_on_subplot(subplot)
+            sage: p._matplotlib_tick_formatter(subplot, **d)
+            (<matplotlib.axes.AxesSubplot object at ...>,
+            <matplotlib.ticker.MaxNLocator instance at ...>,
+            <matplotlib.ticker.MaxNLocator instance at ...>,
+            <matplotlib.ticker.OldScalarFormatter instance at ...>,
+            <matplotlib.ticker.OldScalarFormatter instance at ...>)
+        """
+        # This function is created to refactor some code that is repeated
+        # in the matplotlib function
+        from matplotlib.ticker import (FixedLocator, Locator,
+                LogFormatterMathtext, LogLocator, MaxNLocator,
+                MultipleLocator, NullLocator, OldScalarFormatter)
+
+        x_locator, y_locator = ticks
+        #---------------------- Location of x-ticks ---------------------#
+
+        if x_locator is None:
+            if scale[0] == 'log':
+                x_locator = LogLocator(base=base[0])
+            else:
+                x_locator = MaxNLocator(**locator_options)
+        elif isinstance(x_locator,Locator):
+            pass
+        elif x_locator == []:
+            x_locator = NullLocator()
+        elif isinstance(x_locator,list):
+            x_locator = FixedLocator(x_locator)
+        else: # x_locator is a number which can be made a float
+            from sage.functions.other import ceil, floor
+            if floor(xmax/x_locator)-ceil(xmin/x_locator)>1:
+                x_locator=MultipleLocator(float(x_locator))
+            else: # not enough room for two major ticks
+                raise ValueError('Expand the range of the independent '
+                'variable to allow two multiples of your tick locator '
+                '(option `ticks`).')
+
+        #---------------------- Location of y-ticks ---------------------#
+        if y_locator is None:
+            if scale[1] == 'log':
+                y_locator = LogLocator(base=base[1])
+            else:
+                y_locator = MaxNLocator(**locator_options)
+        elif isinstance(y_locator,Locator):
+            pass
+        elif y_locator == []:
+            y_locator = NullLocator()
+        elif isinstance(y_locator,list):
+            y_locator = FixedLocator(y_locator)
+        else: # y_locator is a number which can be made a float
+            from sage.functions.other import ceil, floor
+            if floor(ymax/y_locator)-ceil(ymin/y_locator)>1:
+                y_locator=MultipleLocator(float(y_locator))
+            else: # not enough room for two major ticks
+                raise ValueError('Expand the range of the dependent '
+                'variable to allow two multiples of your tick locator '
+                '(option `ticks`).')
+
+        x_formatter, y_formatter = tick_formatter
+        from matplotlib.ticker import FuncFormatter
+        from sage.misc.latex import latex
+        from sage.symbolic.ring import SR
+        #---------------------- Formatting x-ticks ----------------------#
+        if x_formatter is None:
+            if scale[0] == 'log':
+                x_formatter = LogFormatterMathtext(base=base[0])
+            else:
+                x_formatter = OldScalarFormatter()
+        elif x_formatter in SR:
+            from misc import _multiple_of_constant
+            x_const = x_formatter
+            x_formatter = FuncFormatter(lambda n,pos:
+                                        _multiple_of_constant(n,pos,x_const))
+        elif x_formatter == "latex":
+            if scale[0] == 'log':
+                # We need to strip out '\\mathdefault' from the string
+                x_formatter = FuncFormatter(lambda n,pos:
+                    LogFormatterMathtext(base=base[0])(n,pos).replace(
+                                                        "\\mathdefault",""))
+            else:
+                x_formatter = FuncFormatter(lambda n,pos: '$%s$'%latex(n))
+        #---------------------- Formatting y-ticks ----------------------#
+        if y_formatter is None:
+            if scale[1] == 'log':
+                y_formatter = LogFormatterMathtext(base=base[1])
+            else:
+                y_formatter = OldScalarFormatter()
+        elif y_formatter in SR:
+            from misc import _multiple_of_constant
+            y_const = y_formatter
+            y_formatter = FuncFormatter(lambda n,pos:
+                                        _multiple_of_constant(n,pos,y_const))
+        elif y_formatter == "latex":
+            if scale[1] == 'log':
+                # We need to strip out '\\mathdefault' from the string
+                y_formatter = FuncFormatter(lambda n,pos:
+                    LogFormatterMathtext(base=base[1])(n,pos).replace(
+                                                        "\\mathdefault",""))
+            else:
+                y_formatter = FuncFormatter(lambda n,pos: '$%s$'%latex(n))
+
+        subplot.xaxis.set_major_locator(x_locator)
+        subplot.yaxis.set_major_locator(y_locator)
+        subplot.xaxis.set_major_formatter(x_formatter)
+        subplot.yaxis.set_major_formatter(y_formatter)
+
+        # Check for whether there will be too few ticks in the log scale case
+        # If part of the data is nonpositive, we assume there are enough ticks
+        if scale[0] == 'log' and xmin > 0:
+            import math
+            base0 = base[0]
+            if (math.floor(math.log(xmax)/math.log(base0)) -
+                    math.ceil(math.log(xmin)/math.log(base0)) < 1):
+                raise ValueError('Either expand the range of the independent '
+                'variable to allow two different integer powers of your `base`, '
+                'or change your `base` to a smaller number.')
+        if scale[1] == 'log' and ymin > 0:
+            import math
+            base1 = base[1]
+            if (math.floor(math.log(ymax)/math.log(base1)) -
+                    math.ceil(math.log(ymin)/math.log(base1)) < 1):
+                raise ValueError('Either expand the range of the dependent '
+                'variable to allow two different integer powers of your `base`, '
+                'or change your `base` to a smaller number.')
+
+        return (subplot, x_locator, y_locator, x_formatter, y_formatter)
+
     def matplotlib(self, filename=None,
                    xmin=None, xmax=None, ymin=None, ymax=None,
                    figsize=None, figure=None, sub=None,
@@ -1644,7 +2014,8 @@ class Graphics(SageObject):
                    vgridlinesstyle=None, hgridlinesstyle=None,
                    show_legend=None, legend_options={},
                    axes_pad=0.02, ticks_integer=None,
-                   tick_formatter=None, ticks=None):
+                   tick_formatter=None, ticks=None, title=None,
+                   base=None, scale=None):
         r"""
         Return a matplotlib figure object representing the graphic
 
@@ -1687,6 +2058,11 @@ class Graphics(SageObject):
             sage: p.legend(True)
             sage: pm = p.matplotlib()
             sage: pm = p.matplotlib(legend_options={'font_size':'small'})
+
+        The title should not overlap with the axes labels nor the frame in
+        the following plot (see :trac:`10512`)::
+
+            sage: plot(sin(x^2), (x, -3, 3), title='Plot of sin(x^2)', axes_labels=['x','y'],frame=True)
         """
         if not isinstance(ticks, (list, tuple)):
             ticks = (ticks, None)
@@ -1717,7 +2093,7 @@ class Graphics(SageObject):
         do_verify = verify
 
         if axes is None:
-            axes = self.__show_axes
+            axes = self._show_axes
 
         from matplotlib.figure import Figure
         from matplotlib import rcParams
@@ -1742,20 +2118,24 @@ class Graphics(SageObject):
         else:
             subplot.set_aspect(aspect_ratio, adjustable='box')
         #add all the primitives to the subplot
-        for g in self.__objects:
+        for g in self._objects:
             g._render_on_subplot(subplot)
             if hasattr(g, '_bbox_extra_artists'):
-                self.__bbox_extra_artists.extend(g._bbox_extra_artists)
-        
-        #add the legend if requested
+                self._bbox_extra_artists.extend(g._bbox_extra_artists)
+
+        #--------------------------- Set the scale -----------------------#
+        xscale, yscale, basex, basey = self._set_scale(figure, scale=scale,
+                                                       base=base)
+
+        #-------------------------- Set the legend -----------------------#
         if show_legend is None:
-            show_legend = self.__show_legend
-        
+            show_legend = self._show_legend
+
         if show_legend:
             from matplotlib.font_manager import FontProperties
             lopts = dict()
             lopts.update(legend_options)
-            lopts.update(self.__legend_opts)
+            lopts.update(self._legend_opts)
             prop = FontProperties(
                     family  = lopts.pop('font_family', 'sans-serif'),
                     size    = lopts.pop('font_size', 'medium'),
@@ -1774,17 +2154,16 @@ class Graphics(SageObject):
         
             
         subplot.set_xlim([xmin, xmax])
-        subplot.set_ylim([ymin,ymax])
+        subplot.set_ylim([ymin, ymax])
 
         locator_options=dict(nbins=9,steps=[1,2,5,10],integer=ticks_integer)
 
-
         if axes is None:
-            axes = self.__show_axes
+            axes = self._show_axes
 
         for spine in subplot.spines.values():
-            spine.set_color(self.__axes_color)
-            spine.set_linewidth(self.__axes_width)
+            spine.set_color(self._axes_color)
+            spine.set_linewidth(self._axes_width)
         
 
         if frame:
@@ -1792,81 +2171,50 @@ class Graphics(SageObject):
             # sort of what we are used to.  We should eventually look at
             # the default one to see if we like it better.
 
-            from matplotlib.ticker import OldScalarFormatter, MaxNLocator, MultipleLocator, FixedLocator, NullLocator, Locator
-            x_locator, y_locator = ticks
-            if x_locator is None:
-                x_locator = MaxNLocator(**locator_options)
-            elif isinstance(x_locator,Locator):
-                pass
-            elif x_locator == []:
-                x_locator = NullLocator()
-            elif isinstance(x_locator,list):
-                x_locator = FixedLocator(x_locator)
-            else: # x_locator is a number which can be made a float
-                from sage.functions.other import ceil, floor
-                if floor(xmax/x_locator)-ceil(xmin/x_locator)>1:
-                    x_locator=MultipleLocator(float(x_locator))
-                else: # not enough room for two major ticks
-                    raise ValueError('Expand the range of the independent variable to allow two multiples of your tick locator (option `ticks`).')
-            if y_locator is None:
-                y_locator = MaxNLocator(**locator_options)
-            elif isinstance(y_locator,Locator):
-                pass
-            elif y_locator == []:
-                y_locator = NullLocator()
-            elif isinstance(y_locator,list):
-                y_locator = FixedLocator(y_locator)
-            else: # y_locator is a number which can be made a float
-                from sage.functions.other import ceil, floor
-                if floor(ymax/y_locator)-ceil(ymin/y_locator)>1:
-                    y_locator=MultipleLocator(float(y_locator))
-                else: # not enough room for two major ticks
-                    raise ValueError('Expand the range of the dependent variable to allow two multiples of your tick locator (option `ticks`).')
-
-            x_formatter, y_formatter = tick_formatter
-            from matplotlib.ticker import FuncFormatter
-            from sage.misc.latex import latex
-            if x_formatter is None:
-                x_formatter = OldScalarFormatter()
-            elif x_formatter in SR:
-                from misc import _multiple_of_constant
-                x_const = x_formatter
-                x_formatter = FuncFormatter(lambda n,pos: _multiple_of_constant(n,pos,x_const))
-            elif x_formatter == "latex":
-                x_formatter = FuncFormatter(lambda n,pos: '$%s$'%latex(n))
-            if y_formatter is None:
-                y_formatter = OldScalarFormatter()
-            elif y_formatter in SR:
-                from misc import _multiple_of_constant
-                y_const = y_formatter
-                y_formatter = FuncFormatter(lambda n,pos: _multiple_of_constant(n,pos,y_const))
-            elif y_formatter == "latex":
-                y_formatter = FuncFormatter(lambda n,pos: '$%s$'%latex(n))
-
-            subplot.xaxis.set_major_locator(x_locator)
-            subplot.yaxis.set_major_locator(y_locator)
-            subplot.xaxis.set_major_formatter(x_formatter)
-            subplot.yaxis.set_major_formatter(y_formatter)
+            (subplot, x_locator, y_locator,
+                x_formatter, y_formatter) = self._matplotlib_tick_formatter(
+                            subplot, base=(basex, basey),
+                            locator_options=locator_options,
+                            scale=(xscale, yscale),
+                            tick_formatter=tick_formatter, ticks=ticks,
+                            xmax=xmax, xmin=xmin, ymax=ymax, ymin=ymin)
             
             subplot.set_frame_on(True)
-            if axes:
-                if ymin<=0 and ymax>=0:
-                    subplot.axhline(color=self.__axes_color,
-                                    linewidth=self.__axes_width)
-                if xmin<=0 and xmax>=0:
-                    subplot.axvline(color=self.__axes_color,
-                                    linewidth=self.__axes_width)
-            
+            if axes and xscale == 'linear' and yscale == 'linear':
+                if (ymin<=0 and ymax>=0) or (ymax<=0 and ymin>=0):
+                    subplot.axhline(color=self._axes_color,
+                                    linewidth=self._axes_width)
+                if (xmin<=0 and xmax>=0) or (xmax<=0 and xmin>=0):
+                    subplot.axvline(color=self._axes_color,
+                                    linewidth=self._axes_width)
+
         elif axes:
             ymiddle=False
             xmiddle=False
-            if xmin>0:
+            # Note that the user may specify a custom xmin and xmax which
+            # flips the axis horizontally. Hence we need to check for both
+            # the possibilities in the if statements below. Similar
+            # comments hold for ymin and ymax.
+            if xscale == 'log':
+                if xmax > xmin:
+                    subplot.spines['right'].set_visible(False)
+                    subplot.spines['left'].set_position(('outward',10))
+                    subplot.yaxis.set_ticks_position('left')
+                    subplot.yaxis.set_label_position('left')
+                    yaxis='left'
+                elif xmax < xmin:
+                    subplot.spines['left'].set_visible(False)
+                    subplot.spines['right'].set_position(('outward',10))
+                    subplot.yaxis.set_ticks_position('right')
+                    subplot.yaxis.set_label_position('right')
+                    yaxis='right'
+            elif (xmin > 0 and xmax > xmin) or (xmax > 0 and xmin > xmax):
                 subplot.spines['right'].set_visible(False)
                 subplot.spines['left'].set_position(('outward',10))
                 subplot.yaxis.set_ticks_position('left')
                 subplot.yaxis.set_label_position('left')
                 yaxis='left'
-            elif xmax<0:
+            elif (xmax < 0 and xmax > xmin) or (xmin < 0 and xmin > xmax):
                 subplot.spines['left'].set_visible(False)
                 subplot.spines['right'].set_position(('outward',10))
                 subplot.yaxis.set_ticks_position('right')
@@ -1880,13 +2228,26 @@ class Graphics(SageObject):
                 ymiddle=True
                 yaxis='left'
 
-            if ymin>0:
+            if yscale == 'log':
+                if ymax > ymin:
+                    subplot.spines['top'].set_visible(False)
+                    subplot.spines['bottom'].set_position(('outward',10))
+                    subplot.xaxis.set_ticks_position('bottom')
+                    subplot.xaxis.set_label_position('bottom')
+                    xaxis='bottom'
+                elif ymax < ymin:
+                    subplot.spines['bottom'].set_visible(False)
+                    subplot.spines['top'].set_position(('outward',10))
+                    subplot.xaxis.set_ticks_position('top')
+                    subplot.xaxis.set_label_position('top')
+                    xaxis='top'
+            elif (ymin > 0 and ymax > ymin) or (ymax > 0 and ymin > ymax):
                 subplot.spines['top'].set_visible(False)
                 subplot.spines['bottom'].set_position(('outward',10))
                 subplot.xaxis.set_ticks_position('bottom')
                 subplot.xaxis.set_label_position('bottom')
                 xaxis='bottom'
-            elif ymax<0:
+            elif (ymax < 0 and ymax > ymin) or (ymin < 0 and ymin > ymax):
                 subplot.spines['bottom'].set_visible(False)
                 subplot.spines['top'].set_position(('outward',10))
                 subplot.xaxis.set_ticks_position('top')
@@ -1903,64 +2264,15 @@ class Graphics(SageObject):
             # For now, set the formatter to the old one, since that is
             # sort of what we are used to.  We should eventually look at
             # the default one to see if we like it better.
+
+            (subplot, x_locator, y_locator,
+                x_formatter, y_formatter) = self._matplotlib_tick_formatter(
+                            subplot, base=(basex, basey),
+                            locator_options=locator_options,
+                            scale=(xscale, yscale),
+                            tick_formatter=tick_formatter, ticks=ticks,
+                            xmax=xmax, xmin=xmin, ymax=ymax, ymin=ymin)
             
-            from matplotlib.ticker import OldScalarFormatter, MaxNLocator, MultipleLocator, FixedLocator, NullLocator, Locator
-            x_locator, y_locator = ticks
-            if x_locator is None:
-                x_locator = MaxNLocator(**locator_options)
-            elif isinstance(x_locator,Locator):
-                pass
-            elif x_locator == []:
-                x_locator = NullLocator()
-            elif isinstance(x_locator,list):
-                x_locator = FixedLocator(x_locator)
-            else: # x_locator is a number which can be made a float
-                from sage.functions.other import ceil, floor
-                if floor(xmax/x_locator)-ceil(xmin/x_locator)>1:
-                    x_locator=MultipleLocator(float(x_locator))
-                else: # not enough room for two major ticks
-                    raise ValueError('Expand the range of the independent variable to allow two multiples of your tick locator (option `ticks`).')
-            if y_locator is None:
-                y_locator = MaxNLocator(**locator_options)
-            elif isinstance(y_locator,Locator):
-                pass
-            elif y_locator == []:
-                y_locator = NullLocator()
-            elif isinstance(y_locator,list):
-                y_locator = FixedLocator(y_locator)
-            else: # y_locator is a number which can be made a float
-                from sage.functions.other import ceil, floor
-                if floor(ymax/y_locator)-ceil(ymin/y_locator)>1:
-                    y_locator=MultipleLocator(float(y_locator))
-                else: # not enough room for two major ticks
-                    raise ValueError('Expand the range of the dependent variable to allow two multiples of your tick locator (option `ticks`).')
-
-            x_formatter, y_formatter = tick_formatter
-            from matplotlib.ticker import FuncFormatter
-            from sage.misc.latex import latex
-            from sage.symbolic.ring import SR
-            if x_formatter is None:
-                x_formatter = OldScalarFormatter()
-            elif x_formatter in SR:
-                from misc import _multiple_of_constant
-                x_const = x_formatter
-                x_formatter = FuncFormatter(lambda n,pos: _multiple_of_constant(n,pos,x_const))
-            elif x_formatter == "latex":
-                x_formatter = FuncFormatter(lambda n,pos: '$%s$'%latex(n))
-            if y_formatter is None:
-                y_formatter = OldScalarFormatter()
-            elif y_formatter in SR:
-                from misc import _multiple_of_constant
-                y_const = y_formatter
-                y_formatter = FuncFormatter(lambda n,pos: _multiple_of_constant(n,pos,y_const))
-            elif y_formatter == "latex":
-                y_formatter = FuncFormatter(lambda n,pos: '$%s$'%latex(n))
-
-            subplot.xaxis.set_major_locator(x_locator)
-            subplot.yaxis.set_major_locator(y_locator)
-            subplot.xaxis.set_major_formatter(x_formatter)
-            subplot.yaxis.set_major_formatter(y_formatter)
-
             # Make ticklines go on both sides of the axes
             #             if xmiddle:
             #                 for t in subplot.xaxis.get_majorticklines():
@@ -1979,11 +2291,14 @@ class Graphics(SageObject):
             #                     t.set_markersize(4)
             
             # Make the zero tick labels disappear if the axes cross
-            # inside the picture
-            if xmiddle and ymiddle:
+            # inside the picture, but only if log scale is not used
+            if (xmiddle and ymiddle and xscale == 'linear' and
+                yscale == 'linear'):
                 from sage.plot.plot import SelectiveFormatter
-                subplot.yaxis.set_major_formatter(SelectiveFormatter(subplot.yaxis.get_major_formatter(),skip_values=[0]))
-                subplot.xaxis.set_major_formatter(SelectiveFormatter(subplot.xaxis.get_major_formatter(),skip_values=[0]))
+                subplot.yaxis.set_major_formatter(SelectiveFormatter(
+                    subplot.yaxis.get_major_formatter(), skip_values=[0]))
+                subplot.xaxis.set_major_formatter(SelectiveFormatter(
+                    subplot.xaxis.get_major_formatter(), skip_values=[0]))
 
         else:
             for spine in subplot.spines.values():
@@ -1996,32 +2311,37 @@ class Graphics(SageObject):
 
         if frame or axes:
             # Make minor tickmarks, unless we specify fixed ticks or no ticks
-            from matplotlib.ticker import AutoMinorLocator, FixedLocator, NullLocator
+            # We do this change only on linear scale, otherwise matplotlib
+            # errors out with a memory error.
+            from matplotlib.ticker import (AutoMinorLocator, FixedLocator,
+                    LogLocator, NullLocator)
             if isinstance(x_locator, (NullLocator, FixedLocator)):
                 subplot.xaxis.set_minor_locator(NullLocator())
-            else:
+            elif xscale == 'linear':
                 subplot.xaxis.set_minor_locator(AutoMinorLocator())
+            else: # log scale
+                from sage.misc.misc import srange
+                base_inv = 1.0/basex
+                subs = map(float, srange(2*base_inv, 1, base_inv))
+                subplot.xaxis.set_minor_locator(LogLocator(base=basex,
+                                                           subs=subs))
             if isinstance(y_locator, (NullLocator, FixedLocator)):
                 subplot.yaxis.set_minor_locator(NullLocator())
-            else:
+            elif yscale == 'linear':
                 subplot.yaxis.set_minor_locator(AutoMinorLocator())
+            else: # log scale
+                from sage.misc.misc import srange
+                base_inv = 1.0/basey
+                subs = map(float, srange(2*base_inv, 1, base_inv))
+                subplot.yaxis.set_minor_locator(LogLocator(base=basey,
+                                                           subs=subs))
 
-            ticklabels=subplot.xaxis.get_majorticklabels() + \
-                subplot.xaxis.get_minorticklabels() + \
-                subplot.yaxis.get_majorticklabels() + \
-                subplot.yaxis.get_minorticklabels()
-            for ticklabel in ticklabels:
-                ticklabel.set_fontsize(self.__fontsize)
-                ticklabel.set_color(self.__tick_label_color)
+            # Set the color and fontsize of ticks
+            figure.get_axes()[0].tick_params(color=self._axes_color,
+                    labelcolor=self._tick_label_color,
+                    labelsize=self._fontsize, which='both')
 
-            ticklines=subplot.xaxis.get_majorticklines() + \
-                subplot.xaxis.get_minorticklines() + \
-                subplot.yaxis.get_majorticklines() + \
-                subplot.yaxis.get_minorticklines()
-            for tickline in ticklines:
-                tickline.set_color(self.__axes_color)
-                
-            
+
         if gridlines is not None:
             if isinstance(gridlines, (list, tuple)):
                 vgridlines,hgridlines=gridlines
@@ -2080,12 +2400,12 @@ class Graphics(SageObject):
 
 
 
-        if self.__axes_labels is not None:
+        if self._axes_labels is not None:
             label_options={}
-            label_options['color']=self.__axes_label_color
-            label_options['size']=self.__fontsize
-            subplot.set_xlabel(self.__axes_labels[0], **label_options)
-            subplot.set_ylabel(self.__axes_labels[1], **label_options)
+            label_options['color']=self._axes_label_color
+            label_options['size']=self._fontsize
+            subplot.set_xlabel(self._axes_labels[0], **label_options)
+            subplot.set_ylabel(self._axes_labels[1], **label_options)
                 
 
             if axes is True and frame is False:
@@ -2120,31 +2440,48 @@ class Graphics(SageObject):
                 xlabel.set_horizontalalignment(xaxis_horiz)
                 xlabel.set_verticalalignment(xaxis_vert)
                 trans=subplot.spines[xaxis].get_transform()
-                labeltrans=offset_copy(trans, figure, x=xaxis_labeloffset, y=0, units='points')
-                subplot.xaxis.set_label_coords(x=xaxis_labelx,y=xaxis_labely,transform=labeltrans)
+                labeltrans=offset_copy(trans, figure, x=xaxis_labeloffset,
+                                    y=0, units='points')
+                subplot.xaxis.set_label_coords(x=xaxis_labelx,
+                                    y=xaxis_labely, transform=labeltrans)
 
                 ylabel=subplot.yaxis.get_label()
                 ylabel.set_horizontalalignment('center')
                 ylabel.set_verticalalignment(yaxis_vert)
                 ylabel.set_rotation('horizontal')
                 trans=subplot.spines[yaxis].get_transform()
-                labeltrans=offset_copy(trans, figure, x=0, y=yaxis_labeloffset, units='points')
-                subplot.yaxis.set_label_coords(x=yaxis_labelx,y=yaxis_labely,transform=labeltrans)
+                labeltrans=offset_copy(trans, figure, x=0,
+                                    y=yaxis_labeloffset, units='points')
+                subplot.yaxis.set_label_coords(x=yaxis_labelx,
+                                    y=yaxis_labely, transform=labeltrans)
 
         # This option makes the xlim and ylim limits not take effect
         # todo: figure out which limits were specified, and let the
         # free limits autoscale
         #subplot.autoscale_view(tight=True)
+        if title is not None:
+            if (frame) or (axes_labels is None):
+                subplot.set_title(title, fontsize=fontsize)
+            else: # frame is false axes is not None, and neither is axes_labels
+                # Then, the title is moved up to avoid overlap with axes labels
+                subplot.set_title(title, fontsize=fontsize, position=(0.5,1.05))
+
         return figure
-        
+
     # ALLOWED_EXTENSIONS is the list of recognized formats.
     # filename argument is written explicitly so that it can be used as a
     # positional one, which is a very likely usage for this function.
-    @suboptions('legend', numpoints=2, borderpad=0.6, markerscale=0.6, shadow=False,
-                labelspacing=0.02, handlelength=0.05, handletextpad=0.5, borderaxespad=None,
-                loc='best', font_size='medium', font_family='sans-serif', font_style='normal',
-                font_weight='medium', font_variant='normal', back_color=(0.9, 0.9, 0.9),
-                title=None, ncol=1, columnspacing=None, fancybox=False)
+    @suboptions('legend',
+                back_color=(0.9, 0.9, 0.9), borderpad=0.6,
+                borderaxespad=None,
+                columnspacing=None,
+                fancybox=False, font_family='sans-serif',
+                font_size='medium', font_style='normal',
+                font_variant='normal', font_weight='medium',
+                handlelength=0.05, handletextpad=0.5,
+                labelspacing=0.02, loc='best',
+                markerscale=0.6, ncol=1, numpoints=2,
+                shadow=False, title=None)
     def save(self, filename=None, **kwds):
         r"""
         Save the graphics to an image file.
@@ -2245,7 +2582,8 @@ class Graphics(SageObject):
             SageObject.save(self, filename)
         else:
             figure = self.matplotlib(**options)
-            # You can output in PNG, PS, EPS, PDF, or SVG format, depending on the file extension.
+            # You can output in PNG, PS, EPS, PDF, or SVG format, depending
+            # on the file extension.
             # matplotlib looks at the file extension to see what the renderer should be.
             # The default is FigureCanvasAgg for PNG's because this is by far the most
             # common type of files rendered, like in the notebook, for example.
@@ -2260,7 +2598,7 @@ class Graphics(SageObject):
 
             if fig_tight is True:
                 figure.savefig(filename, dpi=dpi, bbox_inches='tight',
-                    bbox_extra_artists=self.__bbox_extra_artists,
+                    bbox_extra_artists=self._bbox_extra_artists,
                     transparent=transparent)
             else:
                 figure.savefig(filename, dpi=dpi,
@@ -2465,7 +2803,7 @@ class GraphicsArray(SageObject):
         i = int(i)
         self._glist[i] = g
         
-    def __set_figsize__(self, ls):
+    def _set_figsize_(self, ls):
         """
         Set the figsize of all plots in the array.
 
@@ -2588,7 +2926,7 @@ class GraphicsArray(SageObject):
             sage: G = graphics_array(L)
             sage: G.save(F,500,axes=False)  # long time (6s on sage.math, 2012)
         """
-        if (figsize is not None): self.__set_figsize__(figsize)
+        if (figsize is not None): self._set_figsize_(figsize)
         self._render(filename, dpi=dpi, figsize=self._figsize, axes = axes, **args)
 
     def show(self, filename=None, dpi=DEFAULT_DPI, figsize=None,
@@ -2619,7 +2957,7 @@ class GraphicsArray(SageObject):
             sage: G = graphics_array([[plot(sin), plot(cos)], [plot(tan), plot(sec)]])
             sage: G.show(axes=False)
         """
-        if (figsize is not None): self.__set_figsize__(figsize)
+        if (figsize is not None): self._set_figsize_(figsize)
         if sage.plot.plot.DOCTEST_MODE:
             self.save(DOCTEST_MODE_FILE,
                       dpi=dpi, figsize=self._figsize, axes = axes, **args)

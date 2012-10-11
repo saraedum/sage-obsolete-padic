@@ -24,6 +24,9 @@ AUTHORS:
 - Travis Scrimshaw (2012-05-09): Fixed Partitions(-1).list() infinite recursion
   loop by saying Partitions_n is the empty set.
 
+- Travis Scrimshaw (2012-05-11): Fixed bug in inner where if the length was
+  longer than the length of the inner partition, it would include 0's.
+
 EXAMPLES:
 
 There are 5 partitions of the integer 4::
@@ -238,8 +241,9 @@ import composition
 from integer_vector import IntegerVectors
 from cartesian_product import CartesianProduct
 from integer_list import IntegerListsLex
-from sage.misc.misc import deprecation, deprecated_function_alias
+from sage.misc.superseded import deprecation, deprecated_function_alias
 from sage.misc.prandom import randrange
+from sage.rings.infinity import infinity
 
 def Partition(mu=None, **keyword):
     """
@@ -296,7 +300,7 @@ def Partition(mu=None, **keyword):
     elif 'core' in keyword and 'canonical_quotient' in keyword and len(keyword)==2:
         raise NotImplementedError
     elif 'core_and_quotient' in keyword and len(keyword)==1:
-        deprecation('"core_and_quotient=(*)" is deprecated. Use "core=[*], quotient=[*]" instead.')
+        deprecation(5790, '"core_and_quotient=(*)" is deprecated. Use "core=[*], quotient=[*]" instead.')
         return from_core_and_quotient(*keyword['core_and_quotient'])
     else:
         raise ValueError, 'incorrect syntax for Partition()'
@@ -885,8 +889,7 @@ class Partition_class(CombinatorialObject):
         return res
 
 
-    boxes = deprecated_function_alias(cells,
-                'Sage Version 4.3')
+    boxes = deprecated_function_alias(7515, cells)
 
     def generalized_pochhammer_symbol(self, a, alpha):
         r"""
@@ -973,7 +976,7 @@ class Partition_class(CombinatorialObject):
         perm = permutation.Permutation(word)
         return perm.robinson_schensted()[1]
 
-    associated = deprecated_function_alias(conjugate, "Sage Version 4.4")
+    associated = deprecated_function_alias(6655, conjugate)
 
     def arm_length(self, i, j):
         """
@@ -1007,8 +1010,7 @@ class Partition_class(CombinatorialObject):
         else:
             raise ValueError, "The cells is not in the diagram"
 
-    arm = deprecated_function_alias(arm_length,
-        'Sage Version 4.3')
+    arm = deprecated_function_alias(6655, arm_length)
 
     def arm_lengths(self, flat=False):
         """
@@ -1096,8 +1098,7 @@ class Partition_class(CombinatorialObject):
         else:
             raise ValueError, "The cells is not in the diagram"
 
-    leg = deprecated_function_alias(leg_length,
-        'Sage Version 4.3')
+    leg = deprecated_function_alias(6655, leg_length)
 
     def leg_lengths(self, flat=False):
         """
@@ -1251,9 +1252,7 @@ class Partition_class(CombinatorialObject):
         """
         return self.leg_length(i,j)+self.arm_length(i,j)+1
 
-    hook = deprecated_function_alias(hook_length,
-        'Sage Version 4.3')
-
+    hook = deprecated_function_alias(7515, hook_length)
 
     def hooks(self):
         """
@@ -1801,8 +1800,7 @@ class Partition_class(CombinatorialObject):
         #Select the r-core
         return Partition_class(filter(lambda x: x != 0, part))
 
-    r_core = deprecated_function_alias(core,
-        'Sage Version 4.3')
+    r_core = deprecated_function_alias(11165, core)
 
     def quotient(self, length):
         """
@@ -1869,8 +1867,7 @@ class Partition_class(CombinatorialObject):
 
         return tuple(map(Partition_class, result))
 
-    r_quotient = deprecated_function_alias(quotient,
-        'Sage Version 4.3')
+    r_quotient = deprecated_function_alias(7515, quotient)
 
     def is_core(self, k):
         r"""
@@ -1966,8 +1963,7 @@ class Partition_class(CombinatorialObject):
 
         raise ValueError, "[%s, %s] is not an addable cell"%(i,j)
 
-    add_box = deprecated_function_alias(add_cell,
-        'Sage Version 4.3')
+    add_box = deprecated_function_alias(7515, add_cell)
 
     def remove_cell(self, i, j = None):
         """
@@ -2003,9 +1999,7 @@ class Partition_class(CombinatorialObject):
         else:
             return Partition(self[:i] + [ self[i:i+1][0] - 1 ] + self[i+1:])
 
-    remove_box = deprecated_function_alias(remove_cell,
-        'Sage Version 4.3')
-
+    remove_box = deprecated_function_alias(7515, remove_cell)
 
     def k_skew(self, k):
         r"""
@@ -2358,7 +2352,7 @@ class Partition_class(CombinatorialObject):
             [[[1, 2, 3, 6], [4, 5]], [[1, 2, 3], [4, 5], [6]]]
         """
         res = []
-        for tab in tableau.StandardTableaux_n(self.size()):
+        for tab in tableau.StandardTableaux_size(self.size()):
             if tab.atom() == self:
                 res.append(tab)
         return res
@@ -2387,7 +2381,7 @@ class Partition_class(CombinatorialObject):
             sage: Partition([]).k_atom(1)
             [[]]
         """
-        res = [ tableau.Tableau_class([]) ]
+        res = [ tableau.Tableau([]) ]
         for i in range(len(self)):
             res = [ x.promotion_operator( self[-i-1] ) for x in res]
             res = sum(res, [])
@@ -2438,8 +2432,8 @@ class Partition_class(CombinatorialObject):
             [h[3] h[1]    0]
             [h[4] h[2]  h[]]
             [h[5] h[3] h[1]]
-            sage: s = SFASchur(QQ)
-            sage: h = SFAHomogeneous(QQ)
+            sage: s = SymmetricFunctions(QQ).schur()
+            sage: h = SymmetricFunctions(QQ).homogeneous()
             sage: h( s(part) )
             h[3, 2, 1] - h[3, 3] - h[4, 1, 1] + h[5, 1]
             sage: jt.det()
@@ -2488,9 +2482,10 @@ class Partition_class(CombinatorialObject):
         x = P.gens()
 
         #Expand s_mu in the power sum basis
-        import sf.sfa
-        s = sf.sfa.SFASchur(QQ)
-        p = sf.sfa.SFAPower(QQ)
+        from sage.combinat.sf.sf import SymmetricFunctions
+        Sym = SymmetricFunctions(QQ)
+        s = Sym.schur()
+        p = Sym.power()
         ps_mu = p(s(self))
 
         #Replace each p_i by i*x_i-1
@@ -2504,6 +2499,195 @@ class Partition_class(CombinatorialObject):
 
         #Apply the umbral operator and return the result
         return misc.umbral_operation(res)
+
+    def dimension(self, smaller = [], k = 1):
+        r"""
+        This function computes the number of paths from the
+        ``smaller`` partition to the partition ``self``, where each step
+        consists of adding a `k`-ribbon while keeping a partition.
+
+        Note that a 1-ribbon is just a single cell, so this gives path
+        lengths in the Young graph when `k=1`.
+
+        Note also that the defaut case (`k=1` and ``smaller=[]``) gives the
+        dimension of characters of the symmetric groups.
+
+        INPUT:
+
+        - ``self`` - a partition
+        - ``smaller`` - a partition (default: empty)
+        - `k` - a positive integer (default: 1)
+
+        OUTPUT:
+
+        integer -- the number of such paths
+
+        EXAMPLES:
+
+        Looks at the number of ways of getting from [5,4] to the empty partition, removing one cell at a time::
+
+            sage: mu = Partition([5,4])
+            sage: mu.dimension()
+            42
+
+        Same, but removing one 3-ribbon at a time. Note that the 3-core of mu is empty::
+
+            sage: mu.dimension(k=3)
+            3
+
+        The 2-core of mu is not the empty partition::
+
+            sage: mu.dimension(k=2)
+            0
+
+        Indeed, the 2-core of mu is [1]::
+
+            sage: mu.dimension(Partition([1]),k=2)
+            2
+
+        TESTS:
+
+        Checks that the sum of squares of dimensions of characters of the symmetric group is the order of the group::
+
+            sage: all(sum(mu.dimension()^2 for mu in Partitions(i))==factorial(i) for i in range(10))
+            True
+
+        A check coming from the theory of `k`-differentiable posets::
+
+            sage: k=2; core = Partition([2,1])
+            sage: all(sum(mu.dimension(core,k=2)^2 for mu in Partitions(3+i*2) if mu.core(2) == core)==2^i*factorial(i) for i in range(10))
+            True
+
+        Checks that the dimension satisfies the obvious recursion relation::
+
+            sage: test = lambda larger, smaller: larger.dimension(smaller) == sum(mu.dimension(smaller) for mu in larger.down())
+            sage: all(test(larger,smaller) for l in xrange(1,10) for s in xrange(0,10) for larger in Partitions(l) for smaller in Partitions(s) if smaller<>larger)
+            True
+
+        ALGORITHM:
+
+        Depending on the parameters given, different simplifications
+        occur. When `k=1` and ``smaller`` is empty, this function uses
+        the hook formula. When `k=1` and ``smaller`` is not empty, it
+        uses a formula from [ORV]_.
+
+        When `k \not{=} 1`, we first check that both ``self`` and
+        ``smaller`` have the same `k`-core, then use the `k`-quotients
+        and the same algorithm on each of the `k`-quotients.
+
+        REFERENCES:
+
+        .. [ORV] Olshanski, Regev, Vershik, "Frobenius-Schur functions"
+
+        AUTHORS:
+
+        - Paul-Olivier Dehaye (2011-06-07)
+
+        """
+        larger = self
+        if smaller == []:
+            smaller = Partition([])
+        if k == 1:
+            if smaller == Partition([]):        # In this case, use the hook dimension formula
+                return factorial(larger.size())/prod(larger.hooks())
+            else:
+                if not larger.contains(smaller):    # easy case
+                    return 0
+                else:
+                    # relative dimension
+                    # Uses a formula of Olshanski, Regev, Vershik (see reference)
+                    def inv_factorial(i):
+                        if i < 0:
+                            return 0
+                        else:
+                            return 1/factorial(i)
+                    len_range = range(larger.length())
+                    from sage.matrix.constructor import matrix
+                    M = matrix(QQ,[[inv_factorial(larger.get_part(i)-smaller.get_part(j)-i+j) for i in len_range] for j in len_range])
+                    return factorial(larger.size()-smaller.size())*M.determinant()
+        else:
+            larger_core = larger.core(k)
+            smaller_core = smaller.core(k)
+            if smaller_core <> larger_core:     #   easy case
+                return 0
+            larger_quotients = larger.quotient(k)
+            smaller_quotients = smaller.quotient(k)
+
+            def multinomial_with_partitions(sizes,path_counts):
+            # count the number of ways of performing the k paths in parallel,
+            # if we know the total length alloted for each of the paths (sizes), and the number
+            # of paths for each component. A multinomial picks the ordering of the components where
+            # each step is taken.
+                return prod(path_counts)*factorial(sum(sizes))/prod(map(factorial,sizes))
+
+            sizes = [larger_quotients[i].size()-smaller_quotients[i].size() for i in range(k)]
+            path_counts = [larger_quotients[i].dimension(smaller_quotients[i]) for i in range(k)]
+            return multinomial_with_partitions(sizes,path_counts)
+
+    def plancherel_measure(self):
+        r"""
+        Returns the probability of self under the Plancherel probability measure on partitions of the same size.
+
+        EXAMPLES::
+
+            sage: Partition([]).plancherel_measure()
+            1
+            sage: Partition([1]).plancherel_measure()
+            1
+            sage: Partition([2]).plancherel_measure()
+            1/2
+            sage: [mu.plancherel_measure() for mu in Partitions(3)]
+            [1/6, 2/3, 1/6]
+            sage: Partition([5,4]).plancherel_measure()
+            7/1440
+
+        TESTS::
+
+            sage: all(sum(mu.plancherel_measure() for mu in Partitions(n))==1 for n in range(10))
+            True
+        """
+        return self.dimension()**2/factorial(self.size())
+
+    def outline(self, variable = sage.symbolic.ring.var("x")):
+        r"""
+        Returns the outline of the partition ``self``.
+
+        This is a piecewise linear function, normalized so that the area
+        under the partition [1] is 2.
+
+        INPUT:
+
+        - ``self`` -- a partition
+
+        - variable -- a variable (default: x)
+
+        EXAMPLES::
+
+            sage: [Partition([5,4]).outline()(x=i) for i in range(-10,11)]
+            [10, 9, 8, 7, 6, 5, 6, 5, 6, 5, 4, 3, 2, 3, 4, 5, 6, 7, 8, 9, 10]
+
+            sage: Partition([]).outline()
+            abs(x)
+
+            sage: Partition([1]).outline()
+            abs(x - 1) + abs(x + 1) - abs(x)
+
+            sage: y=sage.symbolic.ring.var("y")
+            sage: Partition([6,5,1]).outline(variable=y)
+            abs(y - 3) - abs(y - 2) + abs(y - 1) - abs(y + 3) + abs(y + 4) - abs(y + 5) + abs(y + 6)
+
+        TESTS::
+
+            sage: integrate(Partition([1]).outline()-abs(x),(x,-10,10))
+            2
+
+        """
+        outside_contents = [self.content(*c) for c in self.outside_corners()]
+        inside_contents = [self.content(*c) for c in self.corners()]
+        return sum(abs(variable+c) for c in outside_contents)\
+                       -sum(abs(variable+c) for c in inside_contents)
+
+
 
 
 ##################################################
@@ -2824,15 +3008,15 @@ def RestrictedPartitions(n, S, k=None):
     integer n into sums with k summands with the summands of the
     partition coming from the set S. If k is not given all restricted
     partitions for all k are returned.
-    
+
     Wraps GAP's RestrictedPartitions.
-    
+
     EXAMPLES::
-    
+
         sage: RestrictedPartitions(5,[3,2,1])
         doctest:...: DeprecationWarning: RestrictedPartitions is deprecated; use Partitions with the parts_in keyword instead.
-        doctest:...: DeprecationWarning: RestrictedPartitions_nsk is deprecated; use Partitions with the parts_in keyword instead.
-        Partitions of 5 restricted to the values [1, 2, 3] 
+        See http://trac.sagemath.org/5478 for details.
+        Partitions of 5 restricted to the values [1, 2, 3]
         sage: RestrictedPartitions(5,[3,2,1]).list()
         [[3, 2], [3, 1, 1], [2, 2, 1], [2, 1, 1, 1], [1, 1, 1, 1, 1]]
         sage: RestrictedPartitions(5,[3,2,1],4)
@@ -2840,11 +3024,8 @@ def RestrictedPartitions(n, S, k=None):
         sage: RestrictedPartitions(5,[3,2,1],4).list()
         [[2, 1, 1, 1]]
     """
-    import warnings
-    warnings.resetwarnings()
-    warnings.warn('RestrictedPartitions is deprecated; use Partitions with the parts_in keyword instead.', DeprecationWarning, stacklevel=2)
-    from sage.misc.misc import deprecation
-    deprecation('RestrictedPartitions is deprecated; use Partitions with the parts_in keyword instead.')
+    from sage.misc.superseded import deprecation
+    deprecation(5478, 'RestrictedPartitions is deprecated; use Partitions with the parts_in keyword instead.')
     return RestrictedPartitions_nsk(n, S, k)
 
 class RestrictedPartitions_nsk(CombinatorialClass):
@@ -2859,14 +3040,12 @@ class RestrictedPartitions_nsk(CombinatorialClass):
         
             sage: r = RestrictedPartitions(5,[3,2,1])
             doctest:...: DeprecationWarning: RestrictedPartitions is deprecated; use Partitions with the parts_in keyword instead.
+            See http://trac.sagemath.org/5478 for details.
             sage: r == loads(dumps(r))
             True
         """
-        import warnings
-        warnings.resetwarnings()
-        warnings.warn('RestrictedPartitions_nsk is deprecated; use Partitions with the parts_in keyword instead.', DeprecationWarning, stacklevel=2)
-        from sage.misc.misc import deprecation
-        deprecation('RestrictedPartitions_nsk is deprecated; use Partitions with the parts_in keyword instead.')
+        from sage.misc.superseded import deprecation
+        deprecation(5478, 'RestrictedPartitions_nsk is deprecated; use Partitions with the parts_in keyword instead.')
         self.n = n
         self.S = S
         self.S.sort()
@@ -2880,6 +3059,7 @@ class RestrictedPartitions_nsk(CombinatorialClass):
         
             sage: [4,1] in RestrictedPartitions(5,[3,2,1])
             doctest:...: DeprecationWarning: RestrictedPartitions is deprecated; use Partitions with the parts_in keyword instead.
+            See http://trac.sagemath.org/5478 for details.
             False
             sage: [3,2] in RestrictedPartitions(5,[3,2,1])
             True
@@ -2894,16 +3074,19 @@ class RestrictedPartitions_nsk(CombinatorialClass):
     def __repr__(self):
         """
         EXAMPLES::
-        
+
             sage: RestrictedPartitions(5,[3,2,1]).__repr__()
             doctest:...: DeprecationWarning: RestrictedPartitions is deprecated; use Partitions with the parts_in keyword instead.
-            'Partitions of 5 restricted to the values [1, 2, 3] '
+            See http://trac.sagemath.org/5478 for details.
+            doctest:...: DeprecationWarning: RestrictedPartitions_nsk is deprecated; use Partitions with the parts_in keyword instead.
+            See http://trac.sagemath.org/5478 for details.
+            'Partitions of 5 restricted to the values [1, 2, 3]'
             sage: RestrictedPartitions(5,[3,2,1],4).__repr__()
             'Partitions of 5 restricted to the values [1, 2, 3] of length 4'
         """
-        string = "Partitions of %s restricted to the values %s "%(self.n, self.S)
+        string = "Partitions of %s restricted to the values %s"%(self.n, self.S)
         if self.k is not None:
-            string += "of length %s" % self.k
+            string += " of length %s" % self.k
         return string
 
     def list(self):
@@ -2912,13 +3095,14 @@ class RestrictedPartitions_nsk(CombinatorialClass):
         integer n into sums with k summands with the summands of the
         partition coming from the set `S`. If k is not given all
         restricted partitions for all k are returned.
-        
+
         Wraps GAP's RestrictedPartitions.
-        
+
         EXAMPLES::
-        
+
             sage: RestrictedPartitions(8,[1,3,5,7]).list()
             doctest:...: DeprecationWarning: RestrictedPartitions is deprecated; use Partitions with the parts_in keyword instead.
+            See http://trac.sagemath.org/5478 for details.
             [[7, 1], [5, 3], [5, 1, 1, 1], [3, 3, 1, 1], [3, 1, 1, 1, 1, 1], [1, 1, 1, 1, 1, 1, 1, 1]]
             sage: RestrictedPartitions(8,[1,3,5,7],2).list()
             [[7, 1], [5, 3]]
@@ -2943,6 +3127,7 @@ class RestrictedPartitions_nsk(CombinatorialClass):
         
             sage: RestrictedPartitions(8,[1,3,5,7]).cardinality()
             doctest:...: DeprecationWarning: RestrictedPartitions is deprecated; use Partitions with the parts_in keyword instead.
+            See http://trac.sagemath.org/5478 for details.
             6
             sage: RestrictedPartitions(8,[1,3,5,7],2).cardinality()
             2
@@ -3288,7 +3473,15 @@ def Partitions(n=None, **kwargs):
         False
         sage: [3,2] in P
         True
+
+        sage: Partitions(5, inner=[2,1], min_length=3).list()
+        [[3, 1, 1], [2, 2, 1], [2, 1, 1, 1]]
+        sage: Partitions(5, inner=[2,0,0,0,0,0]).list()
+        [[5], [4, 1], [3, 2], [3, 1, 1], [2, 2, 1], [2, 1, 1, 1]]
+        sage: Partitions(6, length=2, max_slope=-1).list()
+        [[5, 1], [4, 2]]
     """
+    assert n != infinity, "n cannot be infinite"
     if n is None:
         assert(len(kwargs) == 0)
         return Partitions_all()
@@ -3326,8 +3519,10 @@ def Partitions(n=None, **kwargs):
                     del kwargs['outer']
 
                 if 'inner' in kwargs:
-                    inner = kwargs['inner']
-                    kwargs['floor'] = lambda i: inner[i] if i < len(inner) else 0
+                    # Keep only elements that contribute
+                    # We assume that inner is a partition
+                    inner = [x for x in kwargs['inner'] if x > 0]
+                    kwargs['floor'] = lambda i: inner[i] if i < len(inner) else 1
                     if 'min_length' in kwargs:
                         kwargs['min_length'] = max( len(inner), kwargs['min_length'])
                     else:
@@ -4682,8 +4877,8 @@ def ferrers_diagram(pi):
         **
         *        
     """
-    from sage.misc.misc import deprecation
-    deprecation('"ferrers_diagram deprecated. Use Partition(pi).ferrers_diagram() instead')
+    from sage.misc.superseded import deprecation
+    deprecation(5790, '"ferrers_diagram deprecated. Use Partition(pi).ferrers_diagram() instead')
     return Partition(pi).ferrers_diagram()
 
 
@@ -5031,8 +5226,8 @@ def partition_sign(pi):
 
     - http://en.wikipedia.org/wiki/Zolotarev's_lemma
     """
-    from sage.misc.misc import deprecation
-    deprecation('"partition_sign deprecated. Use Partition(pi).sign() instead')
+    from sage.misc.superseded import deprecation
+    deprecation(5790, '"partition_sign deprecated. Use Partition(pi).sign() instead')
     return Partition(pi).sign()
 
 def partition_associated(pi):
@@ -5061,7 +5256,7 @@ def partition_associated(pi):
         *
         *
     """
-    from sage.misc.misc import deprecation
-    deprecation('"partition_associated deprecated. Use Partition(pi).conjugte() instead')
+    from sage.misc.superseded import deprecation
+    deprecation(5790, '"partition_associated deprecated. Use Partition(pi).conjugte() instead')
     return Partition(pi).conjugate()
 

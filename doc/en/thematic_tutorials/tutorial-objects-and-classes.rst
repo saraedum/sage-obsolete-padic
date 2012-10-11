@@ -297,7 +297,7 @@ Some particular actions modify the data structure of ``el``::
         <type 'sage.rings.integer.Integer'>
         sage: e.__dict__
         dict_proxy({'__module__': 'sage.categories.euclidean_domains', 
-	'_reduction': (<built-in function getattr>, (Category of
+        '_reduction': (<built-in function getattr>, (Category of
         euclidean domains, 'element_class')), '__doc__': None,
         '_sage_src_lines_': <staticmethod object at 0x...>})
         sage: e.__dict__.keys()
@@ -307,12 +307,12 @@ Some particular actions modify the data structure of ``el``::
         sage: type(id4)
         <type 'sage.groups.perm_gps.permgroup_element.PermutationGroupElement'>
         sage: id4.__dict__
-	dict_proxy({'__module__': 'sage.categories.category',
-	'_reduction': (<built-in function getattr>, (Join of Category
-	of finite permutation groups and Category of finite weyl
-	groups, 'element_class')), '__doc__': '\n Put methods for
-	elements here.\n ', '_sage_src_lines_': <staticmethod object
-	at 0x...>})
+        dict_proxy({'__module__': 'sage.categories.category',
+        '_reduction': (<built-in function getattr>, (Join of Category
+        of finite permutation groups and Category of finite weyl
+        groups, 'element_class')), '__doc__': '\n Put methods for
+        elements here.\n ', '_sage_src_lines_': <staticmethod object
+        at 0x...>})
 
 .. note::
 
@@ -324,21 +324,21 @@ Some particular actions modify the data structure of ``el``::
         139813642977744
         sage: el1 = el; id(el1) == id(el)
         True
-	sage: el1 is el
-	True
+        sage: el1 is el
+        True
 
     In Python (and therefore in Sage), two objects with the same
     identity will be equal, but the converse is not true in general.
     Thus the identity function is different from mathematical
     identity::
 
-	sage: el2 = Integer(9)
-	sage: el2 == el1
-	True
-	sage: el2 is el1
+        sage: el2 = Integer(9)
+        sage: el2 == el1
+        True
+        sage: el2 is el1
         False
-	sage: id(el2) == id(el)
-	False
+        sage: id(el2) == id(el)
+        False
 
 Summary
 -------

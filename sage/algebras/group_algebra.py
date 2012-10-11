@@ -34,8 +34,8 @@ from sage.structure.formal_sum import FormalSums, FormalSum
 from sage.sets.set import Set
 
 
-from sage.misc.misc import deprecation
-deprecation("The module group_algebra is deprecated and will be removed in a future version of Sage. Use group_algebra_new instead.")
+from sage.misc.superseded import deprecation
+deprecation(6670, "The module group_algebra is deprecated and will be removed in a future version of Sage. Use group_algebra_new instead.")
 
 
 class GroupAlgebra(Algebra):
@@ -222,7 +222,7 @@ class GroupAlgebra(Algebra):
                 (self.base_ring().random_element(), self.group().random_element()),
                 (self.base_ring().random_element(), self.group().random_element()),
                 ]))
-        except: # base ring or group might not implement .random_element()
+        except StandardError: # base ring or group might not implement .random_element()
             return self(self._formal_sum_module([ (self.base_ring().an_element(), self.group().an_element()) ]))
 
     def __call__(self, x, check=True):

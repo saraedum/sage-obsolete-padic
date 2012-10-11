@@ -25,7 +25,7 @@ import random
 import copy
 from sage.misc.cachefunc import cached_method
 from sage.misc.lazy_attribute import lazy_attribute
-from sage.misc.misc import deprecated_function_alias
+from sage.misc.superseded import deprecated_function_alias
 from sage.categories.category import Category
 from sage.categories.sets_cat import Sets
 from sage.categories.finite_enumerated_sets import FiniteEnumeratedSets
@@ -35,7 +35,7 @@ from sage.structure.unique_representation import UniqueRepresentation
 from sage.structure.parent import Parent
 from sage.rings.integer import Integer
 from sage.rings.integer_ring import ZZ
-from sage.graphs.all import DiGraph
+from sage.graphs.digraph import DiGraph
 from sage.combinat.posets.hasse_diagram import HasseDiagram
 from sage.combinat.posets.elements import PosetElement
 
@@ -428,7 +428,7 @@ def Poset(data=None, element_labels=None, cover_relations=False, linear_extensio
         # Compute a linear extension of the poset (a topological sort).
         try:
             lin_ext = D.topological_sort()
-        except:
+        except StandardError:
             raise ValueError, "Hasse diagram contains cycles."
 
     # Relabel using the linear_extension.
@@ -865,6 +865,7 @@ class FinitePoset(UniqueRepresentation, Parent):
 
             sage: P(5) == P(-1)
             doctest:...: DeprecationWarning: Accessing the i-th element of a poset as P(i) is deprecated. Please use P[i]
+            See http://trac.sagemath.org/13109 for details.
             True
             sage: Q(5) == Q(-1)
             True
@@ -896,8 +897,8 @@ class FinitePoset(UniqueRepresentation, Parent):
             return self._list[self._element_to_vertex_dict[element]]
         except KeyError:
             if isinstance(element,Integer):
-                import sage.misc.misc
-                sage.misc.misc.deprecation("Accessing the i-th element of a poset as P(i) is deprecated. Please use P[i]")
+                from sage.misc.superseded import deprecation
+                deprecation(13109, "Accessing the i-th element of a poset as P(i) is deprecated. Please use P[i]")
                 if element > -1:
                     return self.element_class(self, \
                         self._elements[element], element)
@@ -1756,11 +1757,12 @@ class FinitePoset(UniqueRepresentation, Parent):
 
     def is_ranked(self):
         r"""
-        Returns True if the poset is ranked, and False otherwise.
+        Returns whether this poset is ranked.
         
         A poset is *ranked* if it admits a rank function. For more information
-        about the rank function, see :meth:`~sage.combinat.posets.hasse_diagram.HasseDiagram.rank_function`
-        and :meth:`~is_graded`.
+        about the rank function, see :meth:`~sage.combinat.posets.hasse_diagram.HasseDiagram.rank_function`.
+
+        .. SEEALSO:: :meth:`is_graded`.
         
         EXAMPLES::
         
@@ -1770,17 +1772,29 @@ class FinitePoset(UniqueRepresentation, Parent):
             sage: Q = Poset([[1,5],[2,6],[3],[4],[],[6,3],[4]])
             sage: Q.is_ranked()
             False
+            sage: P = Poset( ([1,2,3,4],[[1,2],[2,4],[3,4]] ))
+            sage: P.is_ranked()
+            True
         """
         return bool(self.rank_function())
 
     def is_graded(self):
         r"""
-        Returns True if the poset is graded, and False otherwise.
+        Returns whether this poset is graded.
         
-        A poset is *graded* if it admits a rank function. For more information
-        about the rank function, see :meth:`~sage.combinat.posets.hasse_diagram.HasseDiagram.rank_function`
-        and :meth:`~is_ranked`.
-        
+        A poset is *graded* if all its maximal chains have the same length.
+        There are various competing definitions for graded posets (see
+        :wikipedia:`Graded_poset`). This definition is from section 3.1 of
+        Richard Stanley's *Enumerative Combinatorics, Vol. 1*.
+
+        .. SEEALSO:: :meth:`is_ranked`
+
+        .. TODO::
+
+            The current algorithm has exponential complexity (in time
+            and memory). Someone should really implement a better
+            algorithm. See :trac:`13223`.
+
         EXAMPLES::
         
             sage: P = Poset([[1],[2],[3],[4],[]])
@@ -1789,8 +1803,20 @@ class FinitePoset(UniqueRepresentation, Parent):
             sage: Q = Poset([[1,5],[2,6],[3],[4],[],[6,3],[4]])
             sage: Q.is_graded()
             False
+            sage: P = Poset( ([1,2,3,4],[[1,2],[2,4],[3,4]] ))
+            sage: P.is_graded()
+            False
+
+        TESTS:
+
+        Here we test that the empty poset is graded::
+
+            sage: Poset([[],[]]).is_graded()
+            True
         """
-        return self.is_ranked()
+        maximal_chains = self.maximal_chains()
+        n = len(maximal_chains[0])
+        return all(len(chain) == n for chain in maximal_chains)
 
     def covers(self,x,y):
         """
@@ -1871,7 +1897,7 @@ class FinitePoset(UniqueRepresentation, Parent):
         """
         return Integer(self._hasse_diagram.order())
 
-    size = deprecated_function_alias(cardinality, 'Sage Version 4.4 (2010-05)')
+    size = deprecated_function_alias(8735, cardinality)
 
     def mobius_function(self,x,y):
         r"""
@@ -2909,6 +2935,48 @@ class FinitePoset(UniqueRepresentation, Parent):
         """
         return self.linear_extension(self.linear_extension()).evacuation().to_poset()
 
+    def is_slender(self):
+        r"""
+        Returns whether the poset ``self`` is slender or not.
+
+        It is assumed for this method that ``self`` is a finite graded poset.
+        A finite poset `P` is called slender if every rank 2 interval contains three
+        or four elements. See [Sta2009]_.
+
+        REFERENCES:
+
+            .. [Sta2009] Richard Stanley,
+               *Promotion and evacuation*,
+               Electron. J. Combin. 16 (2009), no. 2, Special volume in honor of Anders Björner,
+               Research Paper 9, 24 pp.
+
+        EXAMPLES::
+
+            sage: P = Poset(([1,2,3,4],[[1,2],[1,3],[2,4],[3,4]]), facade = True)
+            sage: P.is_slender()
+            True
+            sage: P = Poset(([1,2,3,4,5],[[1,2],[1,3],[1,4],[2,5],[3,5],[4,5]]), facade = True)
+            sage: P.is_slender()
+            False
+
+            sage: W = WeylGroup(['A',2])
+            sage: G = W.bruhat_poset()
+            sage: G.is_slender()
+            True
+            sage: W = WeylGroup(['A',3])
+            sage: G = W.bruhat_poset()
+            sage: G.is_slender()
+            True
+        """
+        for x in self:
+            d = {}
+            S = self.upper_covers(x)
+            Y = [ c for y in S for c in self.upper_covers(y) ]
+            for y in Y:
+                d[y] = d.get(y,0) + 1
+            if not all( d[y]<3 for y in d.keys() ):
+                return False
+        return True
 
 FinitePoset._dual_class = FinitePoset
 

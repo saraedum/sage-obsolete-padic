@@ -134,6 +134,9 @@ from sage.rings.ring import is_Ring as is_Ring_slow
 cdef is_Ring(R):
     return isinstance(R, Ring) or is_Ring_slow(R)
 
+#For the norm function, we cache a Sage integer "one"
+__one__ = sage.rings.integer.Integer(1)
+
 def is_FreeModuleElement(x):
     """
     EXAMPLES::
@@ -1121,8 +1124,9 @@ cdef class FreeModuleElement(element_Vector):   # abstract base class
         
             sage: v = vector(ZZ, [2, 12, 22])
             sage: transpose(vector(v))
-            doctest:...: DeprecationWarning: (Since Sage Version 4.6.2) The transpose() method for vectors has been deprecated, use column() instead
+            doctest:...: DeprecationWarning: The transpose() method for vectors has been deprecated, use column() instead
             (or check to see if you have a vector when you really want a matrix)
+            See http://trac.sagemath.org/10541 for details.
             [ 2]
             [12]
             [22]
@@ -1141,8 +1145,8 @@ cdef class FreeModuleElement(element_Vector):   # abstract base class
             [12]
             [22]
         """
-        from sage.misc.misc import deprecation
-        deprecation('The transpose() method for vectors has been deprecated, use column() instead\n(or check to see if you have a vector when you really want a matrix)', 'Sage Version 4.6.2')
+        from sage.misc.superseded import deprecation
+        deprecation(10541, 'The transpose() method for vectors has been deprecated, use column() instead\n(or check to see if you have a vector when you really want a matrix)')
         return self._matrix_().transpose()
 
     def row(self):
@@ -1535,6 +1539,12 @@ cdef class FreeModuleElement(element_Vector):   # abstract base class
             Traceback (most recent call last):
             ...
             ValueError: 0.990000 is not greater than or equal to 1
+
+        Norm works with python integers (see :trac:`13502`). ::
+
+            sage: v = vector(QQ, [1,2])
+            sage: v.norm(int(2))
+            sqrt(5)
         """
         abs_self = [abs(x) for x in self]
         if p == Infinity:
@@ -1547,20 +1557,20 @@ cdef class FreeModuleElement(element_Vector):   # abstract base class
             pass
 
         s = sum([a**p for a in abs_self])
-        return s**(1/p)
+        return s**(__one__/p)
     
     cdef int _cmp_c_impl(left, Element right) except -2:
         """
         EXAMPLES::
         
-            sage: v = vector(QQ, [0,0,0,0])
+            sage: v = vector(SR, [0,0,0,0])
             sage: v == 0
             True
             sage: v == 1
             False
             sage: v == v
             True
-            sage: w = vector(QQ, [-1,0,0,0])
+            sage: w = vector(SR, [-1,x,pi,0])
             sage: w < v
             True
             sage: w > v
@@ -1572,7 +1582,22 @@ cdef class FreeModuleElement(element_Vector):   # abstract base class
             c = cmp(left[i], right[i])
             if c: return c
         return 0
-        
+
+    # see sage/structure/element.pyx
+    def __richcmp__(left, right, int op):
+        """
+        TESTS::
+
+            sage: F.<y> = PolynomialRing(QQ, 'y')
+            sage: type(vector(F, [0]*4, sparse=True))
+            <type 'sage.modules.free_module_element.FreeModuleElement_generic_sparse'>
+            sage: vector(F, [0,0,0,y]) == vector(F, [0,0,0,y])
+            True
+            sage: vector(F, [0,0,0,0]) == vector(F, [0,2,0,y])
+            False
+        """
+        return (<Element>left)._richcmp(right, op)
+
     def __getitem__(self, i):
         """
         Return `i`-th entry or slice of self.
@@ -3753,17 +3778,6 @@ cdef class FreeModuleElement_generic_dense(FreeModuleElement):
         else:
             return self._entries
 
-    cdef int _cmp_c_impl(left, Element right) except -2:
-        """
-        Compare two free module elements with identical parents.
-        
-        Free module elements are compared in lexicographic order on
-        the underlying list of coefficients. Two free module elements
-        are equal if their coefficients are the same. (This is true
-        even if one is sparse and one is dense.)
-        """
-        return cmp(left._entries, (<FreeModuleElement_generic_dense>right)._entries)
-
     def __call__(self, *args, **kwargs):
         """
         Calling a free module element returns the result of calling each
@@ -4111,17 +4125,47 @@ cdef class FreeModuleElement_generic_sparse(FreeModuleElement):
     cdef int _cmp_c_impl(left, Element right) except -2:
         """
         Compare two sparse free module elements.
-        
+
         Free module elements are compared in lexicographic order on
         the underlying list of coefficients. Two free module elements
         are equal if their coefficients are the same. (This is true
         even if one is sparse and one is dense.)
+
+        TESTS::
+
+            sage: v = vector([1,2/3,pi], sparse=True)
+            sage: w = vector([1,2/3,pi], sparse=True)
+            sage: w == v
+            True
         """
         a = left._entries.items()
         a.sort()
         b = (<FreeModuleElement_generic_dense>right)._entries.items()
         b.sort()
         return cmp(a,b)
+
+    # see sage/structure/element.pyx
+    def __richcmp__(left, right, int op):
+        """
+        TESTS::
+
+            sage: v = vector([1,2/3,pi], sparse=True)
+            sage: v == v
+            True
+        """
+        return (<Element>left)._richcmp(right, op)
+
+    # __hash__ is not properly inherited if comparison is changed
+    def __hash__(self):
+        """
+        TESTS::
+
+            sage: v = vector([1,2/3,pi], sparse=True)
+            sage: v.set_immutable()
+            sage: isinstance(hash(v), int)
+            True
+        """
+        return FreeModuleElement.__hash__(self)
 
     def iteritems(self):
         """

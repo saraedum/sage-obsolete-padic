@@ -37,7 +37,7 @@ EXAMPLES::
 #                  http://www.gnu.org/licenses/
 #*****************************************************************************
 
-from sage.misc.misc import deprecation
+from sage.misc.superseded import deprecation
 from sage.categories.morphism import Morphism
 from sage.groups.perm_gps.permgroup import PermutationGroup, PermutationGroup_generic
 
@@ -69,10 +69,11 @@ class PermutationGroupMorphism(Morphism):
             sage: G = PSL(2,7)
             sage: D, iota1, iota2, pr1, pr2 = G.direct_product(G)
             sage: pr1.range()
-            doctest... DeprecationWarning: (Since Sage Version 5.0) range is deprecated. Please use codomain instead.
+            doctest:...: DeprecationWarning: range is deprecated. Please use codomain instead.
+            See http://trac.sagemath.org/10334 for details.
             Permutation Group with generators [(3,7,5)(4,8,6), (1,2,6)(3,4,8)]
         """
-        deprecation('range is deprecated. Please use codomain instead.', 'Sage Version 5.0')
+        deprecation(10334, 'range is deprecated. Please use codomain instead.')
         return self.codomain()
 
     def kernel(self):
@@ -269,7 +270,7 @@ class PermutationGroupMorphism_im_gens(PermutationGroupMorphism):
         if not all([isinstance(X, PermutationGroup_generic) for X in [G, H]]):
             raise TypeError, "Sorry, the groups must be permutation groups."
         if images is not None:
-            deprecation('only the images need to be specified')
+            deprecation(10334, 'only the images need to be specified')
         else:
             images = gens
         PermutationGroupMorphism.__init__(self, G, H)

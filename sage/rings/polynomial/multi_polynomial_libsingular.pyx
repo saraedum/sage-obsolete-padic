@@ -1257,6 +1257,17 @@ cdef class MPolynomialRing_libsingular(MPolynomialRing_generic):
             //                  : names    x0 x1
             //        block   2 : ordering C
 
+            sage: R = PolynomialRing(QQ,2,'x', order='degneglex')
+            sage: singular(R)
+            //   characteristic : 0
+            //   number of vars : 2
+            //        block   1 : ordering a
+            //                  : names    x0 x1
+            //                  : weights   1  1
+            //        block   2 : ordering ls
+            //                  : names    x0 x1
+            //        block   3 : ordering C
+
             sage: R = PolynomialRing(QQ,'x')
             sage: singular(R)
             //   characteristic : 0
@@ -1315,7 +1326,7 @@ cdef class MPolynomialRing_libsingular(MPolynomialRing_generic):
             order = 'lp'
         else:
             _vars = str(self.gens())
-            order = self.term_order().singular_str()
+            order = self.term_order().singular_str()%dict(ngens=self.ngens())
             
         base_ring = self.base_ring()
 
@@ -3308,11 +3319,14 @@ cdef class MPolynomial_libsingular(sage.rings.polynomial.multi_polynomial.MPolyn
             sage: f = x
             sage: f.monomials()
             [x]
+
+        Check if :trac:`12706` is fixed::
+
             sage: f = P(0)
             sage: f.monomials()
-            [0]
+            []
 
-        Check if #7152 is fixed::
+        Check if :trac:`7152` is fixed::
 
             sage: x=var('x')
             sage: K.<rho> = NumberField(x**2 + 1)
@@ -3334,7 +3348,7 @@ cdef class MPolynomial_libsingular(sage.rings.polynomial.multi_polynomial.MPolyn
         cdef poly *t
 
         if p == NULL:
-            return [parent._zero_element]
+            return []
         
         while p:
             t = pNext(p)
@@ -3855,7 +3869,7 @@ cdef class MPolynomial_libsingular(sage.rings.polynomial.multi_polynomial.MPolyn
             sage: R.<a,b,c,d> = QQ[]
             sage: f =  (-2) * (a - d) * (-a + b) * (b - d) * (a - c) * (b - c) * (c - d)
             sage: F = f.factor(); F
-            (-2) * (c - d) * (b - d) * (b - c) * (-a + b) * (a - d) * (a - c)
+            (-2) * (c - d) * (-b + c) * (b - d) * (-a + c) * (-a + b) * (a - d)
             sage: F[0][0]
             c - d
             sage: F.unit()
@@ -3889,14 +3903,14 @@ cdef class MPolynomial_libsingular(sage.rings.polynomial.multi_polynomial.MPolyn
 
         TESTS:
 
-        This shows that ticket \#10270 is fixed::
+        This shows that :trac:`10270` is fixed::
 
             sage: R.<x,y,z> = GF(3)[]
             sage: f = x^2*z^2+x*y*z-y^2
             sage: f.factor()
             x^2*z^2 + x*y*z - y^2
 
-        This checks that ticket \#11838 is fixed::
+        This checks that :trac:`11838` is fixed::
 
             sage: K = GF(4,'a')
             sage: a = K.gens()[0]
@@ -3907,10 +3921,8 @@ cdef class MPolynomial_libsingular(sage.rings.polynomial.multi_polynomial.MPolyn
             sage: f.factor()
             x * y^3 * (y^8 + (a)*y^7 + (a + 1)*x) * (x^7*y^3 + x*y^9 + (a)*x^8 + (a)*y^4)
 
-             ...
-             NotImplementedError: Factorization of multivariate polynomials over non-fields is not implemented.
-
-        We test several examples which were known to return wrong results in the past (\#10902)::
+        We test several examples which were known to return wrong
+        results in the past (see :trac:`10902`)::
 
             sage: R.<x,y> = GF(2)[]
             sage: p = x^3*y^7 + x^2*y^6 + x^2*y^3
@@ -3961,6 +3973,35 @@ cdef class MPolynomial_libsingular(sage.rings.polynomial.multi_polynomial.MPolyn
             sage: f=p*q
             sage: f-f.factor()
             0
+
+        The following examples used to give a Segmentation Fault, see
+        :trac:`12918` and :trac:`13129`::
+
+            sage: R.<x,y> = GF(2)[]
+            sage: f = x^6 + x^5 + y^5 + y^4
+            sage: f.factor()
+            x^6 + x^5 + y^5 + y^4
+            sage: f = x^16*y + x^10*y + x^9*y + x^6*y + x^5 + x*y + y^2
+            sage: f.factor()
+            x^16*y + x^10*y + x^9*y + x^6*y + x^5 + x*y + y^2
+
+        Test :trac:`12928`::
+
+            sage: R.<x,y> = GF(2)[]
+            sage: p = x^2 + y^2 + x + 1
+            sage: q = x^4 + x^2*y^2 + y^4 + x*y^2 + x^2 + y^2 + 1
+            sage: factor(p*q)
+            (x^2 + y^2 + x + 1) * (x^4 + x^2*y^2 + y^4 + x*y^2 + x^2 + y^2 + 1)
+
+        The following used to sometimes take a very long time or get
+        stuck, see :trac:`12846`. These 100 iterations should take less
+        than 1 second::
+
+            sage: K.<a> = GF(4)
+            sage: R.<x,y> = K[]
+            sage: f = (a + 1)*x^145*y^84 + (a + 1)*x^205*y^17 + x^32*y^112 + x^92*y^45
+            sage: for i in range(100):
+            ...       assert len(f.factor()) == 4
         """
         cdef ring *_ring = self._parent_ring
         cdef poly *ptemp

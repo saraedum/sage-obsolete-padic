@@ -2,6 +2,7 @@ from combinat import *
 from expnums import expnums
 
 from sage.combinat.crystals.all import *
+from rigged_configurations.all import *
 
 from sage.combinat.dlx import DLXMatrix, AllExactCovers, OneExactCover 
 
@@ -53,7 +54,8 @@ from partition_algebra import SetPartitionsAk, SetPartitionsPk, SetPartitionsTk,
 from core import Core, Cores
 
 #Tableaux
-from tableau import Tableau, StandardTableau, Tableaux, StandardTableaux, SemistandardTableaux
+from tableau import Tableau, SemistandardTableau, StandardTableau, \
+        Tableaux, StandardTableaux, SemistandardTableaux
 from skew_tableau import SkewTableau, StandardSkewTableaux, SemistandardSkewTableaux
 from ribbon import Ribbon, StandardRibbons
 from ribbon_tableau import RibbonTableaux, RibbonTableau, MultiSkewTableau, SemistandardMultiSkewTableaux
@@ -91,6 +93,7 @@ from sloane_functions import sloane
 
 from root_system.all import *
 from sf.all import *
+from ncsf_qsym.all import QuasiSymmetricFunctions, NonCommutativeSymmetricFunctions
 from matrices.all import *
 # Posets
 from posets.all import *

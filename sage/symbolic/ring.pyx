@@ -24,8 +24,7 @@ from sage.libs.ginac cimport *
 from sage.rings.integer cimport Integer
 from sage.rings.real_mpfr import RealNumber
 
-from sage.symbolic.expression cimport Expression, new_Expression_from_GEx, new_Expression_from_pyobject
-from sage.symbolic.expression import is_Expression
+from sage.symbolic.expression cimport Expression, new_Expression_from_GEx, new_Expression_from_pyobject, is_Expression
 
 from sage.misc.latex import latex_variable_name
 from sage.structure.element cimport RingElement, Element
@@ -616,6 +615,7 @@ cdef class SymbolicRing(CommutativeRing):
             x + y
             sage: f(3)
             doctest:...: DeprecationWarning: Substitution using function-call syntax and unnamed arguments is deprecated and will be removed from a future release of Sage; you can use named arguments instead, like EXPR(x=..., y=...)
+            See http://trac.sagemath.org/5930 for details.
             y + 3
             sage: f(x=3)
             y + 3
@@ -670,9 +670,9 @@ cdef class SymbolicRing(CommutativeRing):
         elif len(args) == 1 and isinstance(args[0], dict):
             d = args[0]
         else:
-            from sage.misc.misc import deprecation
+            from sage.misc.superseded import deprecation
             vars = _the_element.operands()
-            deprecation("Substitution using function-call syntax and unnamed arguments is deprecated and will be removed from a future release of Sage; you can use named arguments instead, like EXPR(x=..., y=...)")
+            deprecation(5930, "Substitution using function-call syntax and unnamed arguments is deprecated and will be removed from a future release of Sage; you can use named arguments instead, like EXPR(x=..., y=...)")
             d = {}
             
             vars = _the_element.variables()

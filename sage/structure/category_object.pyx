@@ -58,7 +58,7 @@ def guess_category(obj):
         if obj.is_field():
             from sage.categories.all import Fields
             return Fields()
-    except:
+    except (AttributeError, NotImplementedError):
         pass
     try:
         if obj.is_ring():
@@ -73,7 +73,7 @@ def guess_category(obj):
                     return Algebras(obj._base)
                 else:
                     return Rings()
-    except:
+    except StandardError:
         pass
     from sage.structure.parent import Parent
     #if isinstance(obj, Parent):
@@ -319,6 +319,28 @@ cdef class CategoryObject(sage_object.SageObject):
             self._gens_dict = v
          return v
 
+    def gens_dict_recursive(self):
+        r"""
+        Return the dictionary of generators of ``self`` and its base rings.
+        
+        OUTPUT:
+        
+        - a dictionary with string names of generators as keys and generators of
+          ``self`` and its base rings as values.
+        
+        EXAMPLES::
+
+            sage: R = QQ['x,y']['z,w']
+            sage: sorted(R.gens_dict_recursive().items())
+            [('w', w), ('x', x), ('y', y), ('z', z)]
+        """
+        B = self.base_ring()
+        if B is self:
+            return {}
+        GDR = B.gens_dict_recursive()
+        GDR.update(self.gens_dict())
+        return GDR
+
     def objgens(self):
         """
         Return the tuple ``(self, self.gens())``.
@@ -518,8 +540,8 @@ cdef class CategoryObject(sage_object.SageObject):
         """
         This is a deprecated synonym for :meth:`.inject_variables`.
         """
-        from sage.misc.misc import deprecation
-        deprecation('injvar is deprecated; use inject_variables instead.')
+        from sage.misc.superseded import deprecation
+        deprecation(4143, 'injvar is deprecated; use inject_variables instead.')
         return self.inject_variables(scope=scope, verbose=verbose)
                     
     #################################################################################################
@@ -834,10 +856,6 @@ class localvars:
     and the indented code will be run as if the names in ``X`` are changed to
     the new names. If you give ``normalize=True``, then the names are assumed
     to be a tuple of the correct number of strings.
-
-    If you're writing Python library code, you currently have to put ``from
-    __future__ import with_statement`` in your file in order to use the
-    ``with`` statement. This restriction will disappear in Python 2.6. 
 
     EXAMPLES::
 

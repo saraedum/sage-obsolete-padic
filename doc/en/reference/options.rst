@@ -97,6 +97,8 @@ Command-line options for Sage
 
 - ``-f [options] [packages]`` -- shortcut for ``-i -f``: force build of
   the given Sage packages.
+- ``--info [packages]`` -- display the ``SPKG.txt`` file of the given
+  Sage packages.
 - ``--standard`` -- list all standard packages that can be installed
 - ``--optional`` -- list all optional packages that can be installed
 - ``--experimental`` -- list all experimental packages that can be installed
@@ -187,8 +189,9 @@ __ http://wiki.sagemath.org/combinat
 - ``-btnew [...]`` -- build and test modified files, options like ``-tnew``
 - ``--fixdoctests file.py`` -- create ``file.py.out`` that would
   pass the doctests and output a patch
-- ``--startuptime`` -- display how long each component of Sage takes
-  to start up
+- ``--startuptime [module]`` -- display how long each component of Sage takes
+  to start up. Optionally specify a module (e.g., "sage.rings.qqbar") to get
+  more details about that particular module.
 - ``--coverage <files>`` -- give information about doctest coverage
   of files
 - ``--coverageall`` -- give summary info about doctest coverage of

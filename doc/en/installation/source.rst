@@ -62,10 +62,44 @@ Recommended but not strictly required:
 
 Sage also needs a C++ compiler and a Fortran compiler.
 However, it contains a `GNU Compiler Collection (GCC) <http://gcc.gnu.org/>`_
-package, such that C, C++ and Fortran compilers will be built if needed
+package, so C, C++ and Fortran compilers will be built if needed
 (you can also use the environment variable :envvar:`SAGE_INSTALL_GCC` to
 control whether or not to install GCC).
 You always need some C compiler to build GCC and its prerequisites itself.
+
+.. note::
+
+    Optional: Read this if you are intending to run a Sage notebook server
+    for multiple users. For security (i.e., to run
+    ``notebook(secure=True)``) you may wish users to access the server using
+    the HTTPS protocol. You also may want to use OpenID for user
+    authentication. The first of these requires you to install pyOpenSSL,
+    and they both require OpenSSL. If you have OpenSSL and the OpenSSL
+    development headers installed on your system, you can install
+    pyOpenSSL by building Sage and then typing ::
+
+        ./sage -i pyopenssl
+
+    Note that this command requires internet access.  Alternatively, ``make
+    ssl`` builds Sage and installs pyOpenSSL.  If you are missing either
+    OpenSSL or OpenSSL's development headers, you can install a local copy
+    of both into your Sage installation first. Ideally, this should be
+    done before installing Sage; otherwise, you should at least rebuild
+    Sage's Python, and ideally any part of Sage relying on it. So the
+    procedure is as follows (again, with a computer connected to the
+    internet). Starting from a fresh Sage tarball::
+
+        ./sage -i patch openssl  # install patch and openssl
+        make ssl
+
+    Alternatively, if you've already built Sage::
+
+        ./sage -i openssl
+        ./sage -f python   # rebuild Python
+        SAGE_UPGRADING=yes make ssl
+
+    The third line will rebuild all parts of Sage that depend on Python;
+    this can take a while.
 
 To check if you have ``perl`` installed, for example, type 
 
@@ -109,7 +143,7 @@ but on a `Debian <http://www.debian.org/>`_ based system (e.g. `Ubuntu <http://w
 
 ::
 
-     sudo apt-get install build-essential gfortran
+     sudo apt-get install build-essential
 
 (this was tested on Ubuntu 9.04). 
 
@@ -204,61 +238,6 @@ the source distributions for everything on which Sage depends. We
 emphasize that all of this software is included with Sage, so you
 do not have to worry about trying to download and install any one
 of these packages (such as GAP, for example) yourself.
-
-.. _section_fortran:
-
-Fortran
--------
- 
-Sage includes the C, C++ and Fortran compilers of the
-`GNU Compiler Collection (GCC) <http://gcc.gnu.org/>`_.
-If a Fortran compiler is missing, it will be installed (within Sage)
-automatically.
-
-If you want to use an existing Fortran compiler on the system, you
-can tell Sage
-about the Fortran compiler and library location. Do this by typing ::
-
-    export SAGE_FORTRAN=/exact/path/to/gfortran
-    export SAGE_FORTRAN_LIB=/path/to/fortran/libs/libgfortran.so
-
-The :envvar:`SAGE_FORTRAN` environment variable is read when doing
-``make``.  It is not checked if you simply install one package using
-``./sage -i lapack`` or similar.  The :envvar:`SAGE_FORTRAN`
-environment variable does not mean "build any spkg that uses Fortran
-using this Fortran".  It means "when setting up the Sage build, create
-the ``sage_fortran`` script to run the Fortran compiler specified by
-the :envvar:`SAGE_FORTRAN` variable".
-
-On operating systems such as `AIX <http://en.wikipedia.org/wiki/IBM_AIX>`_, 
-`HP-UX <http://en.wikipedia.org/wiki/HP-UX>`_, Solaris and OpenSolaris, where both 32-bit and
-64-bit builds are supported, the library path variable
-:envvar:`SAGE_FORTRAN_LIB` must point to the 32-bit library if you are
-building Sage in 32-bit. Also, :envvar:`SAGE_FORTRAN_LIB` must point to a
-64-bit library if you are building Sage in 64-bit. For example, on
-Solaris & OpenSolaris, the variables :envvar:`SAGE_FORTRAN`,  
-:envvar:`SAGE_FORTRAN_LIB` and :envvar:`SAGE64` could be set as follows::
-
-    # SPARC, x86 and x64.
-    SAGE_FORTRAN=/path/to/gcc/install/directory/bin/gfortran
-
-    # 32-bit SPARC
-    SAGE_FORTRAN_LIB=/path/to/gcc/install/directory/lib/libgfortran.so
-
-    # 64-bit SPARC 
-    SAGE_FORTRAN_LIB=/path/to/gcc/install/directory/lib/sparcv9/libgfortran.so
-    SAGE64=yes
-
-    # 32-bit x86
-    SAGE_FORTRAN_LIB=/path/to/gcc/install/directory/lib/libgfortran.so
-
-    # 64-bit x64  
-    SAGE_FORTRAN_LIB=/path/to/gcc/install/directory/lib/amd64/libgfortran.so
-    SAGE64=yes
-
-(It should be noted that Sage is not supported on AIX or HP-UX, although some
-efforts have been made to `port Sage to AIX <http://wiki.sagemath.org/AIX>`_ and 
-to `port Sage to HP-UX <http://wiki.sagemath.org/HP-UX>`_.)
 
 Steps to Install from Source
 ----------------------------
@@ -359,6 +338,8 @@ spaces in its name will also fail.
    The directory where you built Sage is NOT hardcoded. You should
    be able to safely move or rename that directory. (It's a bug if
    this is not the case)
+
+   See :ref:`section_make` for some options for the ``make`` command.
 
 #. To start Sage, change into the Sage home directory and type:
 
@@ -543,6 +524,47 @@ spaces in its name will also fail.
 
 Have fun! Discover some amazing conjectures!
 
+.. _section_make:
+
+Make targets
+------------
+
+To build Sage from scratch, you would typically give the command
+``make`` to build Sage and its HTML documentation. The ``make`` command
+is pretty smart, so if your build of Sage is interrupted, then running
+``make`` again should cause it to pick up where it left off. The
+``make`` command can also be given options, which control what is built
+and how it is built.
+
+- ``make build`` builds Sage: it compiles all of the Sage packages. It
+  does not build the documentation.
+
+- ``make doc`` builds Sage's documentation in HTML format. Note that
+  this requires that Sage be built first, so it will automatically run
+  ``make build`` first. Thus running ``make doc`` is equivalent to
+  running ``make``.
+
+- ``make doc-pdf`` builds Sage's documentation in PDF format. This also
+  requires that Sage be built first, so it will automatically run ``make
+  build``.
+
+- ``make build-serial`` builds the components of Sage serially, rather
+  than in parallel (parallel building is the default). Running ``make
+  build-serial`` is equivalent to setting the environment variable
+  :envvar:`SAGE_PARALLEL_SPKG_BUILD` to "no" -- see below for
+  information about this variable.
+
+- ``make ptest`` and ``make ptestlong``: these first build Sage and its
+  html documentation, if necessary, and then run Sage's test suite. The
+  second version runs more tests, and so it takes longer. The "p" in
+  "ptest" stands for "parallel": tests are run in parallel. If you want
+  to run tests serially, you can use ``make test`` or ``make testlong``
+  instead.
+
+- ``make distclean`` restores the Sage directory to its state before
+  doing any building: it is equivalent to deleting the entire Sage
+  directory and unpacking the source tarfile.
+
 Environment variables
 ---------------------
 
@@ -629,10 +651,6 @@ process:
   typically be set automatically, based on the setting of
   :envvar:`SAGE64`, for example.
 
-- :envvar:`SAGE_FORTRAN` - see :ref:`section_fortran`.
-
-- :envvar:`SAGE_FORTRAN_LIB` - see :ref:`section_fortran`.
-  
 - :envvar:`SAGE_INSTALL_GCC` - by default, Sage will automatically
   detect whether to install the
   `GNU Compiler Collection (GCC) <http://gcc.gnu.org/>`_
@@ -840,21 +858,43 @@ Environment variables dealing with specific Sage packages:
   minute on many systems -- so allowing it to build twice is not a
   serious issue.)
 
-Some standard environment variables which you should probably **not**
-set:
+Some standard environment variables which are used by Sage:
 
 - :envvar:`CC` - while some programs allow you to use this to specify
-  your C compiler, the Sage packages do **not** all recognize this.
-  In fact, setting this variable for building Sage is likely to cause
-  the build process to fail.
+  your C compiler, **not every Sage package recognizes this**.
+  If GCC is installed within Sage, :envvar:`CC` is ignored and Sage's
+  ``gcc`` is used instead.
 
-- :envvar:`CXX` - similarly, this will set the C++ complier for some
+- :envvar:`CXX` - similarly, this will set the C++ compiler for some
   Sage packages, and similarly, using it is likely quite risky.
+  If GCC is installed within Sage, :envvar:`CXX` is ignored and Sage's
+  ``g++`` is used instead.
 
-- :envvar:`CFLAGS`, :envvar:`CXXFLAGS` - the flags for the C compiler
-  and the C++ compiler, respectively.  The same comments apply to
-  these: setting them may cause problems, because they are not
-  universally respected among the Sage packages.
+- :envvar:`FC` - similarly, this will set the Fortran compiler.
+  This is supported by all Sage packages which have Fortran code.
+  However, for historical reasons, the value is hardcoded during the
+  initial ``make`` and subsequent changes to ``$FC`` might be ignored
+  (in which case, the original value will be used instead).
+  If GCC is installed within Sage, :envvar:`FC` is ignored and Sage's
+  ``gfortran`` is used instead.
+
+- :envvar:`CFLAGS`, :envvar:`CXXFLAGS` and :envvar:`FCFLAGS` - the
+  flags for the C compiler, the C++ compiler and the Fortran compiler,
+  respectively.  The same comments apply to these: setting them may
+  cause problems, because they are not universally respected among the
+  Sage packages.
+
+The following Fortran-related environment variables are **deprecated**
+since Sage 5.3 and support for these will likely be removed.
+They are still recognized, but should not be used for new setups.
+
+- :envvar:`SAGE_FORTRAN` - the path to the Fortran compiler.
+  Deprecated, use :envvar:`FC` instead.
+
+- :envvar:`SAGE_FORTRAN_LIB` - the path to the Fortran runtime library.
+  Normally, you don't need to set this. If you really need to,
+  you can add the directory containing the library to
+  :envvar:`LIBRARY_PATH` and/or :envvar:`LD_LIBRARY_PATH`.
 
 Sage uses the following environment variables when it runs:
 
@@ -876,8 +916,7 @@ Sage uses the following environment variables when it runs:
   ``SAGE_SERVER/packages/optional/``,
   ``SAGE_SERVER/packages/experimental/``, and
   ``SAGE_SERVER/packages/archive/`` for packages.  See the script
-  :file:`$SAGE_ROOT/local/bin/sage-download_package` for the
-  implementation.
+  :file:`$SAGE_ROOT/spkg/bin/sage-spkg` for the implementation.
 
 - :envvar:`SAGE_PATH` - a colon-separated list of directories which
   Sage searches when trying to locate Python libraries.
@@ -1013,21 +1052,8 @@ Sometimes the ATLAS spkg can fail to build.  Some things to check for:
 Special Notes
 -------------
 
--  (Found by Peter Jipsen) If you get an error like
-
-   ::
-
-       ImportError: /home/jipsen/Desktop/sage-1.3.3.1/local/lib/libpari-gmp.so.2:
-            cannot restore segment prot after reloc:
-       Permission denied
-
-   then your `SELinux <http://fedoraproject.org/wiki/SELinux>`_ configuration is preventing Sage from launching. To
-   rectify this issue, you can either change the default security
-   context for Sage (??) or disable SELinux altogether by setting the
-   line ``SELINUX=disabled`` in your ``/etc/sysconfig/selinux`` file.
-
 - To make SageTeX available to your users, see the instructions for
   :ref:`installation in a multiuser environment
   <sagetex_installation_multiuser>`.
 
-  **This page was last updated in May 2012 (Sage 5.0)**
+  **This page was last updated in August 2012 (Sage 5.3).**

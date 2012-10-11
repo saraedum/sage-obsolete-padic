@@ -745,7 +745,7 @@ cdef class Matrix_double_dense(matrix_dense.Matrix_dense):
         else:
             try:
                 p = sage.rings.integer.Integer(p)
-            except:
+            except TypeError:
                 raise ValueError("condition number 'p' must be +/- infinity, 'frob', 'sv' or an integer, not %s" % p)
             if p not in [-2,-1,1,2]:
                 raise ValueError("condition number integer values of 'p' must be -2, -1, 1 or 2, not %s" % p)
@@ -885,7 +885,7 @@ cdef class Matrix_double_dense(matrix_dense.Matrix_dense):
         else:
             try:
                 p = sage.rings.integer.Integer(p)
-            except:
+            except TypeError:
                 raise ValueError("matrix norm 'p' must be +/- infinity, 'frob' or an integer, not %s" % p)
             if not p in [-2,-1,1,2]:
                 raise ValueError("matrix norm integer values of 'p' must be -2, -1, 1 or 2, not %s" % p)
@@ -1312,6 +1312,7 @@ cdef class Matrix_double_dense(matrix_dense.Matrix_dense):
             doctest:...: DeprecationWarning: Eigenspaces of RDF/CDF matrices are
             deprecated as of Sage version 5.0,
             please use "eigenmatrix_left" instead
+            See http://trac.sagemath.org/11603 for details.
 
         ::
 
@@ -1337,11 +1338,11 @@ cdef class Matrix_double_dense(matrix_dense.Matrix_dense):
             ...
             ValueError: algebraic_multiplicity must be set to False for double precision matrices
         """
-        from sage.misc.misc import deprecation
+        from sage.misc.superseded import deprecation
         msg = ('Eigenspaces of RDF/CDF matrices are deprecated as of ',
                'Sage version 5.0',
                ', please use "eigenmatrix_left" instead')
-        deprecation(''.join(msg))
+        deprecation(11603, ''.join(msg))
         # For numerical values we leave decisions about
         # multiplicity to the calling routine
         if algebraic_multiplicity:
@@ -1399,6 +1400,7 @@ cdef class Matrix_double_dense(matrix_dense.Matrix_dense):
             doctest:...: DeprecationWarning: Eigenspaces of RDF/CDF matrices are
             deprecated as of Sage version 5.0,
             please use "eigenmatrix_right" instead
+            See http://trac.sagemath.org/11603 for details.
 
         ::
 
@@ -1429,11 +1431,11 @@ cdef class Matrix_double_dense(matrix_dense.Matrix_dense):
             ...
             ValueError: algebraic_multiplicity must be set to False for double precision matrices
         """
-        from sage.misc.misc import deprecation
+        from sage.misc.superseded import deprecation
         msg = ('Eigenspaces of RDF/CDF matrices are deprecated as of ',
                'Sage version 5.0',
                ', please use "eigenmatrix_right" instead')
-        deprecation(''.join(msg))
+        deprecation(11603, ''.join(msg))
         # For numerical values we leave decisions about
         # multiplicity to the calling routine
         if algebraic_multiplicity:
@@ -2390,8 +2392,8 @@ cdef class Matrix_double_dense(matrix_dense.Matrix_dense):
         cdef Matrix_double_dense U, S, V
 
         if len(args)>0 or len(kwds)>0:
-            from sage.misc.misc import deprecation
-            deprecation("Arguments passed to SVD, but SVD no longer supports different methods (it only uses numpy now).")
+            from sage.misc.superseded import deprecation
+            deprecation(7852, "Arguments passed to SVD, but SVD no longer supports different methods (it only uses numpy now).")
 
         if self._nrows == 0 or self._ncols == 0:
             U_t = self.new_matrix(self._nrows, self._ncols)
@@ -2427,54 +2429,188 @@ cdef class Matrix_double_dense(matrix_dense.Matrix_dense):
         return USV
 
     def QR(self):
-        """
-        Return the Q,R factorization of a real matrix A.
-
-        The computed decomposition is cached and returned on subsequent calls.
+        r"""
+        Returns a factorization into a unitary matrix and an
+        upper-triangular matrix.
 
         INPUT:
 
-        - self -- a real matrix A
+        Any matrix over ``RDF`` or ``CDF``.
 
         OUTPUT:
 
-        - Q, R -- immutable matrices such that A = Q*R such that the columns of Q are
-          orthogonal (i.e., $Q^t Q = I$), and R is upper triangular. 
+        ``Q``, ``R`` -- a pair of matrices such that if `A`
+        is the original matrix, then
 
-        EXAMPLES::
+        .. math::
+
+          A = QR, \quad Q^\ast Q = I
+
+        where `R` is upper-triangular.  `Q^\ast` is the
+        conjugate-transpose in the complex case, and just
+        the transpose in the real case. So `Q` is a unitary
+        matrix (or rather, orthogonal, in the real case),
+        or equivalently `Q` has orthogonal columns.  For a
+        matrix of full rank this factorization is unique
+        up to adjustments via multiples of rows and columns
+        by multiples with scalars having modulus `1`.  So
+        in the full-rank case, `R` is unique if the diagonal
+        entries are required to be positive real numbers.
+
+        The resulting decomposition is cached.
+
+        ALGORITHM:
         
-            sage: m = matrix(RDF,3,range(0, 12)); m
-            [ 0.0  1.0  2.0  3.0]
-            [ 4.0  5.0  6.0  7.0]
-            [ 8.0  9.0 10.0 11.0]
-            sage: Q,R = m.QR()
-            sage: Q*R
-            [ 0.0  1.0  2.0  3.0]
-            [ 4.0  5.0  6.0  7.0]
-            [ 8.0  9.0 10.0 11.0]
+        Calls "linalg.qr" from SciPy, which is in turn an
+        interface to LAPACK routines.
 
-        Note that Q is an orthogonal matrix::
+        EXAMPLES:
 
-            sage: (Q*Q.transpose()).zero_at(1e-10)
+        Over the reals, the inverse of ``Q`` is its transpose,
+        since including a conjugate has no effect.  In the real
+        case, we say ``Q`` is orthogonal. ::
+
+            sage: A = matrix(RDF, [[-2, 0, -4, -1, -1],
+            ...                    [-2, 1, -6, -3, -1],
+            ...                    [1, 1, 7, 4, 5],
+            ...                    [3, 0, 8, 3, 3],
+            ...                    [-1, 1, -6, -6, 5]])
+            sage: Q, R = A.QR()
+
+        At this point, ``Q`` is only well-defined up to the
+        signs of its columns, and similarly for ``R`` and its
+        rows, so we normalize them::
+
+            sage: Qnorm = Q._normalize_columns()
+            sage: Rnorm = R._normalize_rows()
+            sage: Qnorm.round(6).zero_at(10^-6)
+            [ 0.458831  0.126051  0.381212  0.394574   0.68744]
+            [ 0.458831  -0.47269 -0.051983 -0.717294  0.220963]
+            [-0.229416 -0.661766  0.661923  0.180872 -0.196411]
+            [-0.688247 -0.189076 -0.204468  -0.09663  0.662889]
+            [ 0.229416 -0.535715 -0.609939  0.536422 -0.024551]
+            sage: Rnorm.round(6).zero_at(10^-6)
+            [ 4.358899 -0.458831 13.076697  6.194225  2.982405]
+            [      0.0  1.670172  0.598741  -1.29202  6.207997]
+            [      0.0       0.0  5.444402  5.468661 -0.682716]
+            [      0.0       0.0       0.0  1.027626   -3.6193]
+            [      0.0       0.0       0.0       0.0  0.024551]
+            sage: (Q*Q.transpose()).zero_at(10^-14)
+            [1.0 0.0 0.0 0.0 0.0]
+            [0.0 1.0 0.0 0.0 0.0]
+            [0.0 0.0 1.0 0.0 0.0]
+            [0.0 0.0 0.0 1.0 0.0]
+            [0.0 0.0 0.0 0.0 1.0]
+            sage: (Q*R - A).zero_at(10^-14)
+            [0.0 0.0 0.0 0.0 0.0]
+            [0.0 0.0 0.0 0.0 0.0]
+            [0.0 0.0 0.0 0.0 0.0]
+            [0.0 0.0 0.0 0.0 0.0]
+            [0.0 0.0 0.0 0.0 0.0]
+
+        Now over the complex numbers, demonstrating that the SciPy libraries
+        are (properly) using the Hermitian inner product, so that ``Q`` is
+        a unitary matrix (its inverse is the conjugate-transpose).  ::
+
+            sage: A = matrix(CDF, [[-8, 4*I + 1, -I + 2, 2*I + 1],
+            ...                    [1, -2*I - 1, -I + 3, -I + 1],
+            ...                    [I + 7, 2*I + 1, -2*I + 7, -I + 1],
+            ...                    [I + 2, 0, I + 12, -1]])
+            sage: Q, R = A.QR()
+            sage: Q._normalize_columns().round(6).zero_at(10^-6)
+            [              0.730297  0.207057 + 0.538347*I  0.246305 - 0.076446*I   0.238162 - 0.10366*I]
+            [             -0.091287 -0.207057 - 0.377878*I  0.378656 - 0.195222*I  0.701244 - 0.364371*I]
+            [ -0.63901 - 0.091287*I  0.170822 + 0.667758*I -0.034115 + 0.040902*I  0.314017 - 0.082519*I]
+            [-0.182574 - 0.091287*I  -0.036235 + 0.07247*I  0.863228 + 0.063228*I -0.449969 - 0.011612*I]
+            sage: R._normalize_rows().round(6).zero_at(10^-6)
+            [             10.954451            -1.917029*I   5.385938 - 2.19089*I  -0.273861 - 2.19089*I]
+            [                   0.0               4.829596 -0.869638 - 5.864879*I  0.993872 - 0.305409*I]
+            [                   0.0                    0.0              12.001608 -0.270953 + 0.442063*I]
+            [                   0.0                    0.0                    0.0               1.942964]
+            sage: (Q.conjugate().transpose()*Q).zero_at(10^-15)
+            [1.0 0.0 0.0 0.0]
+            [0.0 1.0 0.0 0.0]
+            [0.0 0.0 1.0 0.0]
+            [0.0 0.0 0.0 1.0]
+            sage: (Q*R - A).zero_at(10^-14)
+            [0.0 0.0 0.0 0.0]
+            [0.0 0.0 0.0 0.0]
+            [0.0 0.0 0.0 0.0]
+            [0.0 0.0 0.0 0.0]
+
+        An example of a rectangular matrix that is also rank-deficient.
+        If you run this example yourself, you may see a very small, nonzero
+        entries in the third row, in the third column, even though the exact
+        version of the matrix has rank 2.  The final two columns of ``Q``
+        span the left kernel of ``A`` (as evidenced by the two zero rows of
+        ``R``).  Different platforms will compute different bases for this
+        left kernel, so we do not exhibit the actual matrix.  ::
+
+            sage: Arat = matrix(QQ, [[2, -3, 3],
+            ...                      [-1, 1, -1],
+            ...                      [-1, 3, -3],
+            ...                      [-5, 1, -1]])
+            sage: Arat.rank()
+            2
+            sage: A = Arat.change_ring(CDF)
+            sage: Q, R = A.QR()
+            sage: R._normalize_rows().round(6).zero_at(10^-6)
+            [ 5.567764  -2.69408   2.69408]
+            [      0.0  3.569585 -3.569585]
+            [      0.0       0.0       0.0]
+            [      0.0       0.0       0.0]
+            sage: (Q.conjugate_transpose()*Q).zero_at(10^-14)
+            [1.0 0.0 0.0 0.0]
+            [0.0 1.0 0.0 0.0]
+            [0.0 0.0 1.0 0.0]
+            [0.0 0.0 0.0 1.0]
+
+        Results are cached, meaning they are immutable matrices.
+        Make a copy if you need to manipulate a result. ::
+
+            sage: A = random_matrix(CDF, 2, 2)
+            sage: Q, R = A.QR()
+            sage: Q.is_mutable()
+            False
+            sage: R.is_mutable()
+            False
+            sage: Q[0,0] = 0
+            Traceback (most recent call last):
+            ...
+            ValueError: matrix is immutable; please change a copy instead (i.e., use copy(M) to change a copy of M).
+            sage: Qcopy = copy(Q)
+            sage: Qcopy[0,0] = 679
+            sage: Qcopy[0,0]
+            679.0
+
+        TESTS:
+
+        Trivial cases return trivial results of the correct size,
+        and we check ``Q`` itself in one case, verifying a fix for
+        :trac:`10795`.  ::
+
+            sage: A = zero_matrix(RDF, 0, 10)
+            sage: Q, R = A.QR()
+            sage: Q.nrows(), Q.ncols()
+            (0, 0)
+            sage: R.nrows(), R.ncols()
+            (0, 10)
+            sage: A = zero_matrix(RDF, 3, 0)
+            sage: Q, R = A.QR()
+            sage: Q.nrows(), Q.ncols()
+            (3, 3)
+            sage: R.nrows(), R.ncols()
+            (3, 0)
+            sage: Q
             [1.0 0.0 0.0]
             [0.0 1.0 0.0]
             [0.0 0.0 1.0]
-
-        The result is immutable::
-        
-            sage: Q[0,0] = 0
-            Traceback (most recent call last):
-                ...
-            ValueError: matrix is immutable; please change a copy instead (i.e., use copy(M) to change a copy of M).
-            sage: R.is_immutable()
-            True
-            
         """
         global scipy
         cdef Matrix_double_dense Q,R
 
         if self._nrows == 0 or self._ncols == 0:
-            return self.new_matrix(self._nrows, self._nrows), self.new_matrix()
+            return self.new_matrix(self._nrows, self._nrows, entries=1), self.new_matrix()
 
         QR = self.fetch('QR_factors')
         if QR is None:
@@ -2674,7 +2810,7 @@ cdef class Matrix_double_dense(matrix_dense.Matrix_dense):
         global numpy
         try:
             tol = float(tol)
-        except:
+        except StandardError:
             raise TypeError('tolerance must be a real number, not {0}'.format(tol))
         if tol <= 0:
             raise ValueError('tolerance must be positive, not {0}'.format(tol))
@@ -3427,6 +3563,18 @@ cdef class Matrix_double_dense(matrix_dense.Matrix_dense):
         to be positive definite (perhaps because it is not symmetric
         or Hermitian), then this function raises a ``ValueError``.
         
+        IMPLEMENTATION:
+
+        The existence of a Cholesky decomposition and the
+        positive definite property are equivalent.  So this
+        method and the :meth:`is_positive_definite` method compute and
+        cache both the Cholesky decomposition and the
+        positive-definiteness.  So the :meth:`is_positive_definite`
+        method or catching a ``ValueError`` from the :meth:`cholesky`
+        method are equally expensive computationally and if the
+        decomposition exists, it is cached as a side-effect of either
+        routine.
+
         EXAMPLES:
 
         A real matrix that is symmetric and positive definite.  ::
@@ -3524,14 +3672,18 @@ cdef class Matrix_double_dense(matrix_dense.Matrix_dense):
         from sage.rings.complex_double import CDF
 
         cdef Matrix_double_dense L
+        cache_cholesky = 'cholesky'
+        cache_posdef = 'positive_definite'
 
         if not self.is_square():
             msg = "Cholesky decomposition requires a square matrix, not a {0} x {1} matrix"
+            self.cache(cache_posdef, False)
             raise ValueError(msg.format(self.nrows(), self.ncols()))
         if self._nrows == 0:   # special case
+            self.cache(cache_posdef, True)
             return self.__copy__()
 
-        L = self.fetch('cholesky')
+        L = self.fetch(cache_cholesky)
         if L is None:
             L = self._new()
             global scipy
@@ -3542,10 +3694,159 @@ cdef class Matrix_double_dense(matrix_dense.Matrix_dense):
             try:
                 L._matrix_numpy = scipy.linalg.cholesky(self._matrix_numpy, lower=1)
             except LinAlgError:
+                self.cache(cache_posdef, False)
                 raise ValueError("matrix is not positive definite")
             L.set_immutable()
-            self.cache('cholesky', L)
+            self.cache(cache_cholesky, L)
+            self.cache(cache_posdef, True)
         return L
+        
+    def is_positive_definite(self):
+        r"""
+        Determines if a matrix is positive definite.
+
+        A matrix `A` is positive definite if it is square,
+        is Hermitian (which reduces to symmetric in the real case),
+        and for every nonzero vector `\vec{x}`,
+
+        .. math::
+
+            \vec{x}^\ast A \vec{x} > 0
+
+        where `\vec{x}^\ast` is the conjugate-transpose in the
+        complex case and just the transpose in the real case.
+        Equivalently, a positive definite matrix has only positive
+        eigenvalues and only positive determinants of leading
+        principal submatrices.
+
+        INPUT:
+
+        Any matrix over ``RDF`` or ``CDF``.
+
+        OUTPUT:
+
+        ``True`` if and only if the matrix is square, Hermitian,
+        and meets the condition above on the quadratic form.
+        The result is cached.
+
+        IMPLEMENTATION:
+
+        The existence of a Cholesky decomposition and the
+        positive definite property are equivalent.  So this
+        method and the :meth:`cholesky` method compute and
+        cache both the Cholesky decomposition and the
+        positive-definiteness.  So the :meth:`is_positive_definite`
+        method or catching a ``ValueError`` from the :meth:`cholesky`
+        method are equally expensive computationally and if the
+        decomposition exists, it is cached as a side-effect of either
+        routine.
+
+        EXAMPLES:
+
+        A matrix over ``RDF`` that is positive definite.  ::
+
+            sage: M = matrix(RDF,[[ 1,  1,    1,     1,     1],
+            ...                   [ 1,  5,   31,   121,   341],
+            ...                   [ 1, 31,  341,  1555,  4681],
+            ...                   [ 1,121, 1555,  7381, 22621],
+            ...                   [ 1,341, 4681, 22621, 69905]])
+            sage: M.is_symmetric()
+            True
+            sage: M.eigenvalues()
+            [77547.66..., 82.44..., 2.41..., 0.46..., 0.011...]
+            sage: [round(M[:i,:i].determinant()) for i in range(1, M.nrows()+1)]
+            [1, 4, 460, 27936, 82944]
+            sage: M.is_positive_definite()
+            True
+
+        A matrix over ``CDF`` that is positive definite.  ::
+
+            sage: C = matrix(CDF, [[        23,  17*I + 3,  24*I + 25,     21*I],
+            ...                    [ -17*I + 3,        38, -69*I + 89, 7*I + 15],
+            ...                    [-24*I + 25, 69*I + 89,        976, 24*I + 6],
+            ...                    [     -21*I, -7*I + 15,  -24*I + 6,       28]])
+            sage: C.is_hermitian()
+            True
+            sage: [x.real() for x in C.eigenvalues()]
+            [991.46..., 55.96..., 3.69..., 13.87...]
+            sage: [round(C[:i,:i].determinant().real()) for i in range(1, C.nrows()+1)]
+            [23, 576, 359540, 2842600]
+            sage: C.is_positive_definite()
+            True
+
+        A matrix over ``RDF`` that is not positive definite.  ::
+
+            sage: A = matrix(RDF, [[ 3,  -6,   9,   6,  -9],
+            ...                    [-6,  11, -16, -11,  17],
+            ...                    [ 9, -16,  28,  16, -40],
+            ...                    [ 6, -11,  16,   9, -19],
+            ...                    [-9,  17, -40, -19,  68]])
+            sage: A.is_symmetric()
+            True
+            sage: A.eigenvalues()
+            [108.07..., 13.02..., -0.02..., -0.70..., -1.37...]
+            sage: [round(A[:i,:i].determinant()) for i in range(1, A.nrows()+1)]
+            [3, -3, -15, 30, -30]
+            sage: A.is_positive_definite()
+            False
+
+        A matrix over ``CDF`` that is not positive definite.  ::
+
+            sage: B = matrix(CDF, [[      2, 4 - 2*I, 2 + 2*I],
+            ...                    [4 + 2*I,       8,    10*I],
+            ...                    [2 - 2*I,   -10*I,      -3]])
+            sage: B.is_hermitian()
+            True
+            sage: [ev.real() for ev in B.eigenvalues()]
+            [15.88..., 0.08..., -8.97...]
+            sage: [round(B[:i,:i].determinant().real()) for i in range(1, B.nrows()+1)]
+            [2, -4, -12]
+            sage: B.is_positive_definite()
+            False
+
+        A large random matrix that is guaranteed by theory to be
+        positive definite. ::
+
+            sage: R = random_matrix(CDF, 200)
+            sage: H = R.conjugate_transpose()*R
+            sage: H.is_positive_definite()
+            True
+
+        TESTS:
+
+        A trivially small case.  ::
+
+            sage: S = matrix(CDF, [])
+            sage: S.nrows(), S.ncols()
+            (0, 0)
+            sage: S.is_positive_definite()
+            True
+
+        A rectangular matrix will never be positive definite.  ::
+
+            sage: R = matrix(RDF, 2, 3, range(6))
+            sage: R.is_positive_definite()
+            False
+
+        A non-Hermitian matrix will never be positive definite.  ::
+
+            sage: T = matrix(CDF, 8, 8, range(64))
+            sage: T.is_positive_definite()
+            False
+
+        AUTHOR:
+
+        - Rob Beezer (2012-05-28)
+        """
+        cache_str = 'positive_definite'
+        posdef = self.fetch(cache_str)
+        if posdef is None:
+            try:
+                self.cholesky()
+            except ValueError:
+                pass
+            posdef = self.fetch(cache_str)
+        return posdef
 
     cdef Vector _vector_times_matrix_(self,Vector v):
         if self._nrows == 0 or self._ncols == 0:
@@ -3699,7 +4000,7 @@ cdef class Matrix_double_dense(matrix_dense.Matrix_dense):
         d /= 2
         return int(math.ceil(d / math.log(10)))
 
-    @rename_keyword(deprecated='Sage version 4.6', method="algorithm")
+    @rename_keyword(deprecation=6094, method="algorithm")
     def exp(self, algorithm='pade', order=None):
         r"""
         Calculate the exponential of this matrix X, which is the matrix
@@ -3864,3 +4165,72 @@ cdef class Matrix_double_dense(matrix_dense.Matrix_dense):
         M = self._new()
         M._matrix_numpy = numpy.round(self._matrix_numpy, ndigits)
         return M
+
+    def _normalize_columns(self):
+        """
+        Returns a copy of the matrix where each column has been
+        multiplied by plus or minus 1, to guarantee that the real
+        part of the leading entry of each nonzero column is positive.
+
+        This is useful for modifying output from algorithms which
+        produce matrices which are only well-defined up to signs of
+        the columns, for example an algorithm which should produce an
+        orthogonal matrix.
+
+        OUTPUT:
+
+        A modified copy of the matrix.
+
+        EXAMPLES::
+
+            sage: a=matrix(CDF, [[1, -2+I, 0, -3*I], [2, 2, -2, 2], [-3, -3, -3, -2]])
+            sage: a
+            [         1.0 -2.0 + 1.0*I          0.0       -3.0*I]
+            [         2.0          2.0         -2.0          2.0]
+            [        -3.0         -3.0         -3.0         -2.0]
+            sage: a._normalize_columns()
+            [        1.0 2.0 - 1.0*I        -0.0      -3.0*I]
+            [        2.0        -2.0         2.0         2.0]
+            [       -3.0         3.0         3.0        -2.0]
+        """
+        M = self.__copy__()
+        cdef Py_ssize_t i, j
+        for j from 0 <= j < M.ncols():
+            for i from 0 <= i < M.column(j).degree():
+                a = M.column(j)[i].real()
+                if a != 0:
+                    if a < 0:
+                        M.rescale_col(j, -1)
+                    break
+        return M
+
+    def _normalize_rows(self):
+        """
+        Returns a copy of the matrix where each row has been
+        multiplied by plus or minus 1, to guarantee that the real
+        part of the leading entry of each nonzero row is positive.
+
+        This is useful for modifying output from algorithms which
+        produce matrices which are only well-defined up to signs of
+        the rows, for example an algorithm which should produce an
+        upper triangular matrix.
+
+        OUTPUT:
+
+        A modified copy of the matrix.
+
+        EXAMPLES::
+
+            sage: a=matrix(CDF, [[1, 2, -3], [-2+I, 2, -3], [0, -2, -3], [-3*I, 2, -2]])
+            sage: a
+            [         1.0          2.0         -3.0]
+            [-2.0 + 1.0*I          2.0         -3.0]
+            [         0.0         -2.0         -3.0]
+            [      -3.0*I          2.0         -2.0]
+            sage: a._normalize_rows()
+            [        1.0         2.0        -3.0]
+            [2.0 - 1.0*I        -2.0         3.0]
+            [       -0.0         2.0         3.0]
+            [     -3.0*I         2.0        -2.0]            
+        """
+        return self.transpose()._normalize_columns().transpose()

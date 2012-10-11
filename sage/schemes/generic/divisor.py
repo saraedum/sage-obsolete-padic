@@ -23,13 +23,13 @@ EXAMPLES::
     sage: D1.parent() is D2.parent()
     True
     sage: D = D1 - D2 + D3; D
-    -(x, z) + 3*(x, y) + 10*(x + 2*z, y + z)
+    3*(x, y) - (x, z) + 10*(x + 2*z, y + z)
     sage: D[1][0]
-    3
+    -1
     sage: D[1][1]
-    Ideal (x, y) of Multivariate Polynomial Ring in x, y, z over Finite Field of size 5
+    Ideal (x, z) of Multivariate Polynomial Ring in x, y, z over Finite Field of size 5
     sage: C.divisor([(3, pts[0]), (-1, pts[1]), (10,pts[5])])
-    -(x, z) + 3*(x, y) + 10*(x + 2*z, y + z)
+    3*(x, y) - (x, z) + 10*(x + 2*z, y + z)
 """
 #*******************************************************************************
 #  Copyright (C) 2010 Volker Braun <vbraun.name@gmail.com>
@@ -440,8 +440,8 @@ class Divisor_curve(Divisor_generic):
             sage: D.coefficient(pts[0])
             1
         """
-        from sage.misc.misc import deprecation
-        deprecation("This method is deprecated. It will be removed in a future release of Sage. Please use the coefficient() method instead.")
+        from sage.misc.superseded import deprecation
+        deprecation(9337, "This method is deprecated. It will be removed in a future release of Sage. Please use the coefficient() method instead.")
         return self.coefficient(P)
 
         

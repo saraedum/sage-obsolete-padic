@@ -65,7 +65,7 @@ def Alphabet(data=None, name=None):
     else:
         try:
             return OrderedAlphabet_Finite(data)
-        except:
+        except StandardError:
             raise TypeError, "cannot construct an alphabet from given data"
 
 OrderedAlphabet = Alphabet
@@ -83,10 +83,11 @@ class OrderedAlphabet_class(CombinatorialClass):
             sage: from sage.combinat.words.alphabet import OrderedAlphabet_Finite
             sage: OrderedAlphabet_Finite([1, 3, 2]).string_rep()
             doctest:1: DeprecationWarning: string_rep is deprecated, use __repr__ instead!
+            See http://trac.sagemath.org/6519 for details.
             'Ordered Alphabet [1, 3, 2]'
         """
-        from sage.misc.misc import deprecation
-        deprecation("string_rep is deprecated, use __repr__ instead!")
+        from sage.misc.superseded import deprecation
+        deprecation(6519, "string_rep is deprecated, use __repr__ instead!")
         return self.__repr__()
 
 class OrderedAlphabet_Finite(OrderedAlphabet_class):
@@ -191,7 +192,7 @@ class OrderedAlphabet_Finite(OrderedAlphabet_class):
         """
         try:
             return a in self._alphabet
-        except:
+        except StandardError:
             return False
 
     def __le__(self, other):

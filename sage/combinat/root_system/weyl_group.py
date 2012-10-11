@@ -42,7 +42,7 @@ from sage.rings.all import ZZ, QQ
 from sage.interfaces.gap import gap
 #from sage.misc.cache import Cache
 from sage.misc.cachefunc import cached_method, ClearCacheOnPickle
-from sage.misc.misc import deprecated_function_alias
+from sage.misc.superseded import deprecated_function_alias
 from sage.combinat.root_system.cartan_type import CartanType
 from sage.matrix.constructor import matrix, diagonal_matrix
 from sage.combinat.root_system.root_lattice_realizations import RootLatticeRealizations
@@ -286,7 +286,7 @@ class WeylGroup_gens(ClearCacheOnPickle, UniqueRepresentation, MatrixGroup_gens)
                 r = self.__call__(Matrix([self.domain().reflection(alp)(x).to_vector() for x in self.domain().basis()]))
                 ret[r] = alp
             return Family(ret)
-        except:
+        except StandardError:
             raise NotImplementedError, "reflections are only implemented for finite Weyl groups"
 
     def gens(self):
@@ -496,12 +496,13 @@ class WeylGroup_gens(ClearCacheOnPickle, UniqueRepresentation, MatrixGroup_gens)
         This method used to be called ``lattice``:
 
             sage: G.lattice()
-            doctest:...: DeprecationWarning: (Since Sage Version 4.3.4) lattice is deprecated. Please use domain instead.
+            doctest:...: DeprecationWarning: lattice is deprecated. Please use domain instead.
+            See http://trac.sagemath.org/8414 for details.
             Root space over the Rational Field of the Root system of type ['A', 3, 1]
         """
         return self._domain
 
-    lattice = deprecated_function_alias(domain, 'Sage Version 4.3.4')
+    lattice = deprecated_function_alias(8414, domain)
 
     def simple_reflection(self, i):
         """

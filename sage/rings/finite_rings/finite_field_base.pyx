@@ -54,7 +54,7 @@ cdef class FiniteFieldIterator:
 
             sage: K.<a> = GF(7^4)
             sage: K.list()[:7]
-            [0, 6*a, a^2, 6*a^3, 2*a^2 + 3*a + 4, 5*a^3 + 4*a^2 + 3*a, 3*a^3 + a^2 + 6*a + 1]
+            [0, a, a^2, a^3, 2*a^2 + 3*a + 4, 2*a^3 + 3*a^2 + 4*a, 3*a^3 + a^2 + 6*a + 1]
             sage: K.<a> = GF(5^9)
             sage: for x in K:
             ...       if x == a+3: break
@@ -538,7 +538,8 @@ cdef class FiniteField(Field):
         """
         if self.__factored_unit_order is None:
             if self.characteristic() in []: # want to be [2,3,5,7,11] once #7240 is finished.
-                self.__factored_unit_order = [(self.order()-1)._factor_cunningham()]
+                from sage.rings.factorint import factor_cunningham
+                self.__factored_unit_order = [factor_cunningham(self.order()-1)]
             else:
                 self.__factored_unit_order = [(self.order()-1).factor()]
         return self.__factored_unit_order

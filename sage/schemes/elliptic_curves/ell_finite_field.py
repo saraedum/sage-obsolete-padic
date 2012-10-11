@@ -312,7 +312,7 @@ class EllipticCurve_finite_field(EllipticCurve_field, HyperellipticCurve_finite_
             sage: k.<a> = GF(7^5)
             sage: E = EllipticCurve(k,[2,4])
             sage: P = E.random_element(); P
-            (2*a^4 + 3*a^3 + 5*a^2 + 6*a + 4 : 6*a^4 + 4*a^3 + a + 6 : 1)
+            (2*a^4 + 3*a^2 + 4*a : 3*a^4 + 6*a^2 + 5 : 1)
             sage: type(P)
             <class 'sage.schemes.elliptic_curves.ell_point.EllipticCurvePoint_finite_field'>
             sage: P in E
@@ -1417,7 +1417,7 @@ class EllipticCurve_finite_field(EllipticCurve_field, HyperellipticCurve_finite_
             N=self._order
             if debug:
                 print "Group order already known to be ",N
-        except:
+        except StandardError:
             if (q<50):
                 if debug:
                     print "Computing group order naively"

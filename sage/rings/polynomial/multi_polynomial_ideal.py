@@ -22,6 +22,8 @@ AUTHORS:
 - Martin Albrecht (2009): added Groebner basis over rings
   functionality from Singular 3.1
 
+- John Perry (2012): bug fixing equality & containment of ideals
+
 EXAMPLES:
 
 We compute a Groebner basis for some given ideal. The type returned by
@@ -230,7 +232,6 @@ TESTS::
 #
 #                  http://www.gnu.org/licenses/
 #*****************************************************************************
-from __future__ import with_statement
 
 from sage.interfaces.all import (singular as singular_default,
                                  macaulay2 as macaulay2_default,
@@ -335,7 +336,6 @@ class SingularDefaultContext:
         
         ::
         
-            sage: from __future__ import with_statement
             sage: with SingularDefaultContext(): rgb = Is.groebner()
             sage: rgb
             84*c^4-40*c^3+c^2+c,
@@ -1279,16 +1279,16 @@ class MPolynomialIdeal_singular_repr(
             [Ideal (a - 1, b - 1, c - 1, d^2 + 3*d + 1, e + d + 3) of Multivariate Polynomial Ring in e, d, c, b, a over Rational Field, 
             Ideal (a - 1, b - 1, c^2 + 3*c + 1, d + c + 3, e - 1) of Multivariate Polynomial Ring in e, d, c, b, a over Rational Field, 
             Ideal (a - 1, b^2 + 3*b + 1, c + b + 3, d - 1, e - 1) of Multivariate Polynomial Ring in e, d, c, b, a over Rational Field, 
-            Ideal (a - 1, b^4 + b^3 + b^2 + b + 1, c - b^2, d - b^3, e + b^3 + b^2 + b + 1) of Multivariate Polynomial Ring in e, d, c, b, a over Rational Field, 
+            Ideal (a - 1, b^4 + b^3 + b^2 + b + 1, -c + b^2, -d + b^3, e + b^3 + b^2 + b + 1) of Multivariate Polynomial Ring in e, d, c, b, a over Rational Field,
             Ideal (a^2 + 3*a + 1, b - 1, c - 1, d - 1, e + a + 3) of Multivariate Polynomial Ring in e, d, c, b, a over Rational Field, 
             Ideal (a^2 + 3*a + 1, b + a + 3, c - 1, d - 1, e - 1) of Multivariate Polynomial Ring in e, d, c, b, a over Rational Field, 
-            Ideal (a^4 - 4*a^3 + 6*a^2 + a + 1, 11*b^2 - 6*b*a^3 + 26*b*a^2 - 41*b*a + 4*b + 8*a^3 - 31*a^2 + 40*a + 24, 11*c + 3*a^3 - 13*a^2 + 26*a - 2, 11*d + 3*a^3 - 13*a^2 + 26*a - 2, 11*e + 11*b - 6*a^3 + 26*a^2 - 41*a + 4) of Multivariate Polynomial Ring in e, d, c, b, a over Rational Field, 
-            Ideal (a^4 + a^3 + a^2 + a + 1, b - 1, c + a^3 + a^2 + a + 1, d - a^3, e - a^2) of Multivariate Polynomial Ring in e, d, c, b, a over Rational Field, 
+            Ideal (a^4 - 4*a^3 + 6*a^2 + a + 1, -11*b^2 + 6*b*a^3 - 26*b*a^2 + 41*b*a - 4*b - 8*a^3 + 31*a^2 - 40*a - 24, 11*c + 3*a^3 - 13*a^2 + 26*a - 2, 11*d + 3*a^3 - 13*a^2 + 26*a - 2, -11*e - 11*b + 6*a^3 - 26*a^2 + 41*a - 4) of Multivariate Polynomial Ring in e, d, c, b, a over Rational Field,
+            Ideal (a^4 + a^3 + a^2 + a + 1, b - 1, c + a^3 + a^2 + a + 1, -d + a^3, -e + a^2) of Multivariate Polynomial Ring in e, d, c, b, a over Rational Field,
             Ideal (a^4 + a^3 + a^2 + a + 1, b - a, c - a, d^2 + 3*d*a + a^2, e + d + 3*a) of Multivariate Polynomial Ring in e, d, c, b, a over Rational Field, 
             Ideal (a^4 + a^3 + a^2 + a + 1, b - a, c^2 + 3*c*a + a^2, d + c + 3*a, e - a) of Multivariate Polynomial Ring in e, d, c, b, a over Rational Field, 
             Ideal (a^4 + a^3 + a^2 + a + 1, b^2 + 3*b*a + a^2, c + b + 3*a, d - a, e - a) of Multivariate Polynomial Ring in e, d, c, b, a over Rational Field, 
-            Ideal (a^4 + a^3 + a^2 + a + 1, b^3 + b^2*a + b^2 + b*a^2 + b*a + b + a^3 + a^2 + a + 1, c + b^2*a^3 + b^2*a^2 + b^2*a + b^2, d - b^2*a^2 - b^2*a - b^2 - b*a^2 - b*a - a^2, e - b^2*a^3 + b*a^2 + b*a + b + a^2 + a) of Multivariate Polynomial Ring in e, d, c, b, a over Rational Field, 
-            Ideal (a^4 + a^3 + 6*a^2 - 4*a + 1, 11*b^2 - 6*b*a^3 - 10*b*a^2 - 39*b*a - 2*b - 16*a^3 - 23*a^2 - 104*a + 24, 11*c + 3*a^3 + 5*a^2 + 25*a + 1, 11*d + 3*a^3 + 5*a^2 + 25*a + 1, 11*e + 11*b - 6*a^3 - 10*a^2 - 39*a - 2) of Multivariate Polynomial Ring in e, d, c, b, a over Rational Field]
+            Ideal (a^4 + a^3 + a^2 + a + 1, b^3 + b^2*a + b^2 + b*a^2 + b*a + b + a^3 + a^2 + a + 1, c + b^2*a^3 + b^2*a^2 + b^2*a + b^2, -d + b^2*a^2 + b^2*a + b^2 + b*a^2 + b*a + a^2, -e + b^2*a^3 - b*a^2 - b*a - b - a^2 - a) of Multivariate Polynomial Ring in e, d, c, b, a over Rational Field, 
+            Ideal (a^4 + a^3 + 6*a^2 - 4*a + 1, -11*b^2 + 6*b*a^3 + 10*b*a^2 + 39*b*a + 2*b + 16*a^3 + 23*a^2 + 104*a - 24, 11*c + 3*a^3 + 5*a^2 + 25*a + 1, 11*d + 3*a^3 + 5*a^2 + 25*a + 1, -11*e - 11*b + 6*a^3 + 10*a^2 + 39*a + 2) of Multivariate Polynomial Ring in e, d, c, b, a over Rational Field]
 
             sage: R.<x1,x2> = PolynomialRing(QQ, 2, order='lex')
             sage: f1 = 1/2*((x1^2 + 2*x1 - 4)*x2^2 + 2*(x1^2 + x1)*x2 + x1^2)
@@ -1986,6 +1986,7 @@ class MPolynomialIdeal_singular_repr(
             sage: I = Ideal([z*x+y^3,z+y^3,z+x*y])
             sage: I.reduced_basis()
             doctest:...: DeprecationWarning: This function is deprecated. It will be removed in a future release of Sage. Please use the interreduced_basis() function instead.
+            See http://trac.sagemath.org/5058 for details.
             [y^3 + z, x*y + z, x*z - z] 
 
             sage: R.<x,y,z> = PolynomialRing(QQ,order='negdegrevlex')
@@ -1999,8 +2000,8 @@ class MPolynomialIdeal_singular_repr(
         ``toy_buchberger.inter_reduction`` if conversion to
         Singular fails.
         """
-        from sage.misc.misc import deprecation
-        deprecation("This function is deprecated. It will be removed in a future release of Sage. Please use the interreduced_basis() function instead.")
+        from sage.misc.superseded import deprecation
+        deprecation(5058, "This function is deprecated. It will be removed in a future release of Sage. Please use the interreduced_basis() function instead.")
         return self.interreduced_basis()
 
     @singular_standard_options
@@ -3175,6 +3176,7 @@ class MPolynomialIdeal( MPolynomialIdeal_singular_repr, \
             Ideal (x0^2, x1^3) of Multivariate Polynomial Ring in x0, x1 over Finite Field of size 3
         """
         Ideal_generic.__init__(self, ring, gens, coerce=coerce)
+        self._gb_by_ordering = dict()
 
     @cached_method
     def gens(self):
@@ -3193,44 +3195,145 @@ class MPolynomialIdeal( MPolynomialIdeal_singular_repr, \
         from sage.rings.polynomial.multi_polynomial_sequence import PolynomialSequence
         return PolynomialSequence(self.ring(), Ideal_generic.gens(self), immutable=True)
 
+    def __lt__(self, other):
+        """
+        Decides whether ``self`` is contained in ``other``.
+
+        INPUT:
+
+        - ``other`` -- a polynomial ideal
+
+        OUTPUT:
+
+        - ``True`` if ``self`` is contained in ``other``; ``False`` otherwise
+
+        ALGORITHM:
+
+        We use ideal membership to test whether ``self`` is a subset of ``other``.
+
+        #. Let $F$ be the generators of ``self``.
+        #. Let $G$ be a Groebner basis of ``other``.
+        #. If any $f\in F$ does not reduce to zero modulo $G$:
+
+           #. Return ``False``.
+
+        #. Else:
+
+           #. Return ``True``.
+
+        EXAMPLE::
+
+            sage: R.<x,y> = GF(32003)[]
+            sage: I = R*[x^2 + x, y]
+            sage: J = R*[x + 1, y]
+            sage: J < I
+            False
+            sage: I < J
+            True
+
+        TEST:
+
+            We test to make sure that pickling works with the cached Groebner basis::
+
+            sage: loads(dumps(I)).__getstate__()
+            (Monoid of ideals of Multivariate Polynomial Ring in x, y over Finite Field of size 32003, {'_Ideal_generic__ring': Multivariate Polynomial Ring in x, y over Finite Field of size 32003, '_cache__groebner_basis': {}, 'groebner_basis': Pickle of the cached method "groebner_basis", 'gens': Pickle of the cached method "gens", '_Ideal_generic__gens': (x^2 + x, y), '_gb_by_ordering': {'degrevlex': [x^2 + x, y]}})
+
+        """
+        # first check the type
+        if not isinstance(other, MPolynomialIdeal):
+            return False
+
+        # the ideals may be defined w.r.t. to different term orders
+        # but are still the same.
+        R = self.ring()
+        S = other.ring()
+        # separate next two tests to avoid unnecessary creation of Groebner basis
+        if S != R:
+          if S.change_ring(order=R.term_order()) != R: # rings are unique
+            return False
+          else:
+            # at this point, the rings are the same, but for the term order,
+            # and we can fix that easily
+            other_new = other.change_ring(R)
+        else:
+            other_new = other
+
+        # now, check whether the GBs are cached already
+        l = self.gens()
+        try:
+            if other_new.groebner_basis.is_in_cache():
+                r = other_new.groebner_basis()
+            elif len(other_new._gb_by_ordering) != 0:
+                r = other_new._gb_by_ordering.itervalues().next()
+            else: # use easy GB otherwise
+                l = self.change_ring(R.change_ring(order="degrevlex")).gens()
+                r = other_new.change_ring(R.change_ring(order="degrevlex")).groebner_basis()
+                # remember this Groebner basis for future reference
+                other._gb_by_ordering['degrevlex'] = r
+        except AttributeError: # e.g. quotient rings
+            r = other_new.groebner_basis()
+        for f in l:
+            if f.reduce(r) != 0:
+                return False
+        return True
+
+    def __gt__(self, other):
+        """
+        Decides whether ``self`` contains ``other``.
+
+        INPUT:
+
+        - ``other`` -- a polynomial ideal
+
+        OUTPUT:
+
+        - ``True`` if ``self`` contains ``other``; ``False`` otherwise
+
+        ALGORITHM:
+
+        #. Return ``other`` < ``self``.
+
+        .. SEEALSO: :meth:`__lt__`.
+
+        EXAMPLE::
+
+            sage: R.<x,y> = GF(32003)[]
+            sage: I = R*[x^2 + x, y]
+            sage: J = R*[x + 1, y]
+            sage: J > I
+            True
+            sage: I > J
+            False
+        """
+        return other.__lt__(self)
+
     def __cmp__(self, other):
         """
+        Comparison of ``self`` with ``other``.
+
+        INPUT:
+
+        - ``other`` -- a polynomial ideal
+
+        OUTPUT:
+
+        - 0 if ``self`` and ``other`` are the same ideal, 1 otherwise.
+
+        NOTES:
+
+        This algorithm relies on :meth:`.__eq__`.
+
         EXAMPLE::
-        
-            sage: R = PolynomialRing(QQ,'x,y,z')
-            sage: I = R.ideal()
-            sage: I == R.ideal()
-            True
-        
-        ::
-        
-            sage: R = PolynomialRing(QQ, names=[])
-            sage: R.ideal(0) == R.ideal(0)
-            verbose 0 (...: multi_polynomial_ideal.py, groebner_basis) Warning: falling back to very slow toy implementation.
-            verbose 0 (...: multi_polynomial_ideal.py, groebner_basis) Warning: falling back to very slow toy implementation.
-            True
-        
-        ::
-        
-            sage: R, (x,y) = PolynomialRing(QQ, 2, 'xy').objgens()
-            sage: I = (x^3 + y, y)*R
-            sage: J = (x^3 + y, y, y*x^3 + y^2)*R
-            sage: I == J
-            True
-        
-        ::
-        
-            sage: R = PolynomialRing(QQ, 'x,y,z', order='degrevlex')
-            sage: S = PolynomialRing(QQ, 'x,y,z', order='invlex')
-            sage: I = R.ideal([R.0,R.1])
-            sage: J = S.ideal([S.0,S.1])
-            sage: I == J
-            True
+
+            sage: R.<x,y> = ZZ[]; I = R*[x^2 + y, 2*y]; J = R*[x^2 + y]
             sage: cmp(I,J)
-            0
-            sage: I.__cmp__(J)
+            1
+            sage: cmp(J,I)
+            -1
+            sage: cmp(I,I)
             0
         """
+
         # first check the type
         if not isinstance(other, MPolynomialIdeal):
             return 1
@@ -3246,17 +3349,103 @@ class MPolynomialIdeal( MPolynomialIdeal_singular_repr, \
                 return cmp((type(R), R.base_ring(), R.ngens()), (type(S), S.base_ring(), S.ngens()))
 
         # now, check whether the GBs are cached already
-        if self.groebner_basis.is_in_cache() and other.groebner_basis.is_in_cache():
-            l = self.groebner_basis()
-            r = other.groebner_basis()
-        else: # use easy GB otherwise
-            try:
-                l = self.change_ring(R.change_ring(order="degrevlex")).groebner_basis()
-                r = other.change_ring(R.change_ring(order="degrevlex")).groebner_basis()
-            except AttributeError: # e.g. quotient rings
+        l = self.gens()
+        try:
+            if other.groebner_basis.is_in_cache():
                 l = self.groebner_basis()
                 r = other.groebner_basis()
+            else: # use easy GB otherwise
+                l = self.change_ring(R.change_ring(order="degrevlex")).groebner_basis()
+                r = other.change_ring(R.change_ring(order="degrevlex")).groebner_basis()
+        except AttributeError: # e.g. quotient rings
+            l = self.groebner_basis()
+            r = other.groebner_basis()
         return cmp(l,r)
+
+    def __eq__(self, other):
+        r"""
+        Decides whether ``self`` equals ``other``.
+
+        INPUT:
+
+        - ``other`` -- a polynomial ideal
+
+        OUTPUT:
+
+        - ``True`` if the ideals are the same; ``False`` otherwise
+
+        ALGORITHM:
+
+        #. Return ``True`` iff ``self`` and ``other`` contain each other.
+
+        .. SEEALSO::
+
+            :meth:`__lt__`
+            :meth:`__gt__`
+
+        EXAMPLE::
+
+            sage: R = PolynomialRing(QQ,'x,y,z')
+            sage: I = R.ideal()
+            sage: I == R.ideal()
+            True
+
+        ::
+
+            sage: R = PolynomialRing(QQ, names=[])
+            sage: R.ideal(0) == R.ideal(0)
+            verbose 0 (...: multi_polynomial_ideal.py, groebner_basis) Warning: falling back to very slow toy implementation.
+            verbose 0 (...: multi_polynomial_ideal.py, groebner_basis) Warning: falling back to very slow toy implementation.
+            True
+
+        ::
+
+            sage: R, (x,y) = PolynomialRing(QQ, 2, 'xy').objgens()
+            sage: I = (x^3 + y, y)*R
+            sage: J = (x^3 + y, y, y*x^3 + y^2)*R
+            sage: I == J
+            True
+
+        ::
+
+            sage: R = PolynomialRing(QQ, 'x,y,z', order='degrevlex')
+            sage: S = PolynomialRing(QQ, 'x,y,z', order='invlex')
+            sage: I = R.ideal([R.0,R.1])
+            sage: J = S.ideal([S.0,S.1])
+            sage: I == J
+            True
+
+        TEST:
+
+        This example checks :trac:`12802`::
+
+            sage: R.<x,y> = ZZ[]
+            sage: I = R * [ x^2 + y, 2*y ]
+            sage: J = R * [ x^2 - y, 2*y ]
+            sage: I == J
+            True
+
+        Another good test from the discussion in :trac:`12802`::
+
+            sage: Rx = PolynomialRing(QQ, 2, "x")
+            sage: Ix = Rx.ideal(Rx.0)
+            sage: Ry = PolynomialRing(QQ, 2, "y")
+            sage: Iy = Ry.ideal(Ry.0)
+            sage: Ix == Iy
+            False
+
+        However, this should work if only the orderings are different::
+
+            sage: R = PolynomialRing(QQ, 'x', 2, order='degrevlex')
+            sage: S = PolynomialRing(QQ, 'x', 2, order='lex')
+            sage: R == S
+            False
+            sage: I = R*[R.0^2 + R.1, R.1]
+            sage: J = S*[S.0^2 + S.1, S.1]
+            sage: I == J
+            True
+        """
+        return self < other and self > other
 
     def groebner_fan(self, is_groebner_basis=False, symmetry=None, verbose=False):
         r"""

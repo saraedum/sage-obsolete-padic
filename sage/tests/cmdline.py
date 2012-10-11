@@ -19,6 +19,7 @@ test.sage
 -h
 --help
 --hg
+--info
 --ipython
 --kash
 --lisp
@@ -138,7 +139,7 @@ def test_executable(args, input="", timeout=50.0):
         0
 
         sage: (out, err, ret) = test_executable(["sage", "--startuptime"])
-        sage: out.find("sage.all: ") >= 0
+        sage: out.find("Slowest module import") >= 0
         True
         sage: err
         ''
@@ -197,6 +198,26 @@ def test_executable(args, input="", timeout=50.0):
         sage: ret
         0
     
+    Test ``sage --info [packages]``, unless this is a binary (bdist)
+    distribution which doesn't ship spkgs::
+
+        sage: if os.path.isfile(os.path.join(SAGE_ROOT, 'spkg', 'standard', '.from_bdist')):
+        ...     out = "Found package sqlalchemy in spkg/standard/sqlalchemy-...spkg\n= SQLAlchemy =\n...\nSQLAlchemy is the Python SQL toolkit..."
+        ...     err = ''
+        ...     ret = 0
+        ... else:
+        ...     (out, err, ret) = test_executable(["sage", "--info", "sqlalchemy"])
+        ...
+        sage: print out
+        Found package sqlalchemy in spkg/standard/sqlalchemy-...spkg
+        = SQLAlchemy =
+        ...
+        SQLAlchemy is the Python SQL toolkit...
+        sage: err
+        ''
+        sage: ret
+        0
+
     Test ``sage-run`` on a Python file, both with an absolute and with a relative path::
 
         sage: import tempfile

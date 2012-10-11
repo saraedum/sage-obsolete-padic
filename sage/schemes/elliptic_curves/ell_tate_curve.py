@@ -95,13 +95,13 @@ class TateCurve(SageObject):
             sage: eq = e.tate_curve(2); eq
             2-adic Tate curve associated to the Elliptic Curve defined by y^2 + x*y + y = x^3 - 33*x + 68 over Rational Field
         """
-        self._p = ZZ(p)
-        self._E = E
-        self._q = self.parameter()
         if not p.is_prime():
             raise ValueError, "p (=%s) must be a prime"%p
         if E.j_invariant().valuation(p) >= 0:
             raise ValueError, "The elliptic curve must have multiplicative reduction at %s"%p
+        self._p = ZZ(p)
+        self._E = E
+        self._q = self.parameter()
 
     def __cmp__(self, other):
         r"""
@@ -498,7 +498,7 @@ class TateCurve(SageObject):
         yy = t + s * C**2 * P[0] + C**3 * P[1]
         try:
             Pq = Eq([xx,yy])
-        except:
+        except StandardError:
             raise RuntimeError, "Bug : Point %s does not lie on the curve "%[xx,yy]
 
         tt = -xx/yy

@@ -323,9 +323,9 @@ def PowerSeriesRing(base_ring, name=None, arg2=None, names=None,
     ## too many things (padics, elliptic curves) depend on this behavior,
     ## so no warning for now.
     ##
-    # from sage.misc.misc import deprecation
+    # from sage.misc.superseded import deprecation
     # if isinstance(name, (int,long,integer.Integer)) or isinstance(arg2,(int,long,integer.Integer)):
-    #     deprecation("This behavior of PowerSeriesRing is being deprecated in favor of constructing multivariate power series rings. (See Trac ticket #1956.)")
+    #     deprecation(trac_number, "This behavior of PowerSeriesRing is being deprecated in favor of constructing multivariate power series rings. (See Trac ticket #1956.)")
 
 
     # the following is the original, univariate-only code
@@ -1018,15 +1018,19 @@ class PowerSeriesRing_generic(commutative_ring.CommutativeRing, Nonexact):
         
         EXAMPLES::
         
-            sage: R.<t> = PowerSeriesRing(ZZ)
-            sage: R.laurent_series_ring()
+            sage: R.<t> = PowerSeriesRing(ZZ,default_prec=5)
+            sage: S = R.laurent_series_ring(); S
             Laurent Series Ring in t over Integer Ring
+            sage: S.default_prec()
+            5
+            sage: f = 1+t; g=1/f; g
+            1 - t + t^2 - t^3 + t^4 + O(t^5)
         """
         try:
             return self.__laurent_series_ring
         except AttributeError:
             self.__laurent_series_ring = laurent_series_ring.LaurentSeriesRing(
-                                                 self.base_ring(), self.variable_name(), sparse=self.is_sparse())
+                                                 self.base_ring(), self.variable_name(), default_prec=self.default_prec(), sparse=self.is_sparse())
             return self.__laurent_series_ring            
     
 class PowerSeriesRing_domain(PowerSeriesRing_generic, integral_domain.IntegralDomain):

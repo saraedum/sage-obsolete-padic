@@ -522,7 +522,7 @@ def LineSegment(start, end, thickness=1, radius=None, **kwds):
         theta = -acos(diff[2]/height)
         return cyl.rotate(axis, theta).translate(start)
 
-@rename_keyword(deprecated='Sage 4.6', deprecated_option='thickness', thickness='width')
+@rename_keyword(deprecation=7154, deprecated_option='thickness', thickness='width')
 def arrow3d(start, end, width=1, radius=None, head_radius=None, head_len=None, **kwds):
     """
     Create a 3d arrow.
@@ -579,7 +579,8 @@ def arrow3d(start, end, width=1, radius=None, head_radius=None, head_len=None, *
     The thickness option is now deprecated.  It has been replaced by the width option.
     
         sage: arrow3d((0,0,0), (1,1,1), thickness=1)
-        doctest:...: DeprecationWarning: (Since Sage 4.6) use the option 'width' instead of 'thickness'
+        doctest:...: DeprecationWarning: use the option 'width' instead of 'thickness'
+        See http://trac.sagemath.org/7154 for details.
         <BLANKLINE>
     """
     if radius is None:

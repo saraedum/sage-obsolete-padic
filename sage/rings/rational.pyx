@@ -96,13 +96,13 @@ cdef extern from "mpz_pylong.h":
 
 cdef class Rational(sage.structure.element.FieldElement)
 
-cdef public inline void set_from_mpq(Rational self, mpq_t value):
+cdef inline void set_from_mpq(Rational self, mpq_t value):
     mpq_set(self.value, value)
     
-cdef public inline void set_from_Rational(Rational self, Rational other):
+cdef inline void set_from_Rational(Rational self, Rational other):
     mpq_set(self.value, other.value)
 
-cdef public inline void set_from_Integer(Rational self, integer.Integer other):
+cdef inline void set_from_Integer(Rational self, integer.Integer other):
     mpq_set_z(self.value, other.value)
 
 cdef object Rational_mul_(Rational a, Rational b):
@@ -1504,6 +1504,7 @@ cdef class Rational(sage.structure.element.FieldElement):
         
             sage: (5/3).sqrt_approx()
             doctest:...: DeprecationWarning: This function is deprecated.  Use sqrt with a given number of bits of precision instead.
+            See http://trac.sagemath.org/9859 for details.
             1.29099444873581
             sage: (990829038092384908234098239048230984/4).sqrt_approx()
             4.9770197862083713747374920870362581922510725585130996993055116540856385e17
@@ -1512,8 +1513,8 @@ cdef class Rational(sage.structure.element.FieldElement):
             sage: (9/4).sqrt_approx()
             3/2
         """
-        from sage.misc.misc import deprecation
-        deprecation("This function is deprecated.  Use sqrt with a given number of bits of precision instead.")
+        from sage.misc.superseded import deprecation
+        deprecation(9859, "This function is deprecated.  Use sqrt with a given number of bits of precision instead.")
         try:
             return self.sqrt(extend=False,all=all)
         except ValueError:
@@ -2287,7 +2288,7 @@ cdef class Rational(sage.structure.element.FieldElement):
             except AttributeError:
                 try:
                     return type(n)(self)**n
-                except:
+                except StandardError:
                     raise TypeError, "exponent (=%s) must be an integer.\nCoerce your numbers to real or complex numbers first."%n
 
         except OverflowError:
