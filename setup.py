@@ -988,7 +988,8 @@ code = setup(name = 'sage',
                      'sage.rings.polynomial',
                      'sage.rings.polynomial.padics',
                      'sage.rings.semirings',
-                     
+                     'sage.rings.universal_cyclotomic_field',
+
                      'sage.tests',
                      'sage.tests.french_book',
 
