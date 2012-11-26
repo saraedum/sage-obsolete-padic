@@ -2,7 +2,7 @@
 k-Schur Functions
 """
 #*****************************************************************************
-#       Copyright (C) 2007 Mike Hansen <mhansen@gmail.com>, 
+#       Copyright (C) 2007 Mike Hansen <mhansen@gmail.com>,
 #
 #  Distributed under the terms of the GNU General Public License (GPL)
 #
@@ -11,7 +11,7 @@ k-Schur Functions
 #    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
 #    General Public License for more details.
 #
-
+#
 #  The full text of the GPL is available at:
 #
 #                  http://www.gnu.org/licenses/
@@ -27,9 +27,9 @@ def kSchurFunctions(R, k, t=None):
     """
     Returns the k-Schur functions. See the examples below for caveats
     on their use.
-    
+
     EXAMPLES::
-    
+
         sage: ks3 = kSchurFunctions(QQ, 3); ks3
         doctest:1: DeprecationWarning: Deprecation warning: Please use SymmetricFunctions(QQ).kschur() instead!
         See http://trac.sagemath.org/5457 for details.
@@ -41,40 +41,40 @@ def kSchurFunctions(R, k, t=None):
         sage: t = ks3.t # Allow 't' as input
         sage: s(ks3([3,2,1]))
         s[3, 2, 1] + t*s[4, 1, 1] + t*s[4, 2] + t^2*s[5, 1]
-    
+
     ::
-    
+
         sage: ks3(s([3, 2, 1]) + t*s([4, 1, 1]) + t*s([4, 2]) + t^2*s([5, 1]))
         ks3[3, 2, 1]
-    
+
     k-Schurs are indexed by partitions with first part `\le
     k`. Constructing a k-Schur function for a larger partition raises
     an error::
 
-        sage: ks3([4,3,2,1])  # 
+        sage: ks3([4,3,2,1])  #
         Traceback (most recent call last):
         ...
         TypeError: do not know how to make x (= [4, 3, 2, 1]) an element of self (=k-Schur Functions at level 3 over Univariate Polynomial Ring in t over Rational Field)
 
     Note: this used to return 0 instead. What is preferable?
-    
+
     Similarly, attempting to convert a function that is not in the
     linear span of the k-Schur's raises an error::
-    
+
         sage: ks3(s([4]))
         Traceback (most recent call last):
         ...
         ValueError: s[4] is not in the space spanned by k-Schur Functions at level 3 over Univariate Polynomial Ring in t over Rational Field.
-    
+
     Note that the product of k-Schurs is not guaranteed to be in the
     space spanned by the k-Schurs. In general, we only have that a
     k-Schur times a j-Schur is a (k+j)-Schur. This fact is not
     currently incorporated into the Sage design, so the multiplication
     of k-Schur functions may return an error. This example shows how to
     get around this 'manually'.
-    
+
     ::
-    
+
         sage: ks2 = kSchurFunctions(QQ, 2)
         sage: ks2([2,1])^2
         Traceback (most recent call last):
@@ -83,21 +83,21 @@ def kSchurFunctions(R, k, t=None):
         3] + (2*t+1)*s[4, 1, 1] + (t^2+2*t+1)*s[4, 2] + (t^2+2*t)*s[5, 1] + t^2*s[6] is not in the
         space spanned by k-Schur Functions at level 2 over Univariate Polynomial Ring in t over
         Rational Field.
-    
+
     ::
-    
+
         sage: f = s(ks2([2,1]))^2; f # Convert to Schur functions first and multiply there.
         s[2, 2, 1, 1] + s[2, 2, 2] + s[3, 1, 1, 1] + (2*t+2)*s[3, 2, 1] + (t^2+1)*s[3,
         3] + (2*t+1)*s[4, 1, 1] + (t^2+2*t+1)*s[4, 2] + (t^2+2*t)*s[5, 1] + t^2*s[6]
         sage: ks4 = kSchurFunctions(QQ, 4)
         sage: ks4(f) # The product of two 'ks2's is a 'ks4'.
         ks4[2, 2, 1, 1] + ks4[2, 2, 2] + ks4[3, 1, 1, 1] + (t+2)*ks4[3, 2, 1] + (t^2+1)*ks4[3, 3] + (t+1)*ks4[4, 1, 1] + ks4[4, 2]
-    
+
     However, at t=1, the product of k-Schurs is in the span of the
     k-Schurs. Below are some examples at t=1.
-    
+
     ::
-    
+
         sage: ks3 = kSchurFunctions(QQ, 3, 1); ks3
         k-Schur Functions at level 3 with t=1 over Rational Field
         sage: s = SFASchur(ks3.base_ring())
@@ -116,21 +116,20 @@ class kSchurFunctions_generic(sfa.SymmetricFunctionAlgebra_generic):
     def _change_by_triangularity(self, el, to_other_cache, unitriang=False):
         """
         Returns self(el) converted by triangularity.
-        
+
         INPUT:
-        
-        
+
         -  ``el`` - a symmetric function
-        
+
         -  ``to_other_cache`` - a dictionary containing the
            change of basis from self to el's basis
-        
+
         -  ``unitriang`` - a boolean, if True, the coefficient
            of part in self( el.parent()(part) ) is assumed to be 1.
-        
-        
+
+
         EXAMPLES::
-        
+
             sage: ks3 = kSchurFunctions(QQ, 3)
             doctest:1: DeprecationWarning: Deprecation warning: Please use SymmetricFunctions(QQ).kschur() instead!
             See http://trac.sagemath.org/5457 for details.
@@ -152,7 +151,7 @@ class kSchurFunctions_generic(sfa.SymmetricFunctionAlgebra_generic):
             l.sort()
             part2 = l[0]
             n = part2.size()
-            
+
             if not to_other_cache[n][part2]:
                 raise ValueError,"%s is not in the space spanned by %s."%(orig,self)
 
@@ -160,9 +159,9 @@ class kSchurFunctions_generic(sfa.SymmetricFunctionAlgebra_generic):
             if not unitriang:
                 c /= to_other_cache[n][part2][part2]
             el -= c*P._from_dict(to_other_cache[n][part2])
-            
+
             out[part2] = out.get(part2,zero) + c
-            
+
         return self._from_dict(out)
 
 
@@ -171,20 +170,20 @@ class kSchurFunctions_generic(sfa.SymmetricFunctionAlgebra_generic):
         Multiply left and right by converting to the Schurs, multiplying
         there, and converting back. Note that the product of k-Schurs with
         t is only guaranteed to be a sum of k-Schurs when t = 1.
-        
+
         EXAMPLES::
-        
+
             sage: ks3 = kSchurFunctions(QQ, 3)
             doctest:1: DeprecationWarning: Deprecation warning: Please use SymmetricFunctions(QQ).kschur() instead!
             See http://trac.sagemath.org/5457 for details.
-        
+
         ::
-        
+
             sage: ks3([1])^2 # indirect doctest
             ks3[1, 1] + ks3[2]
-        
+
         ::
-        
+
             sage: ks3([2,1])^2
             Traceback (most recent call last):
             ...
@@ -192,16 +191,16 @@ class kSchurFunctions_generic(sfa.SymmetricFunctionAlgebra_generic):
             s[3, 3] + s[4, 1, 1] + s[4, 2] is not in the space spanned by k-Schur
             Functions at level 3 over Univariate Polynomial Ring in t over Rational
             Field.
-        
+
         ::
-        
+
             sage: ks3 = kSchurFunctions(QQ,3,1)
             sage: ks3([2,1])^2
             ks3[2, 2, 1, 1] + ks3[2, 2, 2] + ks3[3, 1, 1, 1]
         """
         return self( self._s(left) * self._s(right) )
 
-    
+
     class Element(sfa.SymmetricFunctionAlgebra_generic.Element):
         pass
 
@@ -211,7 +210,7 @@ class kSchurFunctions_t(kSchurFunctions_generic):
     def __init__(self, R, k, t=None):
         """
         EXAMPLES::
-        
+
             sage: kSchurFunctions(QQ, 3).base_ring()
             doctest:1: DeprecationWarning: Deprecation warning: Please use SymmetricFunctions(QQ).kschur() instead!
             See http://trac.sagemath.org/5457 for details.
@@ -226,7 +225,7 @@ class kSchurFunctions_t(kSchurFunctions_generic):
         self._name = "k-Schur Functions at level %s"%k
         self._prefix = "ks%s"%k
         self._element_class = kSchurFunctions_t.Element
-    
+
         if t is None:
             R = R['t']
             self.t = R.gen()
@@ -236,7 +235,7 @@ class kSchurFunctions_t(kSchurFunctions_generic):
             self.t = R(t)
             if str(t) != 't':
                 self._name += " with t=%s"%self.t
-            
+
         self._s_to_self_cache = s_to_k_cache.get(k, {})
         self._self_to_s_cache = k_to_s_cache.get(k, {})
 
@@ -289,7 +288,7 @@ class kSchurFunctions_t(kSchurFunctions_generic):
         for p in x.support():
             self._s_cache(p.size())
         return self._change_by_triangularity(x, self._self_to_s_cache, True)
- 
+
     def _self_to_s(self, x):
         r"""
         Embedding from self to the Schur basis
@@ -315,9 +314,9 @@ class kSchurFunctions_t(kSchurFunctions_generic):
     def _coerce_start_disabled(self, x):
         """
         Coerce things into the k-Schurs through the Schurs.
-        
+
         EXAMPLES::
-        
+
             sage: ks3 = kSchurFunctions(QQ, 3)
             doctest:1: DeprecationWarning: Deprecation warning: Please use SymmetricFunctions(QQ).kschur() instead!
             See http://trac.sagemath.org/5457 for details.
@@ -344,14 +343,14 @@ class kSchurFunctions_t(kSchurFunctions_generic):
             x = sage.combinat.partition.Partition(x)
             return self._from_dict({x:self.base_ring()(1)})
 
- 
+
     def _s_cache(self, n):
         """
         Computes the change of basis from the kSchurs to the Schurs for
         partitions of size n.
-        
+
         EXAMPLES::
-        
+
             sage: ks3 = kSchurFunctions(QQ, 3)
             doctest:1: DeprecationWarning: Deprecation warning: Please use SymmetricFunctions(QQ).kschur() instead!
             See http://trac.sagemath.org/5457 for details.
@@ -367,15 +366,15 @@ class kSchurFunctions_t(kSchurFunctions_generic):
         t = self.t
         s = self._s
         zero = s(0)
-        
+
         if n == 0:
             p = sage.combinat.partition.Partition_class([])
             self._self_to_s_cache[0] = {p: {p:R(1)}}
-            return 
+            return
         else:
             self._self_to_s_cache[n] = {}
 
-        
+
         #Fill in the cache from the k-Schurs to the Schurs
         for p in sage.combinat.partition.Partitions_n(n):
             if max(p) > self.k:
