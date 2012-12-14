@@ -7,7 +7,6 @@ AUTHORS:
 - William Stein (2007-07-28): update from sagex to cython
 - Martin Albrecht & William Stein (2011-08): cfile & cargs
 """
-
 #*****************************************************************************
 #       Copyright (C) 2006 William Stein <wstein@gmail.com>
 #
@@ -15,6 +14,8 @@ AUTHORS:
 #
 #                  http://www.gnu.org/licenses/
 #*****************************************************************************
+
+from __future__ import print_function
 
 import os, sys, platform
 
@@ -308,7 +309,7 @@ def cython(filename, verbose=False, compile_message=False,
       information.
 
     - ``compile_message`` (bool, default False) - if True, print
-      ``'Compiling <filename>...'``
+      ``'Compiling <filename>...'`` to the standard error.
 
     - ``use_cache`` (bool, default False) - if True, check the
       temporary build directory to see if there is already a
@@ -355,7 +356,7 @@ def cython(filename, verbose=False, compile_message=False,
 
     """
     if not filename.endswith('pyx'):
-        print "File (=%s) should have extension .pyx"%filename
+        print("Warning: file (={}) should have extension .pyx".format(filename), file=sys.stderr)
 
     # base is the name of the .so module that we create. If we are
     # creating a local shared object file, we use a more natural
@@ -373,7 +374,7 @@ def cython(filename, verbose=False, compile_message=False,
     # This is the *temporary* directory where we build the pyx file.
     # This is deleted when sage exits, which means pyx files must be
     # rebuilt every time Sage is restarted at present.
-    build_dir = '%s/%s'%(SPYX_TMP, base)
+    build_dir = os.path.join(SPYX_TMP, base)
 
     if os.path.exists(build_dir):
         # There is already a module here. Maybe we do not have to rebuild?
@@ -407,7 +408,7 @@ def cython(filename, verbose=False, compile_message=False,
             os.unlink("%s/setup.py" % build_dir)
 
     if compile_message:
-        print "Compiling %s..."%filename
+        print("Compiling {}...".format(filename), file=sys.stderr)
 
     F = open(filename).read()
 
@@ -490,7 +491,7 @@ setup(ext_modules = ext_modules,
             cmd += " && cp '%s.html' '%s'"%(name, target_html)
 
     if verbose:
-        print cmd
+        print(cmd)
     if os.system(cmd):
         log = open('%s/log'%build_dir).read()
         err = subtract_from_line_numbers(open('%s/err'%build_dir).read(), offset)
@@ -532,7 +533,8 @@ setup(ext_modules = ext_modules,
 
 
     cmd = 'cd %s && python setup.py build 1>log 2>err'%build_dir
-    if verbose: print cmd
+    if verbose:
+        print(cmd)
     if os.system(cmd):
         log = open('%s/log'%build_dir).read()
         err = open('%s/err'%build_dir).read()
@@ -540,7 +542,8 @@ setup(ext_modules = ext_modules,
 
     # Move from lib directory.
     cmd = 'mv %s/build/lib.*/* %s'%(build_dir, build_dir)
-    if verbose: print cmd
+    if verbose:
+        print(cmd)
     if os.system(cmd):
         raise RuntimeError, "Error copying extension module for %s"%filename
 
@@ -590,10 +593,6 @@ def cython_lambda(vars, expr,
     Create a compiled function which evaluates ``expr`` assuming machine values
     for ``vars``.
 
-    .. warning::
-
-        This implementation is not well tested.
-
     INPUT:
 
     - ``vars`` - list of pairs (variable name, c-data type), where the variable
@@ -604,6 +603,10 @@ def cython_lambda(vars, expr,
       objects defined in the current module scope ``globals()`` using
       ``sage.object_name``.
 
+    .. warning::
+
+        Accessing ``globals()`` doesn't actually work, see :trac:`12446`.
+
     EXAMPLES:
 
     We create a Lambda function in pure Python (using the r to make sure the 3.2
@@ -613,20 +616,20 @@ def cython_lambda(vars, expr,
 
     We make the same Lambda function, but in a compiled form. ::
 
-        sage: g = cython_lambda('double x, double y', 'x*x + y*y + x + y + 17*x + 3.2')  # optional -- gcc
-        sage: g(2,3)                                                                     # optional -- gcc
-        55.200000000000003
-        sage: g(0,0)                                                                     # optional -- gcc
-        3.2000000000000002
+        sage: g = cython_lambda('double x, double y', 'x*x + y*y + x + y + 17*x + 3.2')
+        sage: g(2,3)
+        55.2
+        sage: g(0,0)
+        3.2
 
-    We access a global function and variable. ::
+    The following should work but doesn't, see :trac:`12446`::
 
         sage: a = 25
-        sage: f = cython_lambda('double x', 'sage.math.sin(x) + sage.a')                 # optional -- gcc
-        sage: f(10)                                                                      # optional -- gcc
+        sage: f = cython_lambda('double x', 'sage.math.sin(x) + sage.a')
+        sage: f(10)  # known bug
         24.455978889110629
         sage: a = 50
-        sage: f(10)                                                                      # optional -- gcc
+        sage: f(10)  # known bug
         49.455978889110632
     """
     if isinstance(vars, str):
@@ -645,9 +648,9 @@ def f(%s):
  return %s
     """%(v, expr)
     if verbose:
-        print s
+        print(s)
     import sage.misc.misc
-    tmpfile = sage.misc.misc.tmp_filename() + ".spyx"
+    tmpfile = sage.misc.temporary_file.tmp_filename(ext=".spyx")
     open(tmpfile,'w').write(s)
 
     import sage.server.support
@@ -664,7 +667,7 @@ def cython_create_local_so(filename):
 
     INPUT:
 
-    - ``filename`` - string: a Cython (formerly SageX) (.spyx) file
+    - ``filename`` - string: a Cython (.spyx) file
 
     OUTPUT: None
 
@@ -689,11 +692,10 @@ def cython_create_local_so(filename):
         sage: s = "def hello():\n  print 'hello'\n"
         sage: f.write(s)
         sage: f.close()
-        sage: cython_create_local_so('hello.spyx')                            # optional -- gcc
-        Compiling hello.spyx...
-        sage: sys.path.append('.')                                            # optional -- gcc
-        sage: import hello                                                    # optional -- gcc
-        sage: hello.hello()                                                   # optional -- gcc
+        sage: cython_create_local_so('hello.spyx')
+        sage: sys.path.append('.')
+        sage: import hello
+        sage: hello.hello()
         hello
         sage: os.chdir(curdir)
 
@@ -748,8 +750,8 @@ def compile_and_load(code):
         sage: module.f(10)
         100
     """
-    from sage.misc.misc import tmp_filename
-    file = tmp_filename() + ".pyx"
+    from sage.misc.temporary_file import tmp_filename
+    file = tmp_filename(ext=".pyx")
     open(file,'w').write(code)
     from sage.server.support import cython_import
     return cython_import(file, create_local_c_file=False)

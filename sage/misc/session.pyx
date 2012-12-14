@@ -17,11 +17,11 @@ We next save this session. We are using a file in SAGE_TMP. We do this
 save your session permanently, since SAGE_TMP will be removed when
 leaving Sage!::
 
-    sage: save_session(SAGE_TMP+'session')
+    sage: save_session(os.path.join(SAGE_TMP, 'session'))
 
 This saves a dictionary with $w$ as one of the keys::
 
-    sage: z = load(SAGE_TMP+'session')
+    sage: z = load(os.path.join(SAGE_TMP, 'session'))
     sage: z.keys()
     ['w']
     sage: z['w']
@@ -32,7 +32,7 @@ Next we reset the session, verify this, and load the session back.::
     sage: reset()
     sage: show_identifiers()
     []
-    sage: load_session(SAGE_TMP+'session')
+    sage: load_session(os.path.join(SAGE_TMP, 'session'))
 
 Indeed $w$ is now defined again.::
 
@@ -266,9 +266,9 @@ def save_session(name='sage_session', verbose=False):
 
     Something similar happens for cython-defined functions.::
     
-        sage: g = cython_lambda('double x', 'x*x + 1.5')  # optional -- gcc
-        sage: save_session('tmp_f', verbose=True)         # optional -- gcc
-        ...
+        sage: g = cython_lambda('double x', 'x*x + 1.5')
+        sage: save_session('tmp_f', verbose=True)
+        Saving...
         Not saving g: g is a function, method, class or type
         ...
     """
@@ -378,16 +378,16 @@ def attach(*files):
     Here we test attaching multiple files at once::
     
         sage: sage.misc.reset.reset_attached()
-        sage: t1=tmp_filename()+'.py'; open(t1,'w').write("print 'hello world'")
-        sage: t2=tmp_filename()+'.py'; open(t2,'w').write("print 'hi there xxx'")
-        sage: t1, t2 = map(os.path.normpath, (t1, t2))
+        sage: t1 = tmp_filename(ext='.py')
+        sage: open(t1,'w').write("print 'hello world'")
+        sage: t2 = tmp_filename(ext='.py')
+        sage: open(t2,'w').write("print 'hi there xxx'")
         sage: attach(t1, t2)
         hello world
         hi there xxx
-        sage: attached_files() == [t1,t2]
+        sage: set(attached_files()) == set([t1,t2])
         True
-        
-    
+
     The contents of the file are then loaded, which means they are
     read into the running Sage session. For example, if ``foo.sage``
     contains ``x=5``, after attaching ``foo.sage`` the variable ``x``

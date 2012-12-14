@@ -35,6 +35,7 @@ Combinatorics
    ../sage/combinat/necklace
    ../sage/combinat/non_decreasing_parking_function
    ../sage/combinat/partition
+   ../sage/combinat/partition_tuple
    ../sage/combinat/permutation
    ../sage/combinat/perfect_matching
    ../sage/combinat/q_analogues
@@ -47,6 +48,7 @@ Combinatorics
    ../sage/combinat/subword
    ../sage/combinat/tiling
    ../sage/combinat/tuple
+   ../sage/combinat/cluster_algebra_quiver/quiver_mutation_type
 
    algebra
    tableaux

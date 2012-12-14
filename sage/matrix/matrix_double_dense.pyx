@@ -756,7 +756,7 @@ cdef class Matrix_double_dense(matrix_dense.Matrix_dense):
         else:
             return sage.rings.real_double.RDF(c)
 
-    def norm(self, p='frob'):
+    def norm(self, p=None):
         r"""
         Returns the norm of the matrix.
 
@@ -764,8 +764,9 @@ cdef class Matrix_double_dense(matrix_dense.Matrix_dense):
 
         - ``p`` - default: 'frob' - controls which norm is computed,
           allowable values are 'frob' (for the Frobenius norm),
-          integers -2, -1, 1, 2, positive and negative infinity.
-          See output discussion for specifics.
+          integers -2, -1, 1, 2, positive and negative infinity.  See
+          output discussion for specifics.  The default (``p='frob'``)
+          is deprecated and will change to a default of ``p=2`` soon.
 
         OUTPUT:
 
@@ -776,7 +777,7 @@ cdef class Matrix_double_dense(matrix_dense.Matrix_dense):
         Singular values are the "diagonal" entries of the "S" matrix in
         the singular value decomposition.
 
-        - ``p = 'frob'``: the default, the Frobenius norm, which for
+        - ``p = 'frob'``: the Frobenius norm, which for
           a matrix `A=(a_{ij})` computes
 
           .. math::
@@ -787,7 +788,7 @@ cdef class Matrix_double_dense(matrix_dense.Matrix_dense):
         - ``p = -Infinity`` or ``p = -oo``: the minimum column sum.
         - ``p = 1``: the maximum column sum.
         - ``p = -1``: the minimum column sum.
-        - ``p = 2``: the 2-norm, equal to the maximum singular value.
+        - ``p = 2``: the induced 2-norm, equal to the maximum singular value.
         - ``p = -2``: the minimum singular value.
 
         ALGORITHM:
@@ -804,6 +805,8 @@ cdef class Matrix_double_dense(matrix_dense.Matrix_dense):
             [ 0.0  1.0  2.0]
             [ 3.0  4.0  5.0]
             sage: A.norm()
+            doctest:...: DeprecationWarning: The default norm will be changing from p='frob' to p=2.  Use p='frob' explicitly to continue calculating the Frobenius norm.
+            See http://trac.sagemath.org/13643 for details.
             8.30662386...
             sage: A.norm(p='frob')
             8.30662386...
@@ -873,6 +876,14 @@ cdef class Matrix_double_dense(matrix_dense.Matrix_dense):
         global numpy
         if numpy is None:
             import numpy
+
+        if p is None:
+            from sage.misc.superseded import deprecation
+            msg = "The default norm will be changing from p='frob' to p=2.  Use p='frob' explicitly to continue calculating the Frobenius norm."
+            deprecation(13643, msg)
+            # change to default of p=2 when deprecation period has elapsed
+            p='frob'
+
         import sage.rings.infinity
         import sage.rings.integer
         import sage.rings.real_double
@@ -4014,10 +4025,9 @@ cdef class Matrix_double_dense(matrix_dense.Matrix_dense):
         - algorithm -- 'pade', 'eig', or 'taylor'; the algorithm used to
           compute the exponential.
 
-        - order -- for Pade or Taylor series algorithms, order is the
-          order of the Pade approximation or the order of the Taylor
-          series used.  The current defaults (from scipy) are 7 for
-          'pade' and 20 for 'taylor'.
+        - order -- for the Taylor series algorithm, this specifies the
+          order of the Taylor series used. This is ignored for the
+          other algorithms. The current default (from scipy) is 20.
 
         EXAMPLES::
 
@@ -4030,9 +4040,6 @@ cdef class Matrix_double_dense(matrix_dense.Matrix_dense):
             sage: A.exp(algorithm='eig')
             [51.9689561987  74.736564567]
             [112.104846851 164.073803049]
-            sage: A.exp(order=2)
-            [51.8888631634 74.6198348038]
-            [111.929752206 163.818615369]
             sage: A.exp(algorithm='taylor', order=5)
             [19.9583333333 28.0833333333]
             [       42.125 62.0833333333]
@@ -4049,9 +4056,6 @@ cdef class Matrix_double_dense(matrix_dense.Matrix_dense):
             sage: A.exp(algorithm='eig')
             [-19.6146029538 + 12.5177438468*I  3.79496364496 + 28.8837993066*I]
             [-32.3835809809 + 21.8842359579*I  2.26963300409 + 44.9013248277*I]
-            sage: A.exp(order=2)
-            [-19.6130852955 + 12.5327938535*I   3.81156364812 + 28.891438232*I]
-            [-32.3827876895 + 21.9087393169*I   2.29565402142 + 44.915581543*I]
             sage: A.exp(algorithm='taylor', order=5)
             [       -6.29166666667 + 14.25*I 14.0833333333 + 15.7916666667*I]
             [               -10.5 + 26.375*I         20.0833333333 + 24.75*I]
@@ -4071,10 +4075,7 @@ cdef class Matrix_double_dense(matrix_dense.Matrix_dense):
         M = self._new()
 
         if algorithm=='pade':
-            if order is None:
-                M._matrix_numpy = scipy.linalg.expm(self._matrix_numpy)
-            else:
-                M._matrix_numpy = scipy.linalg.expm(self._matrix_numpy, q=order)
+            M._matrix_numpy = scipy.linalg.expm(self._matrix_numpy)
         elif algorithm=='eig':
             M._matrix_numpy = scipy.linalg.expm2(self._matrix_numpy)
         elif algorithm=='taylor':

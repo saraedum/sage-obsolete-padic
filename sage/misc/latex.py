@@ -54,7 +54,7 @@ import random
 import subprocess
 import types
 
-from misc import tmp_dir, graphics_filename
+from sage.misc.temporary_file import tmp_dir, graphics_filename
 import sage_eval
 from sage.misc.sage_ostools import have_program
 from sage.misc.cachefunc import cached_function, cached_method
@@ -2112,7 +2112,7 @@ def png(x, filename, density=150, debug=False,
     EXAMPLES::
 
         sage: from sage.misc.latex import png
-        sage: png(ZZ[x], SAGE_TMP + "zz.png") # random - error if no latex
+        sage: png(ZZ[x], os.path.join(SAGE_TMP, "zz.png")) # random - error if no latex
     """
     if not pdflatex:
         engine = "latex"

@@ -421,7 +421,7 @@ cdef class GurobiBackend(GenericBackend):
 
             return value
 
-    cpdef set_objective(self, list coeff, double d = 0.0):
+    cpdef set_objective(self, list coeff, d = 0.0):
         """
         Set the objective function.
 
@@ -511,7 +511,7 @@ cdef class GurobiBackend(GenericBackend):
             sage: p.solve()                                    # optional - Gurobi
             10.0
             sage: p.get_values([x,y])                          # optional - Gurobi
-            [0.0, 3.0]
+            [-0.0, 3.0]
         """
         cdef int ind[1]
         ind[0] = i
@@ -765,7 +765,7 @@ cdef class GurobiBackend(GenericBackend):
             raise MIPSolverException("Gurobi: "+mip_status.get(status[0], "unknown error during call to GRBoptimize : "+str(status[0])))
 
 
-    cpdef double get_objective_value(self):
+    cpdef get_objective_value(self):
         """
         Returns the value of the objective function.
 
@@ -796,7 +796,7 @@ cdef class GurobiBackend(GenericBackend):
 
         return p_value[0] + self.obj_constant_term
 
-    cpdef double get_variable_value(self, int variable):
+    cpdef get_variable_value(self, int variable):
         """
         Returns the value of a variable given by the solver.
 
@@ -1101,7 +1101,7 @@ cdef class GurobiBackend(GenericBackend):
             1
             sage: p.add_linear_constraint([[0, 1], [1, 2]], None, 3)                # optional - Gurobi
             sage: p.set_objective([2, 5])                                           # optional - Gurobi
-            sage: p.write_lp(SAGE_TMP+"/lp_problem.lp")                             # optional - Gurobi
+            sage: p.write_lp(os.path.join(SAGE_TMP, "lp_problem.lp"))               # optional - Gurobi
         """
         check(self.env, GRBwrite(self.model[0], filename))
 
@@ -1121,7 +1121,7 @@ cdef class GurobiBackend(GenericBackend):
             1
             sage: p.add_linear_constraint([[0, 1], [1, 2]], None, 3)                # optional - Gurobi
             sage: p.set_objective([2, 5])                                           # optional - Gurobi
-            sage: p.write_lp(SAGE_TMP+"/lp_problem.lp")                             # optional - Gurobi
+            sage: p.write_lp(os.path.join(SAGE_TMP, "lp_problem.lp"))               # optional - Gurobi
         """
         check(self.env, GRBwrite(self.model[0], filename))
 

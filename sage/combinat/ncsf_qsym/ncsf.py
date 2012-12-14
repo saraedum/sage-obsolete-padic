@@ -353,7 +353,7 @@ class NonCommutativeSymmetricFunctions(UniqueRepresentation, Parent):
         """
         return self.complete()
 
-    _shorthands = tuple(['S', 'R', 'L', 'Phi', 'Psi'])
+    _shorthands = tuple(['S', 'R', 'L', 'Phi', 'Psi', 'nM', 'I'])
 
     def dual(self):
         r"""
@@ -1592,3 +1592,254 @@ class NonCommutativeSymmetricFunctions(UniqueRepresentation, Parent):
             complete = self.realization_of().complete()
             return complete.sum_of_terms((J, minus_one**(len(J)-len(I)) * prod(I) / coeff_ell(J,I))
                                          for J in I.finer())
+
+    class Monomial(CombinatorialFreeModule, BindableClass):
+        def __init__(self, NCSF):
+            r"""
+            Basis from 'Noncommutative Analogs of Monomial Symmetric
+            Functions, Cauchy Identity, and Hall Scalar Product'
+            Lenny Tevlin arXiv:0712.2201v1 [math.CO]
+
+            TESTS::
+
+                sage: NCSF = NonCommutativeSymmetricFunctions(QQ)
+                sage: nM = NCSF.monomial(); nM
+                Non-Commutative Symmetric Functions over the Rational Field in the Monomial basis
+                sage: nM([1,1])*nM([2])
+                3*nM[1, 1, 2] + nM[1, 3] + nM[2, 2]
+                sage: R = NCSF.ribbon()
+                sage: nM(R[1,3,1])
+                11*nM[1, 1, 1, 1, 1] + 8*nM[1, 1, 2, 1] + 8*nM[1, 2, 1, 1] + 5*nM[1, 3, 1] + 8*nM[2, 1, 1, 1] + 5*nM[2, 2, 1] + 5*nM[3, 1, 1] + 2*nM[4, 1]
+            """
+            CombinatorialFreeModule.__init__(self, NCSF.base_ring(), Compositions(),
+                                             prefix='nM', bracket=False,
+                                             category=NCSF.Bases())
+            category = self.category()
+
+            NCSF = NonCommutativeSymmetricFunctions(self.base_ring())
+            S = NCSF.complete()
+            Psi = NCSF.Psi()
+            to_S = self.module_morphism(
+                    on_basis = self._to_complete_on_basis,
+                    codomain = S,
+                    category = category)
+            to_S.register_as_coercion()
+
+            from_psi = Psi.module_morphism(
+                        on_basis = self._from_psi_on_basis,
+                        codomain = self,
+                        category = category)
+            from_psi.register_as_coercion()
+
+        def _to_complete_on_basis(self, I):
+            r"""
+            Turns a Monomial basis element of non-commutative symmetric functions
+            into the complete basis.
+
+            INPUT:
+
+            - ``self`` - the Monomial basis of non-commutative symmetric functions
+            - ``I`` - a composition
+
+            OUTPUT:
+
+            - The expansion of the Monomial function indexed by ``I`` into the complete
+              basis.
+
+            TESTS::
+
+                sage: S = NonCommutativeSymmetricFunctions(QQ).complete()
+                sage: nM = NonCommutativeSymmetricFunctions(QQ).nM()
+                sage: nM._to_complete_on_basis(Composition([1,1,1]))
+                S[1, 1, 1] - S[1, 2] - S[2, 1] + S[3]
+                sage: nM._to_complete_on_basis(Composition([1,2]))
+                -S[1, 1, 1] + 2*S[1, 2] + 1/2*S[2, 1] - 3/2*S[3]
+                sage: nM._to_complete_on_basis(Composition([2,1]))
+                -S[1, 1, 1] + S[1, 2] + 3/2*S[2, 1] - 3/2*S[3]
+                sage: nM._to_complete_on_basis(Composition([3]))
+                S[1, 1, 1] - 2*S[1, 2] - S[2, 1] + 3*S[3]
+            """
+            S = NonCommutativeSymmetricFunctions(self.base_ring()).S()
+            return sum(m_to_s_stat(self.base_ring(),I,K) * S(K) for K in Compositions(Composition(I).size()))
+
+        def _from_psi_on_basis(self, I):
+            r"""
+            Turns a Psi basis element of non-commutative symmetric functions
+            into the Monomial basis.
+
+            INPUT:
+
+            - ``self`` - the Monomial basis of non-commutative symmetric functions
+            - ``I`` - a composition
+
+            OUTPUT:
+
+            - The expansion of the Psi function indexed by ``I`` into the Monomial
+              basis.
+
+            TESTS::
+
+                sage: nM=NonCommutativeSymmetricFunctions(QQ).nM()
+                sage: nM._from_psi_on_basis(Composition([3]))
+                nM[3]
+                sage: nM._from_psi_on_basis(Composition([1,2]))
+                2*nM[1, 2] + nM[3]
+                sage: nM._from_psi_on_basis(Composition([2,1]))
+                2*nM[2, 1] + nM[3]
+                sage: nM._from_psi_on_basis(Composition([1,1,1]))
+                6*nM[1, 1, 1] + 2*nM[1, 2] + 4*nM[2, 1] + nM[3]
+            """
+            M = NonCommutativeSymmetricFunctions(self.base_ring()).nM()
+            sum_of_elements = M.zero()
+            for J in Compositions(I.size()):
+                if I.is_finer(J):
+                    len_of_J = J.to_partition().length()
+                    p = [0] + Composition(I).refinement_splitting_lengths(J).partial_sums()
+                    sum_of_elements += prod( (len_of_J - k)**(p[k+1]-p[k]) for k in range(len_of_J) ) * M(J)
+            return sum_of_elements
+
+    nM = monomial = Monomial
+
+    class Immaculate(CombinatorialFreeModule, BindableClass):
+        def __init__(self, NCSF):
+            r"""
+            The immaculate basis of the non-commutative symmetric functions. This basis first
+            appears in Berg, Bergeron, Saliola, Serrano and Zabrocki's "A lift of the Schur and Hall-Littlewood
+            bases to non-commutative symmetric functions" arXiv:1208.5191.
+
+            EXAMPLES::
+
+                sage: NCSF = NonCommutativeSymmetricFunctions(QQ)
+                sage: I = NCSF.I()
+                sage: I([1,3,2])*I([1])
+                I[1, 3, 2, 1] + I[1, 3, 3] + I[1, 4, 2] + I[2, 3, 2]
+                sage: I([1])*I([1,3,2])
+                I[1, 1, 3, 2] - I[2, 2, 1, 2] - I[2, 2, 2, 1] - I[2, 2, 3] - I[3, 2, 2]
+                sage: I([1,3])*I([1,1])
+                I[1, 3, 1, 1] + I[1, 4, 1] + I[2, 3, 1] + I[2, 4]
+                sage: I([3,1])*I([2,1])
+                I[3, 1, 2, 1] + I[3, 2, 1, 1] + I[3, 2, 2] + I[3, 3, 1] + I[4, 1, 1, 1] + I[4, 1, 2] + 2*I[4, 2, 1] + I[4, 3] + I[5, 1, 1] + I[5, 2]
+                sage: R = NCSF.ribbon()
+                sage: I(R[1,3,1])
+                I[1, 3, 1] + I[2, 2, 1] + I[2, 3] + I[3, 1, 1] + I[3, 2]
+                sage: R(I(R([2,1,3])))
+                R[2, 1, 3]
+            """
+            CombinatorialFreeModule.__init__(self, NCSF.base_ring(), Compositions(),
+                                             prefix='I', bracket=False,
+                                             category=NCSF.Bases())
+            category = self.category()
+            S = self.realization_of().complete()
+            to_S = self.module_morphism(
+                    on_basis = self._to_complete_on_basis,
+                    codomain = S,
+                    category = category)
+            to_S.register_as_coercion()
+
+            from_S= S.module_morphism(
+                        on_basis = self._from_complete_on_basis,
+                        codomain = self,
+                        category = category)
+            from_S.register_as_coercion()
+
+        def _realization_name(self):
+            r"""
+            TESTS::
+
+                sage: N = NonCommutativeSymmetricFunctions(QQ)
+                sage: I = N.I()
+                sage: I._realization_name()
+                'Immaculate'
+            """
+            return "Immaculate"
+
+        def _H( self, alpha ):
+            r"""
+            Returns the complete basis element indexed by a list if the list happens to
+            be a composition. Otherwise, returns 0.
+
+            INPUT:
+
+            - ``self`` - The Immaculate basis
+            - ``alpha`` - a list
+
+            OUTPUT:
+
+            - Returns the complete basis element indexed by ``alpha`` when alpha is a list.
+              Otherwise, returns 0
+
+            EXAMPLES::
+
+                sage: I=NonCommutativeSymmetricFunctions(QQ).I()
+                sage: I._H([2,0,1])
+                S[2, 1]
+                sage: I._H([2,0,1,-1])
+                0
+                sage: I._H([1,0,2])
+                S[1, 2]
+            """
+            S = NonCommutativeSymmetricFunctions(self.base_ring()).complete()
+            if any( d<0 for d in alpha ):
+                return 0
+            return S( [ d for d in alpha if d>0 ] )
+
+        @cached_method
+        def _to_complete_on_basis(self, alpha):
+            r"""
+            Gives the expansion of an Immaculate basis element to the complete basis.
+
+            INPUT:
+
+            - ``self`` - the Immaculate basis of the non-commutative
+              symmetric functions
+            - ``I`` - a composition
+
+            OUTPUT:
+
+            - The expansion of the basis element of ``self`` indexed by the composition
+              ``I`` into the complete basis.
+
+            EXAMPLES::
+
+                sage: I=NonCommutativeSymmetricFunctions(QQ).I()
+                sage: I._to_complete_on_basis(Composition([]))
+                S[]
+                sage: I._to_complete_on_basis(Composition([2,1,3]))
+                S[2, 1, 3] - S[2, 2, 2] + S[3, 2, 1] - S[3, 3] - S[4, 1, 1] + S[4, 2]
+            """
+            if alpha == []:
+                return self._H([])
+            if alpha == [1]:
+                return self._H([1])
+            return sum( sigma.signature()*self._H( [alpha[i]+sigma[i]-(i+1) for i in range(len(alpha))] ) for sigma in Permutations(len(alpha)))
+
+        @cached_method
+        def _from_complete_on_basis(self, comp_content):
+            r"""
+            Gives the expansion of a complete basis element to the Immaculate.
+
+            INPUT:
+
+            - ``comp_content`` - a composition
+
+            OUTPUT:
+
+            - The expansion of the basis element of the complete basis indexed by the
+              composition ``comp_content`` into the Immaculate.
+
+            EXAMPLES::
+
+                sage: I=NonCommutativeSymmetricFunctions(QQ).I()
+                sage: I._from_complete_on_basis(Composition([]))
+                I[]
+                sage: I._from_complete_on_basis(Composition([2,1,3]))
+                I[2, 1, 3] + I[2, 2, 2] + I[2, 3, 1] + I[2, 4] + I[3, 1, 2] + I[3, 2, 1] + 2*I[3, 3] + I[4, 1, 1] + 2*I[4, 2] + 2*I[5, 1] + I[6]
+            """
+            I = NonCommutativeSymmetricFunctions(self.base_ring()).I()
+            if comp_content==[]:
+                return I([])
+            else:
+                return sum( number_of_fCT(comp_content,comp_shape) *I(comp_shape) \
+                            for comp_shape in Compositions(Composition(comp_content).size()))
+
+    I = Immaculate

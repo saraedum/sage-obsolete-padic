@@ -79,6 +79,7 @@ Basic structures
 - :meth:`PathGraph <GraphGenerators.PathGraph>`
 - :meth:`StarGraph <GraphGenerators.StarGraph>`
 - :meth:`ToroidalGrid2dGraph <GraphGenerators.ToroidalGrid2dGraph>`
+- :meth:`Toroidal6RegularGrid2dGraph <GraphGenerators.Toroidal6RegularGrid2dGraph>`
 - :meth:`WheelGraph <GraphGenerators.WheelGraph>`
 
 
@@ -126,6 +127,7 @@ Named Graphs
 - :meth:`HigmanSimsGraph <GraphGenerators.HigmanSimsGraph>`
 - :meth:`HoffmanSingletonGraph <GraphGenerators.HoffmanSingletonGraph>`
 - :meth:`HoffmanGraph <GraphGenerators.HoffmanGraph>`
+- :meth:`HoltGraph <GraphGenerators.HoltGraph>`
 - :meth:`LjubljanaGraph <GraphGenerators.LjubljanaGraph>`
 - :meth:`McGeeGraph <GraphGenerators.McGeeGraph>`
 - :meth:`MoebiusKantorGraph <GraphGenerators.MoebiusKantorGraph>`
@@ -153,7 +155,6 @@ Families of graphs
 - :meth:`FuzzyBallGraph <GraphGenerators.FuzzyBallGraph>`
 - :meth:`GeneralizedPetersenGraph <GraphGenerators.GeneralizedPetersenGraph>`
 - :meth:`HanoiTowerGraph <GraphGenerators.HanoiTowerGraph>`
-
 - :meth:`HyperStarGraph <GraphGenerators.HyperStarGraph>`
 - :meth:`KneserGraph <GraphGenerators.KneserGraph>`
 - :meth:`LCFGraph <GraphGenerators.LCFGraph>`
@@ -163,16 +164,23 @@ Families of graphs
 - :meth:`NStarGraph <GraphGenerators.NStarGraph>`
 - :meth:`OddGraph <GraphGenerators.OddGraph>`
 - :meth:`PaleyGraph <GraphGenerators.PaleyGraph>`
+- :meth:`RingedTree <GraphGenerators.RingedTree>`
 - :meth:`line_graph_forbidden_subgraphs <GraphGenerators.line_graph_forbidden_subgraphs>`
 - :meth:`PermutationGraph <GraphGenerators.PermutationGraph>`
 - :meth:`trees <GraphGenerators.trees>`
 
+Chessboard graphs :
+
+- :meth:`BishopGraph <GraphGenerators.BishopGraph>`
+- :meth:`KingGraph <GraphGenerators.KingGraph>`
+- :meth:`KnightGraph <GraphGenerators.KnightGraph>`
+- :meth:`QueenGraph <GraphGenerators.QueenGraph>`
+- :meth:`RookGraph <GraphGenerators.RookGraph>`
 
 Pseudofractal graphs
 --------------------
 
 - :meth:`DorogovtsevGoltsevMendesGraph <GraphGenerators.DorogovtsevGoltsevMendesGraph>`
-
 
 Random graphs
 -------------
@@ -249,6 +257,9 @@ AUTHORS:
 - Keshav Kini (2011-02-16): added Shrikhande and Dyck graphs
 
 - David Coudert (2012-02-10): new RandomGNP generator
+
+- David Coudert (2012-08-02): added chessboard graphs: Queen, King,
+  Knight, Bishop, and Rook graphs
 """
 
 ###########################################################################
@@ -1163,18 +1174,17 @@ class GraphGenerators():
 
     def ToroidalGrid2dGraph(self,n1,n2):
         r"""
-        Returns a toroidal 2-dimensional grid graph with `n_1n_2` nodes 
-        (`n_1` rows and `n_2` columns).
+        Returns a toroidal 2-dimensional grid graph with `n_1n_2` nodes (`n_1`
+        rows and `n_2` columns).
 
-        The toroidal 2-dimensional grid with parameters `n_1,n_2` is 
-        the 2-dimensional grid graph with identical parameters
-        to which are added the edges `((i,0),(i,n_2-1))` and 
-        `((0,i),(n_1-1,i))`.
+        The toroidal 2-dimensional grid with parameters `n_1,n_2` is the
+        2-dimensional grid graph with identical parameters to which are added
+        the edges `((i,0),(i,n_2-1))` and `((0,i),(n_1-1,i))`.
 
         EXAMPLE:
 
-        The toroidal 2-dimensional grid is a regular graph, while
-        the usual 2-dimensional grid is not ::
+        The toroidal 2-dimensional grid is a regular graph, while the usual
+        2-dimensional grid is not ::
 
             sage: tgrid = graphs.ToroidalGrid2dGraph(8,9)
             sage: print tgrid
@@ -1192,33 +1202,116 @@ class GraphGenerators():
 
         g.name("Toroidal 2D Grid Graph with parameters "+str(n1)+","+str(n2))
 
+        d = g.get_pos()
+        n1 += 0.
+        n2 += 0.
+        uf = (n1/2)*(n1/2)
+        vf = (n2/2)*(n2/2)
+        for u,v in d:
+            x,y = d[(u,v)]
+            x +=  0.25*(1.0+u*(u-n1+1)/uf)
+            y +=  0.25*(1+v*(v-n2+1)/vf)
+            d[(u,v)] = (x,y)
+
         return g
-        
+
+    def Toroidal6RegularGrid2dGraph(self, n1, n2):
+        r"""
+        Returns a toroidal 6-regular grid.
+
+        The toroidal 6-regular grid is a 6-regular graph on `n_1\times n_2`
+        vertices and its elements have coordinates `(i,j)` for `i \in \{0...i-1\}`
+        and `j \in \{0...j-1\}`.
+
+        Its edges are those of the :meth:`ToroidalGrid2dGraph`, to which are
+        added the edges between `(i,j)` and `((i+1)\%n_1, (j+1)\%n_2)`.
+
+        INPUT:
+
+        - ``n1, n2`` (integers) -- see above.
+
+        EXAMPLE:
+
+        The toroidal 6-regular grid on `25` elements::
+
+            sage: g = graphs.Toroidal6RegularGrid2dGraph(5,5)
+            sage: g.is_regular(k=6)
+            True
+            sage: g.is_vertex_transitive()
+            True
+            sage: g.line_graph().is_vertex_transitive()
+            True
+            sage: g.automorphism_group().cardinality()
+            300
+            sage: g.is_hamiltonian()
+            True
+
+        TESTS:
+
+        Senseless input::
+
+            sage: graphs.Toroidal6RegularGrid2dGraph(5,2)
+            Traceback (most recent call last):
+            ...
+            ValueError: Parameters n1 and n2 must be integers larger than 3 !
+            sage: graphs.Toroidal6RegularGrid2dGraph(2,0)
+            Traceback (most recent call last):
+            ...
+            ValueError: Parameters n1 and n2 must be integers larger than 3 !
+        """
+
+        if n1 <= 3 or n2 <= 3:
+            raise ValueError("Parameters n1 and n2 must be integers larger than 3 !")
+
+        g = self.ToroidalGrid2dGraph(n1,n2)
+        for u,v in g:
+            g.add_edge((u,v),((u+1)%n1,(v+1)%n2))
+
+        g.name("Toroidal Hexagonal Grid graph on "+str(n1)+"x"+str(n2)+" elements")
+        return g
+
     def Grid2dGraph(self, n1, n2):
         r"""
         Returns a `2`-dimensional grid graph with `n_1n_2` nodes (`n_1` rows and
         `n_2` columns).
-        
+
         A 2d grid graph resembles a `2` dimensional grid. All inner nodes are
         connected to their `4` neighbors. Outer (non-corner) nodes are
         connected to their `3` neighbors. Corner nodes are connected to their
         2 neighbors.
-        
+
         This constructor depends on NetworkX numeric labels.
-        
+
         PLOTTING: Upon construction, the position dictionary is filled to
         override the spring-layout algorithm. By convention, nodes are
         labelled in (row, column) pairs with `(0, 0)` in the top left corner.
         Edges will always be horizontal and vertical - another advantage of
         filling the position dictionary.
-        
+
         EXAMPLES: Construct and show a grid 2d graph Rows = `5`, Columns = `7`
-        
+
         ::
-        
+
             sage: g = graphs.Grid2dGraph(5,7)
             sage: g.show() # long time
+
+        TESTS:
+
+        Senseless input::
+
+            sage: graphs.Grid2dGraph(5,0)
+            Traceback (most recent call last):
+            ...
+            ValueError: Parameters n1 and n2 must be positive integers !
+            sage: graphs.Grid2dGraph(-1,0)
+            Traceback (most recent call last):
+            ...
+            ValueError: Parameters n1 and n2 must be positive integers !
         """
+
+        if n1 <= 0 or n2 <= 0:
+            raise ValueError("Parameters n1 and n2 must be positive integers !")
+
         pos_dict = {}
         for i in range(n1):
             y = -i
@@ -4637,14 +4730,19 @@ class GraphGenerators():
 
     def HoltGraph(self):
         r"""
-        Returns the Holt Graph.
+        Returns the Holt graph (also called the Doyle graph)
 
         See the :wikipedia:`Wikipedia page on the Holt graph
         <Holt_graph>`.
 
         EXAMPLES::
 
-            sage: g = graphs.HoltGraph()
+            sage: g = graphs.HoltGraph();g
+            Holt graph: Graph on 27 vertices
+            sage: g.is_regular()
+            True
+            sage: g.is_vertex_transitive()
+            True
             sage: g.chromatic_number()
             3
             sage: g.is_hamiltonian() # long time
@@ -4652,34 +4750,24 @@ class GraphGenerators():
             sage: g.radius()
             3
             sage: g.diameter()
-            4
+            3
             sage: g.girth()
             5
             sage: g.automorphism_group().cardinality()
-            18
+            54
         """
-        g = graph.Graph({
-                0: [9, 12],
-                1: [11, 14],
-                2: [13, 16],
-                3: [15, 18],
-                4: [17, 20],
-                5: [19, 22],
-                6: [21, 24],
-                7: [23, 26],
-                8: [10, 25]
-                },pos={})
+        g = graph.Graph(loops=False, name = "Holt graph", pos={})
+        for x in range(9):
+            for y in range(3):
+                g.add_edge((x,y),((4*x+1)%9,(y-1)%3))
+                g.add_edge((x,y),((4*x-1)%9,(y-1)%3))
+                g.add_edge((x,y),((7*x+7)%9,(y+1)%3))
+                g.add_edge((x,y),((7*x-7)%9,(y+1)%3))
 
-        g.add_vertices(range(27))
-        g.add_cycle(range(9))
-
-        g.add_cycle([13,21,11,19,9,17,25,15,23])
-        g.add_cycle([12,16,20, 24, 10, 14, 18, 22, 26])
-
-        _circle_embedding(g, range(9), shift = .75)
-        _circle_embedding(g, range(9, 27), radius = .7, shift = 0)
-
-        g.name("Holt graph")
+        for j in range(0,6,2):
+            _line_embedding(g, [(x,j/2) for x in range(9)],
+                            first=(cos(2*j*pi/6),sin(2*j*pi/6)),
+                            last=(cos(2*(j+1)*pi/6),sin(2*(j+1)*pi/6)))
 
         return g
 
@@ -6618,7 +6706,6 @@ class GraphGenerators():
         g = graph.Graph([FiniteField(q,'a'), lambda i,j: (i-j).is_square()],
         loops=False, name = "Paley graph with parameter %d"%q)
         return g
-
 
     def PermutationGraph(self, second_permutation, first_permutation = None):
         r"""
@@ -8634,7 +8721,22 @@ class GraphGenerators():
 
         return cospectral_graphs
 
-        
+###########################################################################
+# Chessboard graphs
+###########################################################################
+
+    import sage.graphs.generators.chessboard
+    ChessboardGraphGenerator = sage.graphs.generators.chessboard.ChessboardGraphGenerator
+    BishopGraph = sage.graphs.generators.chessboard.BishopGraph
+    KingGraph = sage.graphs.generators.chessboard.KingGraph
+    KnightGraph = sage.graphs.generators.chessboard.KnightGraph
+    QueenGraph = sage.graphs.generators.chessboard.QueenGraph
+    RookGraph = sage.graphs.generators.chessboard.RookGraph
+
+    import sage.graphs.generators.families
+    RingedTree = sage.graphs.generators.families.RingedTree
+
+
 def canaug_traverse_vert(g, aut_gens, max_verts, property, dig=False, loops=False, implementation='c_graph', sparse=True):
     """
     Main function for exhaustive generation. Recursive traversal of a

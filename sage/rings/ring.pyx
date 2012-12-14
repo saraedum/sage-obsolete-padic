@@ -409,6 +409,11 @@ cdef class Ring(ParentWithGens):
             sage: Q = sage.rings.ring.Ring.quotient(F,I)
             sage: Q.ideal_monoid()
             Monoid of ideals of Quotient of Free Algebra on 3 generators (x, y, z) over Integer Ring by the ideal (x*y + y*z, x^2 + x*y - y*x - y^2)
+            sage: F.<x,y,z> = FreeAlgebra(ZZ, implementation='letterplace')
+            sage: I = F*[x*y+y*z,x^2+x*y-y*x-y^2]*F
+            sage: Q = F.quo(I)
+            sage: Q.ideal_monoid()
+            Monoid of ideals of Quotient of Free Associative Unital Algebra on 3 generators (x, y, z) over Integer Ring by the ideal (x*y + y*z, x*x + x*y - y*x - y*y)
 
         """
         if self.__ideal_monoid is not None:
@@ -536,7 +541,7 @@ cdef class Ring(ParentWithGens):
             sage: (x+y,z+y^3)*R
             Ideal (x + y, y^3 + z) of Multivariate Polynomial Ring in x, y, z over Finite Field of size 7
 
-        The following was implemented in trac ticket #11068::
+        The following was implemented in :trac:`7797`::
 
             sage: A = SteenrodAlgebra(2)
             sage: A*[A.1+A.2,A.1^2]
@@ -609,7 +614,7 @@ cdef class Ring(ParentWithGens):
             sage: RR._ideal_class_()
             <class 'sage.rings.ideal.Ideal_pid'>
 
-        Since #11068, non-commutative rings have ideals as well::
+        Since :trac:`7797`, non-commutative rings have ideals as well::
 
             sage: A = SteenrodAlgebra(2)
             sage: A._ideal_class_()
@@ -1390,7 +1395,8 @@ cdef class CommutativeRing(Ring):
 
     def __pow__(self, n, _):
         """
-        Return the free module of rank `n` over this ring.
+        Return the free module of rank `n` over this ring.  If n is a tuple of
+        two elements, creates a matrix space.
 
         EXAMPLES::
 
@@ -1398,9 +1404,17 @@ cdef class CommutativeRing(Ring):
             Vector space of dimension 5 over Rational Field
             sage: Integers(20)^1000
             Ambient free module of rank 1000 over Ring of integers modulo 20
+
+            sage: QQ^(2,3)
+            Full MatrixSpace of 2 by 3 dense matrices over Rational Field
         """
-        import sage.modules.all 
-        return sage.modules.all.FreeModule(self, n)
+        if isinstance(n, tuple):
+            m, n = n
+            from sage.matrix.matrix_space import MatrixSpace
+            return MatrixSpace(self, m, n)
+        else:
+            import sage.modules.all
+            return sage.modules.all.FreeModule(self, n)
 
     def is_commutative(self):
         """
@@ -2244,7 +2258,60 @@ cdef class Algebra(Ring):
             7
         """
         return self.base_ring().characteristic()
-    
+
+    def has_standard_involution(self):
+        r"""
+        Return ``True`` if the algebra has a standard involution and ``False`` otherwise.
+        This algorithm follows Algorithm 2.10 from John Voight's `Identifying the Matrix Ring`.
+        Currently the only type of algebra this will work for is a quaternion algebra.
+        Though this function seems redundant, once algebras have more functionality, in particular
+        have a method to construct a basis, this algorithm will have more general purpose.
+
+        EXAMPLES::
+
+            sage: B = QuaternionAlgebra(2)
+            sage: B.has_standard_involution()
+            True
+            sage: R.<x> = PolynomialRing(QQ)
+            sage: K.<u> = NumberField(x**2 - 2)
+            sage: A = QuaternionAlgebra(K,-2,5)
+            sage: A.has_standard_involution()
+            True
+            sage: L.<a,b> = FreeAlgebra(QQ,2)
+            sage: L.has_standard_involution()
+            Traceback (most recent call last):
+            ...
+            AttributeError: Basis is not yet implemented for this algebra.
+            """
+        field = self.base_ring()
+        try:
+            basis = self.basis()
+        except AttributeError:
+            raise AttributeError, "Basis is not yet implemented for this algebra."    
+        #step 1
+        for i in range(1,4):
+            ei = basis[i]
+            a = ei**2
+            coef = a.coefficient_tuple()
+            ti = coef[i]
+            ni = a - ti*ei
+            if ni not in field:
+                return False
+        #step 2
+        for i in range(1,4):
+            for j in range(2,4):
+                ei = basis[i]
+                ej = basis[j]
+                a = ei**2
+                coef = a.coefficient_tuple()
+                ti = coef[i]
+                b = ej**2
+                coef = b.coefficient_tuple()
+                tj = coef[j]
+                nij = (ei + ej)**2 - (ti + tj)*(ei + ej)
+                if nij not in field:
+                    return False      
+        return True
 
 cdef class CommutativeAlgebra(CommutativeRing):
     """

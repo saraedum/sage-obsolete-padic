@@ -33,7 +33,6 @@ graphs.
     :meth:`~Graph.centrality_betweenness` | Returns the betweenness centrality
 
 
-
 **Graph properties:**
 
 .. csv-table::
@@ -54,6 +53,7 @@ graphs.
     :meth:`~Graph.is_weakly_chordal` | Tests whether ``self`` is weakly chordal.
     :meth:`~Graph.is_strongly_regular` | Tests whether ``self`` is strongly regular.
 
+
 **Connectivity and orientations:**
 
 .. csv-table::
@@ -65,7 +65,6 @@ graphs.
     :meth:`~Graph.bounded_outdegree_orientation` | Computes an orientation of ``self`` such that every vertex `v` has out-degree less than `b(v)`
     :meth:`~Graph.strong_orientation` | Returns a strongly connected orientation of the current graph.
     :meth:`~Graph.degree_constrained_subgraph` | Returns a degree-constrained subgraph.
-
 
 
 **Clique-related methods:**
@@ -451,9 +450,6 @@ Show each graph as you iterate through the results:
     sage: for g in Q:
     ...     show(g)
 
-
-
-
 Visualization
 -------------
 
@@ -494,7 +490,7 @@ Methods
 #*****************************************************************************
 
 from sage.rings.integer import Integer
-
+from sage.misc.superseded import deprecated_function_alias
 import sage.graphs.generic_graph_pyx as generic_graph_pyx
 from sage.graphs.generic_graph import GenericGraph
 from sage.graphs.digraph import DiGraph
@@ -520,11 +516,12 @@ class Graph(GenericGraph):
     This graph is not very interesting as it is by default the empty graph.
     But Sage contains a large collection of pre-defined graph classes that
     can be listed this way:
-    
+
     * Within a Sage session, type ``graphs.``
       (Do not press "Enter", and do not forget the final period ".")
+
     * Hit "tab".
-    
+
     You will see a list of methods which will construct named graphs. For
     example::
 
@@ -543,9 +540,10 @@ class Graph(GenericGraph):
     by using the almost 200 functions on graphs in the Sage library!
     If your graph is named ``g``, you can list these functions as previously
     this way
-    
+
     * Within a Sage session, type ``g.``
       (Do not press "Enter", and do not forget the final period "." )
+
     * Hit "tab".
 
     As usual, you can get some information about what these functions do by
@@ -555,13 +553,13 @@ class Graph(GenericGraph):
     If you have defined a graph ``g`` having several connected components
     (i.e. ``g.is_connected()`` returns False), you can print each one of its
     connected components with only two lines::
-    
+
         sage: for component in g.connected_components():
         ...      g.subgraph(component).plot()
-    
+
 
     INPUT:
-    
+
     -  ``data`` -- can be any of the following (see the ``format`` argument):
 
       #.  An integer specifying the number of vertices
@@ -2304,7 +2302,7 @@ class Graph(GenericGraph):
             3
         """
 
-        from sage.numerical.mip import MixedIntegerLinearProgram, MIPSolverException, Sum
+        from sage.numerical.mip import MixedIntegerLinearProgram, MIPSolverException
 
         p = MixedIntegerLinearProgram(maximization=False, solver=solver)
         b = p.new_variable()
@@ -2327,9 +2325,9 @@ class Graph(GenericGraph):
 
         for v in self:
             minimum,maximum = f_bounds(v)
-            p.add_constraint(Sum([ b[reorder(x,y)]*weight(l) for x,y,l in self.edges_incident(v)]), min=minimum, max=maximum)
+            p.add_constraint(p.sum([ b[reorder(x,y)]*weight(l) for x,y,l in self.edges_incident(v)]), min=minimum, max=maximum)
         
-        p.set_objective(Sum([ b[reorder(x,y)]*weight(l) for x,y,l in self.edge_iterator()]))
+        p.set_objective(p.sum([ b[reorder(x,y)]*weight(l) for x,y,l in self.edge_iterator()]))
         p.set_binary(b)
 
         try:
@@ -2654,41 +2652,6 @@ class Graph(GenericGraph):
 
         return left, right
 
-    def chromatic_polynomial(self):
-        """
-        Returns the chromatic polynomial of the graph G.
-        
-        EXAMPLES::
-        
-            sage: G = Graph({0:[1,2,3],1:[2]})
-            sage: factor(G.chromatic_polynomial())
-            (x - 2) * x * (x - 1)^2
-        
-        ::
-        
-            sage: g = graphs.trees(5).next()
-            sage: g.chromatic_polynomial().factor()
-            x * (x - 1)^4
-        
-        ::
-        
-            sage: seven_acre_wood = sum(graphs.trees(7), Graph())
-            sage: seven_acre_wood.chromatic_polynomial()
-            x^77 - 66*x^76 ... - 2515943049305400*x^60 ... - 66*x^12 + x^11
-        
-        ::
-        
-            sage: for i in range(2,7):
-            ...     graphs.CompleteGraph(i).chromatic_polynomial().factor()
-            (x - 1) * x
-            (x - 2) * (x - 1) * x
-            (x - 3) * (x - 2) * (x - 1) * x
-            (x - 4) * (x - 3) * (x - 2) * (x - 1) * x
-            (x - 5) * (x - 4) * (x - 3) * (x - 2) * (x - 1) * x
-        """
-        from sage.graphs.chrompoly import chromatic_polynomial
-        return chromatic_polynomial(self)
-
     def chromatic_number(self, algorithm="DLX", verbose = 0):
         r"""
         Returns the minimal number of colors needed to color the vertices
@@ -2883,7 +2846,7 @@ class Graph(GenericGraph):
             2.5
         """
 
-        from sage.numerical.mip import MixedIntegerLinearProgram, Sum
+        from sage.numerical.mip import MixedIntegerLinearProgram
         
         g = self.copy()
         p = MixedIntegerLinearProgram(constraint_generation = True)
@@ -2893,7 +2856,7 @@ class Graph(GenericGraph):
         R = lambda x,y : r[x][y] if x<y else r[y][x]
         
         # We want to maximize the sum of weights on the edges
-        p.set_objective( Sum( R(u,v) for u,v in g.edges(labels = False)))
+        p.set_objective( p.sum( R(u,v) for u,v in g.edges(labels = False)))
 
         # Each edge being by itself a matching, its weight can not be more than
         # 1
@@ -2922,7 +2885,7 @@ class Graph(GenericGraph):
             if verbose_constraints:
                 print "Adding a constraint on matching : ",matching
 
-            p.add_constraint( Sum( R(u,v) for u,v,_ in matching), max = 1)
+            p.add_constraint( p.sum( R(u,v) for u,v,_ in matching), max = 1)
 
             # And solve again
             obj = p.solve(log = verbose)
@@ -3005,7 +2968,7 @@ class Graph(GenericGraph):
 
         """
 
-        from sage.numerical.mip import MixedIntegerLinearProgram, Sum
+        from sage.numerical.mip import MixedIntegerLinearProgram
         p=MixedIntegerLinearProgram(solver=solver)
         
         # Boolean variable indicating whether the vertex
@@ -3028,12 +2991,12 @@ class Graph(GenericGraph):
             [lists[v].append(i) for v in f]
             
             # a classss has exactly one representant
-            p.add_constraint(Sum([classss[v][i] for v in f]),max=1,min=1)
+            p.add_constraint(p.sum([classss[v][i] for v in f]),max=1,min=1)
 
         # A vertex represents at most one classss (vertex_taken is binary), and
         # vertex_taken[v]==1 if v is the representative of some classss
 
-        [p.add_constraint(Sum([classss[v][i] for i in lists[v]])-vertex_taken[v],max=0) for v in self.vertex_iterator()]
+        [p.add_constraint(p.sum([classss[v][i] for i in lists[v]])-vertex_taken[v],max=0) for v in self.vertex_iterator()]
 
         # Two adjacent vertices can not both be representants of a set
 
@@ -3148,7 +3111,7 @@ class Graph(GenericGraph):
             ValueError: This graph has no minor isomorphic to H !
         """
 
-        from sage.numerical.mip import MixedIntegerLinearProgram, MIPSolverException, Sum
+        from sage.numerical.mip import MixedIntegerLinearProgram, MIPSolverException
         p = MixedIntegerLinearProgram(solver=solver)
         
         # sorts an edge
@@ -3160,7 +3123,7 @@ class Graph(GenericGraph):
         rs = p.new_variable(dim=2)
 
         for v in self:
-            p.add_constraint(Sum([rs[h][v] for h in H]), max = 1)
+            p.add_constraint(p.sum([rs[h][v] for h in H]), max = 1)
 
         # We ensure that the set of representatives of a
         # vertex h contains a tree, and thus is connected
@@ -3179,7 +3142,7 @@ class Graph(GenericGraph):
         # of its representative set minus 1
                 
         for h in H:
-            p.add_constraint(Sum([edges[h][S(e)] for e in self.edges(labels=None)])-Sum([rs[h][v] for v in self]), min=-1, max=-1)
+            p.add_constraint(p.sum([edges[h][S(e)] for e in self.edges(labels=None)])-p.sum([rs[h][v] for v in self]), min=-1, max=-1)
 
         # a tree  has no cycle
         epsilon = 1/(5*Integer(self.order()))
@@ -3190,7 +3153,7 @@ class Graph(GenericGraph):
                 p.add_constraint(r_edges[h][(u,v)] + r_edges[h][(v,u)] - edges[h][S((u,v))], min = 0)
 
             for v in self:
-                p.add_constraint(Sum([r_edges[h][(u,v)] for u in self.neighbors(v)]), max = 1-epsilon)
+                p.add_constraint(p.sum([r_edges[h][(u,v)] for u in self.neighbors(v)]), max = 1-epsilon)
 
         # Once the representative sets are described, we must ensure
         # there are arcs corresponding to those of H between them
@@ -3206,7 +3169,7 @@ class Graph(GenericGraph):
                 p.add_constraint(h_edges[(h2,h1)][S((v1,v2))] - rs[h1][v2], max = 0)
                 p.add_constraint(h_edges[(h2,h1)][S((v1,v2))] - rs[h2][v1], max = 0)
 
-            p.add_constraint(Sum([h_edges[(h1,h2)][S(e)] + h_edges[(h2,h1)][S(e)] for e in self.edges(labels=None) ]), min = 1)
+            p.add_constraint(p.sum([h_edges[(h1,h2)][S(e)] + h_edges[(h2,h1)][S(e)] for e in self.edges(labels=None) ]), min = 1)
 
         p.set_binary(rs)
         p.set_binary(edges)
@@ -3225,121 +3188,6 @@ class Graph(GenericGraph):
             rs_dict[h] = [v for v in self if rs[h][v]==1]
 
         return rs_dict
-
-
-    def rank_decomposition(self, verbose = False):
-        """
-        Returns an rank-decomposition of ``self`` achieving optiml rank-width.
-
-        See the documentation of the ``rankwidth`` module
-        :mod:`rankwidth <sage.graphs.graph_decompositions.rankwidth>`.
-
-        INPUT:
-
-        - ``verbose`` (boolean) -- whether to display progress information while
-           computing the decomposition.
-
-        OUTPUT:
-
-        A pair ``(rankwidth, decomposition_tree)``, where ``rankwidth`` is a
-        numerical value and ``decomposition_tree`` is a ternary tree describing
-        the decomposition (cf. the module's documentation).
-
-        See the documentation of the ``rankwidth`` module for more information
-        on the tree
-        :mod:`rankwidth <sage.graphs.graph_decompositions.rankwidth>`.
-
-        .. WARNING::
-
-            The current implementation cannot handle graphs of more than 32 vertices.
-
-        EXAMPLE::
-
-            sage: g = graphs.PetersenGraph()
-            sage: rw, tree = g.rank_decomposition()
-            sage: rw
-            3
-            sage: tree
-            Graph on 19 vertices
-            sage: tree.is_tree()
-            True
-        """
-
-        from sage.graphs.graph_decompositions.rankwidth import rank_decomposition
-        return rank_decomposition(self, verbose = verbose)
-
-    ### Matching
-
-    def matching_polynomial(self, complement=True, name=None):
-        """
-        Computes the matching polynomial of the graph `G`.
-
-        If `p(G, k)` denotes the number of `k`-matchings (matchings with `k`
-        edges) in `G`, then the matching polynomial is defined as [Godsil93]_:
-
-        .. MATH::
-
-            \mu(x)=\sum_{k \geq 0} (-1)^k p(G,k) x^{n-2k}
-            
-        
-        INPUT:
-        
-        - ``complement`` - (default: ``True``) whether to use Godsil's duality
-          theorem to compute the matching polynomial from that of the graphs
-          complement (see ALGORITHM).
-        
-        - ``name`` - optional string for the variable name in the polynomial
-
-        .. NOTE::
-        
-            The ``complement`` option uses matching polynomials of complete
-            graphs, which are cached. So if you are crazy enough to try
-            computing the matching polynomial on a graph with millions of
-            vertices, you might not want to use this option, since it will end
-            up caching millions of polynomials of degree in the millions.
-
-        ALGORITHM:
-
-        The algorithm used is a recursive one, based on the following
-        observation [Godsil93]_:
-        
-        - If `e` is an edge of `G`, `G'` is the result of deleting the edge `e`,
-          and `G''` is the result of deleting each vertex in `e`, then the
-          matching polynomial of `G` is equal to that of `G'` minus that of
-          `G''`.
-
-          (the algorithm actually computes the *signless* matching polynomial,
-          for which the recursion is the same when one replaces the substraction
-          by an addition. It is then converted into the matching polynomial and
-          returned)
-
-        Depending on the value of ``complement``, Godsil's duality theorem
-        [Godsil93]_ can also be used to compute `\mu(x)` :
-
-        .. MATH::
-
-            \mu(\overline{G}, x) = \sum_{k \geq 0} p(G,k) \mu( K_{n-2k}, x)
-            
-
-        Where `\overline{G}` is the complement of `G`, and `K_n` the complete
-        graph on `n` vertices.
-
-        EXAMPLES::
-        
-            sage: g = graphs.PetersenGraph()
-            sage: g.matching_polynomial()
-            x^10 - 15*x^8 + 75*x^6 - 145*x^4 + 90*x^2 - 6
-            sage: g.matching_polynomial(complement=False)
-            x^10 - 15*x^8 + 75*x^6 - 145*x^4 + 90*x^2 - 6
-            sage: g.matching_polynomial(name='tom')
-            tom^10 - 15*tom^8 + 75*tom^6 - 145*tom^4 + 90*tom^2 - 6
-            sage: g = Graph()
-            sage: L = [graphs.RandomGNP(8, .3) for i in [1..5]]
-            sage: prod([h.matching_polynomial() for h in L]) == sum(L, g).matching_polynomial()  # long time (7s on sage.math, 2011)
-            True
-        """
-        from matchpoly import matching_polynomial
-        return matching_polynomial(self, complement=complement, name=name)
 
     ### Convexity
 
@@ -3563,9 +3411,9 @@ class Graph(GenericGraph):
         """
         Since the graph is already undirected, simply returns a copy of
         itself.
-        
+
         EXAMPLES::
-        
+
             sage: graphs.PetersenGraph().to_undirected()
             Petersen graph: Graph on 10 vertices
         """
@@ -3586,7 +3434,7 @@ class Graph(GenericGraph):
         EXAMPLES::
 
             sage: P = graphs.PetersenGraph()
-            sage: P.write_to_eps(tmp_dir() + 'sage.eps')
+            sage: P.write_to_eps(tmp_filename(ext='.eps'))
 
         It is relatively simple to include this file in a LaTeX
         document.  ``\usepackagegraphics`` must appear in the
@@ -3660,11 +3508,11 @@ class Graph(GenericGraph):
 
         .. NOTE::
 
-            * This function can be expected to be *very* slow, especially
-              where the topological minor does not exist.
+            This function can be expected to be *very* slow, especially where
+            the topological minor does not exist.
 
-            (CPLEX seems to be *much* more efficient than GLPK on this
-            kind of problem)
+            (CPLEX seems to be *much* more efficient than GLPK on this kind of
+            problem)
 
         EXAMPLES:
 
@@ -3690,7 +3538,7 @@ class Graph(GenericGraph):
         # Useful alias ...
         G = self
 
-        from sage.numerical.mip import MixedIntegerLinearProgram, Sum, MIPSolverException
+        from sage.numerical.mip import MixedIntegerLinearProgram, MIPSolverException
         p = MixedIntegerLinearProgram()
 
         # This is an existence problem
@@ -3707,11 +3555,11 @@ class Graph(GenericGraph):
 
         # Exactly one representant per vertex of H
         for h in H:
-            p.add_constraint( Sum( v_repr[h][g] for g in G), min = 1, max = 1)
+            p.add_constraint( p.sum( v_repr[h][g] for g in G), min = 1, max = 1)
 
         # A vertex of G can only represent one vertex of H
         for g in G:
-            p.add_constraint( Sum( v_repr[h][g] for h in H), max = 1)
+            p.add_constraint( p.sum( v_repr[h][g] for h in H), max = 1)
 
 
         ###################
@@ -3744,8 +3592,8 @@ class Graph(GenericGraph):
         # This lambda function returns the balance of flow
         # corresponding to commodity C at vertex v v
 
-        flow_in = lambda C, v : Sum( flow[C][(v,u)] for u in G.neighbors(v) )
-        flow_out = lambda C, v : Sum( flow[C][(u,v)] for u in G.neighbors(v) )
+        flow_in = lambda C, v : p.sum( flow[C][(v,u)] for u in G.neighbors(v) )
+        flow_out = lambda C, v : p.sum( flow[C][(u,v)] for u in G.neighbors(v) )
 
         flow_balance = lambda C, v : flow_in(C,v) - flow_out(C,v)
 
@@ -3782,7 +3630,7 @@ class Graph(GenericGraph):
         # the vertex is a representent
 
         for g in G:
-            p.add_constraint( Sum( is_internal[C][g] for C in H.edges(labels = False))
+            p.add_constraint( p.sum( is_internal[C][g] for C in H.edges(labels = False))
                               + is_repr[g], max = 1 )
 
         # (The following inequalities are not necessary, but they seem
@@ -3795,8 +3643,8 @@ class Graph(GenericGraph):
 
         for g1,g2 in G.edges(labels = None):
             
-            p.add_constraint(   Sum( flow[C][(g1,g2)] for C in H.edges(labels = False) )
-                              + Sum( flow[C][(g2,g1)] for C in H.edges(labels = False) ),
+            p.add_constraint(   p.sum( flow[C][(g1,g2)] for C in H.edges(labels = False) )
+                              + p.sum( flow[C][(g2,g1)] for C in H.edges(labels = False) ),
                                 max = 1)
 
 
@@ -3884,65 +3732,7 @@ class Graph(GenericGraph):
         import networkx
         return sorted(networkx.find_cliques(self.networkx_graph(copy=False)))
 
-    def cliques(self):
-        """
-        (Deprecated) alias for ``cliques_maximal``. See that function for more
-        details.
-        
-        EXAMPLE::
-        
-            sage: C = Graph('DJ{')
-            sage: C.cliques()
-            doctest:...: DeprecationWarning: The function 'cliques' has been deprecated. Use 'cliques_maximal' or 'cliques_maximum'.
-            See http://trac.sagemath.org/5793 for details.
-            [[4, 0], [4, 1, 2, 3]]
-
-        """
-        from sage.misc.superseded import deprecation
-        deprecation(5793, "The function 'cliques' has been deprecated. Use " + \
-                    "'cliques_maximal' or 'cliques_maximum'.")
-        return self.cliques_maximal()
-        
-    def cliques_maximum(self):
-        """
-        Returns the list of all maximum cliques, with each clique represented
-        by a list of vertices. A clique is an induced complete subgraph, and a
-        maximum clique is one of maximal order.
-        
-        .. NOTE::
-        
-            Currently only implemented for undirected graphs. Use to_undirected
-            to convert a digraph to an undirected graph.
-        
-        ALGORITHM:
-        
-        This function is based on Cliquer [NisOst2003]_.
-            
-        REFERENCE:
-
-        .. [NisOst2003] Sampo Niskanen and Patric R. J. Ostergard,
-          "Cliquer User's Guide, Version 1.0," Communications Laboratory,
-          Helsinki University of Technology, Espoo, Finland, 
-          Tech. Rep. T48, 2003.
-        
-        EXAMPLES::
-        
-            sage: graphs.ChvatalGraph().cliques_maximum()
-            [[0, 1], [0, 4], [0, 6], [0, 9], [1, 2], [1, 5], [1, 7], [2, 3], [2, 6], [2, 8], [3, 4], [3, 7], [3, 9], [4, 5], [4, 8], [5, 10], [5, 11], [6, 10], [6, 11], [7, 8], [7, 11], [8, 10], [9, 10], [9, 11]]
-            sage: G = Graph({0:[1,2,3], 1:[2], 3:[0,1]})
-            sage: G.show(figsize=[2,2])
-            sage: G.cliques_maximum()
-            [[0, 1, 2], [0, 1, 3]]
-            sage: C=graphs.PetersenGraph()
-            sage: C.cliques_maximum()
-            [[0, 1], [0, 4], [0, 5], [1, 2], [1, 6], [2, 3], [2, 7], [3, 4], [3, 8], [4, 9], [5, 7], [5, 8], [6, 8], [6, 9], [7, 9]]
-            sage: C = Graph('DJ{')
-            sage: C.cliques_maximum()
-            [[1, 2, 3, 4]]
-
-        """
-        from sage.graphs.cliquer import all_max_clique
-        return sorted(all_max_clique(self))
+    cliques = deprecated_function_alias(5739, cliques_maximal)
 
     def clique_maximum(self,  algorithm="Cliquer"):
         """
@@ -4472,12 +4262,12 @@ class Graph(GenericGraph):
 
         elif algorithm == "MILP":
 
-            from sage.numerical.mip import MixedIntegerLinearProgram, Sum
+            from sage.numerical.mip import MixedIntegerLinearProgram
             p = MixedIntegerLinearProgram(maximization=False, solver=solver)
             b = p.new_variable()
 
             # minimizes the number of vertices in the set
-            p.set_objective(Sum([b[v] for v in g.vertices()]))
+            p.set_objective(p.sum([b[v] for v in g.vertices()]))
 
             # an edge contains at least one vertex of the minimum vertex cover
             for (u,v) in g.edges(labels=None):
@@ -4824,55 +4614,6 @@ class Graph(GenericGraph):
 
         return D[0] == "Prime" and len(D[1]) == self.order()
 
-    def is_cartesian_product(self, certificate = False):
-        r"""
-        Tests whether ``self`` is a cartesian product of graphs.
-
-        INPUT:
-
-        - ``certificate`` (boolean) -- if ``certificate = False`` (default) the
-          method only returns ``True`` or ``False`` answers. If ``certificate =
-          True``, the ``True`` answers are replaced by the list of the factors of
-          the graph.
-
-        .. SEEALSO::
-
-            - :meth:`~sage.graphs.generic_graph.GenericGraph.cartesian_product`
-
-            - :mod:`~sage.graphs.graph_decompositions.graph_products` -- a
-              module on graph products.
-
-        EXAMPLE:
-
-        The Petersen graph is prime::
-
-            sage: g = graphs.PetersenGraph()
-            sage: g.is_cartesian_product()
-            False
-
-        A 2d grid is the product of paths::
-
-            sage: g = graphs.Grid2dGraph(5,5)
-            sage: p1, p2 = g.is_cartesian_product(certificate = True)
-            sage: p1.is_isomorphic(graphs.PathGraph(5))
-            True
-            sage: p2.is_isomorphic(graphs.PathGraph(5))
-            True
-
-        And of course, we find the factors back when we build a graph from a
-        product::
-
-            sage: g = graphs.PetersenGraph().cartesian_product(graphs.CycleGraph(3))
-            sage: g1, g2 = g.is_cartesian_product(certificate = True)
-            sage: any( x.is_isomorphic(graphs.PetersenGraph()) for x in [g1,g2])
-            True
-            sage: any( x.is_isomorphic(graphs.CycleGraph(3)) for x in [g1,g2])
-            True
-        """
-        from sage.graphs.graph_decompositions.graph_products import is_cartesian_product
-        return is_cartesian_product(self, certificate = certificate)
-
-
     def _gomory_hu_tree(self, vertices=None, method="FF"):
         r"""
         Returns a Gomory-Hu tree associated to self.
@@ -5031,7 +4772,7 @@ class Graph(GenericGraph):
 
         OUTPUT:
 
-        graph with labeled edges
+        A graph with labeled edges
 
         EXAMPLE:
 
@@ -5053,7 +4794,7 @@ class Graph(GenericGraph):
             sage: (2*g).gomory_hu_tree().is_connected()
             False
 
-        On the other hand, such a tree has lost nothing of the initial 
+        On the other hand, such a tree has lost nothing of the initial
         graph connectedness::
 
             sage: all([ t.flow(u,v) == g.flow(u,v) for u,v in Subsets( g.vertices(), 2 ) ])
@@ -5143,6 +4884,7 @@ class Graph(GenericGraph):
 
         return classes_b
 
+
 # Aliases to functions defined in Cython modules
 import types
 
@@ -5151,6 +4893,20 @@ Graph.is_long_hole_free = types.MethodType(sage.graphs.weakly_chordal.is_long_ho
 Graph.is_long_antihole_free = types.MethodType(sage.graphs.weakly_chordal.is_long_antihole_free, None, Graph)
 Graph.is_weakly_chordal = types.MethodType(sage.graphs.weakly_chordal.is_weakly_chordal, None, Graph)
 
+import sage.graphs.chrompoly
+Graph.chromatic_polynomial = types.MethodType(sage.graphs.chrompoly.chromatic_polynomial, None, Graph)
+
+import sage.graphs.graph_decompositions.rankwidth
+Graph.rank_decomposition = types.MethodType(sage.graphs.graph_decompositions.rankwidth.rank_decomposition, None, Graph)
+
+import sage.graphs.matchpoly
+Graph.matching_polynomial = types.MethodType(sage.graphs.matchpoly.matching_polynomial, None, Graph)
+
+import sage.graphs.cliquer
+Graph.cliques_maximum = types.MethodType(sage.graphs.cliquer.all_max_clique, None, Graph)
+
+import sage.graphs.graph_decompositions.graph_products
+Graph.is_cartesian_product = types.MethodType(sage.graphs.graph_decompositions.graph_products.is_cartesian_product, None, Graph)
 
 def compare_edges(x, y):
     """

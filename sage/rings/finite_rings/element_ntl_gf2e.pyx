@@ -284,6 +284,13 @@ cdef class Cache_ntl_gf2e(SageObject):
             a^13 + a^8 + a^5 + 1
             sage: k._cache.import_data(V(v))
             a^13 + a^8 + a^5 + 1
+
+        TESTS:
+
+        We check that :trac:`12584` is fixed::
+
+            sage: k(2^63)
+            0
         """
         if PY_TYPE_CHECK(e, FiniteField_ntl_gf2eElement) and e.parent() is self._parent: return e
         cdef FiniteField_ntl_gf2eElement res = self._new()
@@ -291,16 +298,18 @@ cdef class Cache_ntl_gf2e(SageObject):
         cdef FiniteField_ntl_gf2eElement g
         cdef Py_ssize_t i
 
+        if is_IntegerMod(e):
+            e = e.lift()
         if PY_TYPE_CHECK(e, int) or \
              PY_TYPE_CHECK(e, Integer) or \
-             PY_TYPE_CHECK(e, long) or is_IntegerMod(e):
-            GF2E_conv_long(res.x,int(e))
+             PY_TYPE_CHECK(e, long):
+            GF2E_conv_long(res.x,int(e&1))
             return res
-            
+
         elif PY_TYPE_CHECK(e, float):
             GF2E_conv_long(res.x,int(e))
             return res
-            
+
         elif PY_TYPE_CHECK(e, str):
             return self._parent(eval(e.replace("^","**"),self._parent.gens_dict()))
 
@@ -847,12 +856,29 @@ cdef class FiniteField_ntl_gf2eElement(FinitePolyExtElement):
             sage: e != (e + 1)
             True
 
-        NOTE: that in finite fields `<` and `>` don't make sense and
-        that the result of these operators has no mathematical meaning
-        and may vary across different finite field implementations.
+        .. note::
+
+            Finite fields are unordered. However, we adopt the convention that
+            an element ``e`` is bigger than element ``f`` if its polynomial
+            representation is bigger.
 
         EXAMPLES::
 
+            sage: K.<a> = GF(2^100)
+            sage: a < a^2
+            True
+            sage: a > a^2
+            False
+            sage: a+1 > a^2
+            False
+            sage: a+1 < a^2
+            True
+            sage: a+1 < a
+            False
+            sage: a+1 == a
+            False
+            sage: a == a
+            True
         """
         return (<Element>left)._richcmp(right, op)
 
@@ -865,7 +891,12 @@ cdef class FiniteField_ntl_gf2eElement(FinitePolyExtElement):
         if c == 1:
             return 0
         else:
-            return 1
+            r = cmp(GF2X_deg(GF2E_rep((<FiniteField_ntl_gf2eElement>left).x)), GF2X_deg(GF2E_rep((<FiniteField_ntl_gf2eElement>right).x)))
+            if r:
+                return r
+            li = left.integer_representation()
+            ri = right.integer_representation()
+            return cmp(li,ri)
 
     def _integer_(FiniteField_ntl_gf2eElement self, Integer):
         """

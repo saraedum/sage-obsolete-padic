@@ -9,6 +9,7 @@ except ValueError:
     pass
 
 from sage.misc.cachefunc import cached_method
+from sage.misc.misc import sage_makedirs as mkdir
 
 # Read options
 execfile(os.path.join(os.getenv('SAGE_ROOT'), 'devel', 'sage', 'doc', 'common' , 'build_options.py'))
@@ -16,28 +17,6 @@ execfile(os.path.join(os.getenv('SAGE_ROOT'), 'devel', 'sage', 'doc', 'common' ,
 ##########################################
 #          Utility Functions             #
 ##########################################
-def mkdir(path):
-    """
-    Makes the directory at path if it doesn't exist and returns the
-    string path.
-
-    EXAMPLES::
-
-        sage: import os, sys; sys.path.append(os.environ['SAGE_DOC']+'/common/'); import builder
-        sage: d = tmp_filename(); d
-        '/.../tmp_...'
-        sage: os.path.exists(d)
-        False
-        sage: dd = builder.mkdir(d)
-        sage: d == dd
-        True
-        sage: os.path.exists(d)
-        True
-    """
-    if not os.path.exists(path):
-        os.makedirs(path)
-    return path
-
 def copytree(src, dst, symlinks=False, ignore_errors=False):
     """
     Recursively copy a directory tree using copy2().
@@ -79,7 +58,7 @@ def copytree(src, dst, symlinks=False, ignore_errors=False):
     except OSError as why:
         errors.extend((src, dst, str(why)))
     if errors and not ignore_errors:
-        raise shutil.Error, errors
+        raise shutil.Error(errors)
 
 
 
@@ -95,9 +74,15 @@ def builder_helper(type):
         output_dir = self._output_dir(type)
         os.chdir(self.dir)
 
+        options = ALLSPHINXOPTS
+
+        if self.name == 'website':
+            # WEBSITESPHINXOPTS is either empty or " -A hide_pdf_links=1 "
+            options += WEBSITESPHINXOPTS
+
         build_command = 'sphinx-build'
         build_command += ' -b %s -d %s %s %s %s'%(type, self._doctrees_dir(),
-                                                  ALLSPHINXOPTS, self.dir,
+                                                  options, self.dir,
                                                   output_dir)
         logger.warning(build_command)
         subprocess.call(build_command, shell=True)
@@ -141,7 +126,9 @@ class DocBuilder(object):
             sage: b._output_dir('html')
             '.../devel/sage/doc/output/html/en/tutorial'
         """
-        return mkdir(os.path.join(SAGE_DOC, "output", type, self.lang, self.name))
+        d = os.path.join(SAGE_DOC, "output", type, self.lang, self.name)
+        mkdir(d)
+        return d
 
     def _doctrees_dir(self):
         """
@@ -156,7 +143,9 @@ class DocBuilder(object):
             sage: b._doctrees_dir()
             '.../devel/sage/doc/output/doctrees/en/tutorial'
         """
-        return mkdir(os.path.join(SAGE_DOC, "output", 'doctrees', self.lang, self.name))
+        d = os.path.join(SAGE_DOC, "output", 'doctrees', self.lang, self.name)
+        mkdir(d)
+        return d
 
     def _output_formats(self):
         """
@@ -1075,9 +1064,13 @@ if __name__ == '__main__':
     logger = setup_logger(options.verbose, options.color)
 
     # Process selected options.
-    if (options.mathjax or (os.environ.get('SAGE_DOC_MATHJAX', False))
-        or (os.environ.get('SAGE_DOC_JSMATH', False))):
-        os.environ['SAGE_DOC_MATHJAX'] = "True"
+    #
+    # MathJax: this check usually has no practical effect, since
+    # SAGE_DOC_MATHJAX is set to "True" by the script sage-env.
+    # To disable MathJax, set SAGE_DOC_MATHJAX to "no" or "False".
+    if options.mathjax or (os.environ.get('SAGE_DOC_MATHJAX', 'no') != 'no'
+                           and os.environ.get('SAGE_DOC_MATHJAX', 'no') != 'False'):
+        os.environ['SAGE_DOC_MATHJAX'] = 'True'
 
     if options.check_nested:
         os.environ['SAGE_CHECK_NESTED'] = 'True'
@@ -1088,7 +1081,7 @@ if __name__ == '__main__':
     if options.sphinx_opts:
         ALLSPHINXOPTS += options.sphinx_opts.replace(',', ' ') + " "
     if options.no_pdf_links:
-        ALLSPHINXOPTS += "-A hide_pdf_links=1 "
+        WEBSITESPHINXOPTS = " -A hide_pdf_links=1 "
     if options.warn_links:
         ALLSPHINXOPTS += "-n "
 

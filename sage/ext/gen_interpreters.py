@@ -2379,6 +2379,24 @@ class CDFInterpreter(StackInterpreter):
             sin: S->S = 'o0 = csin(i0);'
             sage: instrs['py_call']
             py_call: *->S = '\nif (!cdf_py_call_...goto error;\n}\n'
+            
+        A test of integer powers::
+            
+            sage: f(x) = sum(x^k for k in [-20..20])
+            sage: f(CDF(1+2j))
+            -10391779.0 + 3349659.5*I
+            sage: ff = fast_callable(f, CDF)
+            sage: ff(1 + 2j)
+            -10391779.0 + 3349659.5*I
+            sage: ff.python_calls()
+            []
+
+            sage: f(x) = sum(x^k for k in [0..5])
+            sage: ff = fast_callable(f, CDF)
+            sage: ff(2)
+            63.0
+            sage: ff(2j)
+            13.0 + 26.0*I
         """
 
         StackInterpreter.__init__(self, ty_double_complex)
@@ -2397,9 +2415,63 @@ class CDFInterpreter(StackInterpreter):
 #include <stdlib.h>
 #include <complex.h>
 
+/* On Solaris, we need to define _Imaginary_I when compiling with GCC,
+ * otherwise the constant I doesn't work. The definition below is based
+ * on glibc. */
+#ifdef __GNUC__
+#undef  _Imaginary_I
+#define _Imaginary_I  (__extension__ 1.0iF)
+#endif
+
 typedef double complex double_complex;
 
 extern int cdf_py_call_helper(PyObject*, int, double complex*, double complex*);
+
+static inline double complex csquareX(double complex z) {
+    double complex res;
+    __real__(res) = __real__(z) * __real__(z) - __imag__(z) * __imag__(z);
+    __imag__(res) = 2 * __real__(z) * __imag__(z);
+    return res;
+}
+
+static inline double complex cpow_int(double complex z, int exp) {
+    if (exp < 0) return 1/cpow_int(z, -exp);
+    switch (exp) {
+        case 0: return 1;
+        case 1: return z;
+        case 2: return csquareX(z);
+        case 3: return csquareX(z) * z;
+        case 4:
+        case 5:
+        case 6:
+        case 7:
+        case 8:
+        {
+            double complex z2 = csquareX(z);
+            double complex z4 = csquareX(z2);
+            if (exp == 4) return z4;
+            if (exp == 5) return z4 * z;
+            if (exp == 6) return z4 * z2;
+            if (exp == 7) return z4 * z2 * z;
+            if (exp == 8) return z4 * z4;
+        }
+    }
+    if (cimag(z) == 0) return pow(creal(z), exp);
+    if (creal(z) == 0) {
+        double r = pow(cimag(z), exp);
+        switch (exp % 4) {
+            case 0:
+                return r;
+            case 1:
+                return r * I;
+            case 2:
+                return -r;
+            default /* case 3 */:
+                return -r * I;
+        }
+    }
+    return cpow(z, exp);
+}
 """
         self.pxd_header = """
 # This is to work around a header ordering bug in Cython < 0.11
@@ -2476,6 +2548,7 @@ if (!cdf_py_call_helper(i0, n_i1, i1, &o0)) {
                            ('mul', '*'), ('div', '/')]:
             instrs.append(instr_infix(name, pg('SS', 'S'), op))
         instrs.append(instr_funcall_2args('pow', pg('SS', 'S'), 'cpow'))
+        instrs.append(instr_funcall_2args('ipow', pg('SD', 'S'), 'cpow_int'))
         for (name, op) in [('neg', '-i0'), ('invert', '1/i0'),
                            ('abs', 'cabs(i0)')]:
             instrs.append(instr_unary(name, pg('S', 'S'), op))
@@ -2485,6 +2558,8 @@ if (!cdf_py_call_helper(i0, n_i1, i1, &o0)) {
             instrs.append(instr_unary(name, pg('S',  'S'), "c%s(i0)" % name))
         self.instr_descs = instrs
         self._set_opcodes()
+        # supported for exponents that fit in an int
+        self.ipow_range = (int(-2**31), int(2**31-1))
 
 
 class RRInterpreter(StackInterpreter):
@@ -3987,8 +4062,7 @@ def build_interp(interp_spec, dir):
     EXAMPLES::
 
         sage: from sage.ext.gen_interpreters import *
-        sage: testdir = tmp_filename()
-        sage: os.mkdir(testdir)
+        sage: testdir = tmp_dir()
         sage: rdf_interp = RDFInterpreter()
         sage: build_interp(rdf_interp, testdir)
         sage: open(testdir + '/interp_rdf.c').readline()
@@ -4016,8 +4090,7 @@ def rebuild(dir):
     EXAMPLES::
 
         sage: from sage.ext.gen_interpreters import *
-        sage: testdir = tmp_filename()
-        sage: os.mkdir(testdir)
+        sage: testdir = tmp_dir()
         sage: rebuild(testdir)
         Building interpreters for fast_callable
         sage: rebuild(testdir)
@@ -4052,7 +4125,7 @@ def rebuild(dir):
     build_interp(interp, dir)
 
     # Do this last, so we don't do it if there's an error above.
-    with open(dir + '/timestamp', 'w'):
+    with open(os.path.join(dir, 'timestamp'), 'w'):
         pass
 
 # This list of modules gets added to the list in module_list.py.

@@ -121,6 +121,24 @@ ext_modules = [
                include_dirs = [SAGE_INC + 'FLINT/'],
                depends = flint_depends),
 
+    Extension('sage.algebras.letterplace.free_algebra_letterplace',
+              sources = ['sage/algebras/letterplace/free_algebra_letterplace.pyx'],
+              language="c++",
+              include_dirs = [SAGE_INC +'singular/'],
+              depends = singular_depends),
+
+    Extension('sage.algebras.letterplace.free_algebra_element_letterplace',
+              sources = ['sage/algebras/letterplace/free_algebra_element_letterplace.pyx'],
+              language="c++",
+              include_dirs = [SAGE_INC +'singular/'],
+              depends = singular_depends),
+
+    Extension('sage.algebras.letterplace.letterplace_ideal',
+              sources = ['sage/algebras/letterplace/letterplace_ideal.pyx'],
+              language="c++",
+              include_dirs = [SAGE_INC +'singular/'],
+              depends = singular_depends),
+
     Extension('sage.algebras.quatalg.quaternion_algebra_cython',
                sources = ['sage/algebras/quatalg/quaternion_algebra_cython.pyx'],
                language='c++',
@@ -1254,6 +1272,11 @@ ext_modules = [
               include_dirs=[SAGE_INC],
               libraries=["csage","stdc++"]),
 
+    Extension("sage.numerical.linear_functions",
+              ["sage/numerical/linear_functions.pyx"],
+              include_dirs=[SAGE_INC],
+              libraries=["csage","stdc++"]),
+
     Extension("sage.numerical.backends.generic_backend",
               ["sage/numerical/backends/generic_backend.pyx"],
               include_dirs = [SAGE_INC, "sage/c_lib/include/"],
@@ -1264,6 +1287,11 @@ ext_modules = [
               include_dirs = [SAGE_INC, "sage/c_lib/include/"],
               language = 'c++',
               libraries=["csage", "stdc++", "glpk", "gmp", "z"]),
+
+    Extension("sage.numerical.backends.ppl_backend",
+              ["sage/numerical/backends/ppl_backend.pyx"],
+              include_dirs = [SAGE_INC, "sage/c_lib/include/"],
+              libraries=["csage", "stdc++"]),
 
     ################################
     ## 
@@ -1963,4 +1991,3 @@ if is_package_installed('lrcalc'):
                   libraries = ["lrcalc"],
                   depends = [SAGE_LOCAL + "/include/lrcalc/symfcn.h"]), # should include all .h
         )
-

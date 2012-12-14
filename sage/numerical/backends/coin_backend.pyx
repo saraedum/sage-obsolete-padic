@@ -303,7 +303,7 @@ cdef class CoinBackend(GenericBackend):
         else:
             return self.si.getObjCoefficients()[variable]
 
-    cpdef set_objective(self, list coeff, double d = 0.0):
+    cpdef set_objective(self, list coeff, d = 0.0):
         r"""
         Sets the objective function.
 
@@ -770,7 +770,7 @@ cdef class CoinBackend(GenericBackend):
         del self.model
         self.model = model
 
-    cpdef double get_objective_value(self):
+    cpdef get_objective_value(self):
         r"""
         Returns the value of the objective function.
 
@@ -797,7 +797,7 @@ cdef class CoinBackend(GenericBackend):
         """
         return self.model.solver().getObjValue() + self.obj_constant_term
 
-    cpdef double get_variable_value(self, int variable):
+    cpdef get_variable_value(self, int variable):
         r"""
         Returns the value of a variable given by the solver.
 
@@ -1035,7 +1035,7 @@ cdef class CoinBackend(GenericBackend):
             1
             sage: p.add_linear_constraint([(0, 1), (1, 2)], None, 3)          # optional - Coin
             sage: p.set_objective([2, 5])                          # optional - Coin
-            sage: p.write_mps(SAGE_TMP+"/lp_problem.mps", 0)       # optional - Coin
+            sage: p.write_mps(os.path.join(SAGE_TMP, "lp_problem.mps"), 0)       # optional - Coin
         """
 
         cdef char * mps = "mps"
@@ -1057,7 +1057,7 @@ cdef class CoinBackend(GenericBackend):
             1
             sage: p.add_linear_constraint([(0, 1), (1, 2)], None, 3)          # optional - Coin
             sage: p.set_objective([2, 5])                          # optional - Coin
-            sage: p.write_lp(SAGE_TMP+"/lp_problem.lp")       # optional - Coin
+            sage: p.write_lp(os.path.join(SAGE_TMP, "lp_problem.lp"))       # optional - Coin
         """
 
         cdef char * lp = "lp"

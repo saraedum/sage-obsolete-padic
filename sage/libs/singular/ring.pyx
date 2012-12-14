@@ -463,6 +463,7 @@ cdef ring *singular_ring_reference(ring *existing_ring) except NULL:
     EXAMPLE::
 
         sage: import gc
+        sage: _ = gc.collect()
         sage: from sage.rings.polynomial.multi_polynomial_libsingular import MPolynomialRing_libsingular
         sage: from sage.libs.singular.groebner_strategy import GroebnerStrategy
         sage: from sage.libs.singular.ring import ring_refcount_dict
@@ -487,7 +488,7 @@ cdef ring *singular_ring_reference(ring *existing_ring) except NULL:
         sage: del P
         sage: _ = gc.collect()
         sage: ring_ptr in ring_refcount_dict
-        False
+        True
     """
     if existing_ring==NULL:
         raise ValueError('singular_ring_reference(ring*) called with NULL pointer.')

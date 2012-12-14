@@ -348,7 +348,7 @@ cdef class CPLEXBackend(GenericBackend):
             check(status)
 
 
-    cpdef set_objective(self, list coeff, double d = 0.0):
+    cpdef set_objective(self, list coeff, d = 0.0):
         r"""
         Sets the objective function.
 
@@ -877,7 +877,7 @@ cdef class CPLEXBackend(GenericBackend):
         return 0
 
 
-    cpdef double get_objective_value(self):
+    cpdef get_objective_value(self):
         r"""
         Returns the value of the objective function.
 
@@ -911,7 +911,7 @@ cdef class CPLEXBackend(GenericBackend):
         return value + self.obj_constant_term
 
 
-    cpdef double get_variable_value(self, int variable):
+    cpdef get_variable_value(self, int variable):
         r"""
         Returns the value of a variable given by the solver.
 
@@ -1274,7 +1274,7 @@ cdef class CPLEXBackend(GenericBackend):
             1
             sage: p.add_linear_constraint([(0, 1), (1, 2)], None, 3)          # optional - CPLEX
             sage: p.set_objective([2, 5])                          # optional - CPLEX
-            sage: p.write_lp(SAGE_TMP+"/lp_problem.lp")            # optional - CPLEX
+            sage: p.write_lp(os.path.join(SAGE_TMP, "lp_problem.lp"))            # optional - CPLEX
         """
 
         cdef int status
@@ -1298,7 +1298,7 @@ cdef class CPLEXBackend(GenericBackend):
             1
             sage: p.add_linear_constraint([(0, 1), (1, 2)], None, 3)          # optional - CPLEX
             sage: p.set_objective([2, 5])                          # optional - CPLEX
-            sage: p.write_lp(SAGE_TMP+"/lp_problem.lp")            # optional - CPLEX
+            sage: p.write_lp(os.path.join(SAGE_TMP, "lp_problem.lp"))            # optional - CPLEX
         """
 
         cdef int status

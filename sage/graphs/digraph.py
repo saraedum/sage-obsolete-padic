@@ -974,42 +974,6 @@ class DiGraph(GenericGraph):
         """
         return self._backend.is_directed_acyclic(certificate = certificate)
 
-    def is_transitive(self, certificate = False):
-        r"""
-        Tests whether the given digraph is transitive.
-
-        A digraph is transitive if for any pair of vertices `u,v\in G` linked by a
-        `uv`-path the edge `uv` belongs to `G`.
-
-        INPUT:
-
-        - ``certificate`` -- whether to return a certificate for negative answers.
-
-          - If ``certificate = False`` (default), this method returns ``True`` or
-            ``False`` according to the graph.
-
-          - If ``certificate = True``, this method either returns ``True`` answers
-            or yield a pair of vertices `uv` such that there exists a `uv`-path in
-            `G` but `uv\not\in G`.
-
-        EXAMPLE::
-
-            sage: digraphs.Circuit(4).is_transitive()
-            False
-            sage: digraphs.Circuit(4).is_transitive(certificate = True)
-            (0, 2)
-            sage: digraphs.RandomDirectedGNP(30,.2).is_transitive()
-            False
-            sage: digraphs.DeBruijn(5,2).is_transitive()
-            False
-            sage: digraphs.DeBruijn(5,2).is_transitive(certificate = True)
-            ('00', '10')
-            sage: digraphs.RandomDirectedGNP(20,.2).transitive_closure().is_transitive()
-            True
-        """
-        from sage.graphs.comparability import is_transitive
-        return is_transitive(self, certificate = certificate)
-
     def to_directed(self):
         """
         Since the graph is already directed, simply returns a copy of
@@ -1236,9 +1200,9 @@ class DiGraph(GenericGraph):
     def in_degree_iterator(self, vertices=None, labels=False):
         """
         Same as degree_iterator, but for in degree.
-        
+
         EXAMPLES::
-        
+
             sage: D = graphs.Grid2dGraph(2,4).to_directed()
             sage: for i in D.in_degree_iterator():
             ...    print i
@@ -1525,7 +1489,7 @@ class DiGraph(GenericGraph):
         if self.is_directed_acyclic():
             return 0 if value_only else []
 
-        from sage.numerical.mip import MixedIntegerLinearProgram, Sum
+        from sage.numerical.mip import MixedIntegerLinearProgram
 
         ########################################
         # Constraint Generation Implementation #
@@ -1540,7 +1504,7 @@ class DiGraph(GenericGraph):
 
             # Variables are binary, and their coefficient in the objective is 1
 
-            p.set_objective( Sum( b[u][v]
+            p.set_objective( p.sum( b[u][v]
                                   for u,v in self.edges(labels = False)))
 
             p.solve(log = verbose)
@@ -1569,7 +1533,7 @@ class DiGraph(GenericGraph):
                 # constraint !
 
                 p.add_constraint(
-                    Sum( b[u][v] for u,v in
+                    p.sum( b[u][v] for u,v in
                          zip(certificate, certificate[1:] + [certificate[0]])),
                     min = 1)
 
@@ -1601,7 +1565,7 @@ class DiGraph(GenericGraph):
             for v in self:
                 p.add_constraint(d[v] <= n)
 
-            p.set_objective(Sum([b[(u,v)] for (u,v) in self.edges(labels=None)]))
+            p.set_objective(p.sum([b[(u,v)] for (u,v) in self.edges(labels=None)]))
 
             if value_only:
                 return Integer(round(p.solve(objective_only=True, log=verbose)))
@@ -1733,7 +1697,7 @@ class DiGraph(GenericGraph):
                 return 0
             return []
 
-        from sage.numerical.mip import MixedIntegerLinearProgram, Sum
+        from sage.numerical.mip import MixedIntegerLinearProgram
 
         ########################################
         # Constraint Generation Implementation #
@@ -1748,7 +1712,7 @@ class DiGraph(GenericGraph):
 
             # Variables are binary, and their coefficient in the objective is 1
 
-            p.set_objective( Sum( b[v] for v in self))
+            p.set_objective( p.sum( b[v] for v in self))
 
             p.solve(log = verbose)
 
@@ -1773,7 +1737,7 @@ class DiGraph(GenericGraph):
                 # There is a circuit left. Let's add the corresponding
                 # constraint !
 
-                p.add_constraint( Sum( b[v] for v in certificate), min = 1)
+                p.add_constraint( p.sum( b[v] for v in certificate), min = 1)
                 
                 obj = p.solve(log = verbose)
 
@@ -1805,7 +1769,7 @@ class DiGraph(GenericGraph):
             for u in self:
                 p.add_constraint(d[u],max=n)
 
-            p.set_objective(Sum([b[v] for v in self]))
+            p.set_objective(p.sum([b[v] for v in self]))
 
             if value_only:
                 return Integer(round(p.solve(objective_only=True, log=verbose)))
@@ -2686,40 +2650,40 @@ class DiGraph(GenericGraph):
 
         else:
             raise ValueError("implementation must be set to one of \"default\" or \"NetworkX\"")
-    
+
     def topological_sort_generator(self):
         """
         Returns a list of all topological sorts of the digraph if it is
         acyclic, and raises a TypeError if the digraph contains a directed
         cycle.
-        
+
         A topological sort is an ordering of the vertices of the digraph
         such that each vertex comes before all of its successors. That is,
         if u comes before v in the sort, then there may be a directed path
         from u to v, but there will be no directed path from v to u. See
         also Graph.topological_sort().
-        
+
         AUTHORS:
 
         - Mike Hansen - original implementation
 
         - Robert L. Miller: wrapping, documentation
-        
+
         REFERENCE:
 
         - [1] Pruesse, Gara and Ruskey, Frank. Generating Linear
           Extensions Fast. SIAM J. Comput., Vol. 23 (1994), no. 2, pp.
           373-386.
-        
+
         EXAMPLES::
-        
+
             sage: D = DiGraph({ 0:[1,2], 1:[3], 2:[3,4] })
             sage: D.plot(layout='circular').show()
             sage: D.topological_sort_generator()
             [[0, 1, 2, 3, 4], [0, 1, 2, 4, 3], [0, 2, 1, 3, 4], [0, 2, 1, 4, 3], [0, 2, 4, 1, 3]]
-        
+
         ::
-        
+
             sage: for sort in D.topological_sort_generator():
             ...       for edge in D.edge_iterator():
             ...           u,v,l = edge
@@ -3065,5 +3029,7 @@ class DiGraph(GenericGraph):
         except AttributeError:
             return len(self.strongly_connected_components()) == 1
 
+import types
 
-
+import sage.graphs.comparability
+DiGraph.is_transitive = types.MethodType(sage.graphs.comparability.is_transitive, None, DiGraph)

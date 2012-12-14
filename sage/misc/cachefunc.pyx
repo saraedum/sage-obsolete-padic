@@ -270,7 +270,7 @@ ought to be chosen. A typical example is
 ########################################################################
 from function_mangling import ArgumentFixer
 import os
-from sage.misc.sageinspect import sage_getfile, sage_getsourcelines
+from sage.misc.sageinspect import sage_getfile, sage_getsourcelines, sage_getargspec
 
 def _cached_function_unpickle(module,name):
     """
@@ -532,7 +532,6 @@ cdef class CachedFunction(object):
             False))
 
         """
-        from sage.misc.sageinspect import sage_getargspec
         return sage_getargspec(self.f)
 
     def __call__(self, *args, **kwds):
@@ -552,7 +551,7 @@ cdef class CachedFunction(object):
             sage: a is g(10^5)
             True
             sage: a is number_of_partitions(10^5)
-            False
+            True
 
         """
         # We shortcut a common case of no arguments
@@ -1787,13 +1786,22 @@ cdef class CachedMethod(object):
         # Since we have an optimized version for functions that do not accept arguments,
         # we need to analyse the argspec
         f = (<CachedFunction>self._cachedfunc).f
-        from sage.misc.sageinspect import sage_getargspec
-        args, varargs, keywords, defaults = sage_getargspec(f)
-        if varargs is None and keywords is None and len(args)<=1:
+        if self.nargs==0:
+            args, varargs, keywords, defaults = sage_getargspec(f)
+            if varargs is None and keywords is None and len(args)<=1:
+                self.nargs = 1
+                Caller = CachedMethodCallerNoArgs(inst, f, name=name)
+            else:
+                self.nargs = 2 # don't need the exact number
+                Caller = CachedMethodCaller(self, inst,
+                                            cache=self._get_instance_cache(inst),
+                                            name=name)
+        elif self.nargs==1:
             Caller = CachedMethodCallerNoArgs(inst, f, name=name)
         else:
             Caller = CachedMethodCaller(self, inst,
-            cache=self._get_instance_cache(inst), name=name)
+                                        cache=self._get_instance_cache(inst),
+                                        name=name)
         try:
             setattr(inst,name, Caller)
             return Caller
@@ -2036,12 +2044,12 @@ class FileCache:
             sage: FC[((1,2),())] = 2
             sage: FC[((1,),(('a',1),))] = 3
             sage: for f in sorted(FC.file_list()): print f[len(dir):]
-            /t-.key.sobj
-            /t-.sobj
-            /t-1_2.key.sobj
-            /t-1_2.sobj
-            /t-a-1.1.key.sobj
-            /t-a-1.1.sobj
+            t-.key.sobj
+            t-.sobj
+            t-1_2.key.sobj
+            t-1_2.sobj
+            t-a-1.1.key.sobj
+            t-a-1.1.sobj
         """
         files = []
         prefix = self._prefix
@@ -2138,7 +2146,7 @@ class FileCache:
         EXAMPLES::
 
             sage: from sage.misc.cachefunc import FileCache
-            sage: dir = tmp_dir() + '/'
+            sage: dir = tmp_dir()
             sage: FC = FileCache(dir, memory_cache = False, prefix='foo')
             sage: N = FC._filename(((1,2), (('a',1),('b',2))))
             sage: print N[len(dir):]
@@ -2166,7 +2174,7 @@ class FileCache:
         EXAMPLES::
 
             sage: from sage.misc.cachefunc import FileCache
-            sage: dir = tmp_dir() + '/'
+            sage: dir = tmp_dir()
             sage: FC = FileCache(dir, memory_cache = False, prefix='foo')
             sage: k = ((),(('a',1),))
             sage: FC[k] = True
@@ -2185,7 +2193,7 @@ class FileCache:
         EXAMPLES::
 
             sage: from sage.misc.cachefunc import FileCache
-            sage: dir = tmp_dir() + '/'
+            sage: dir = tmp_dir()
             sage: FC1 = FileCache(dir, memory_cache = False, prefix='foo')
             sage: FC2 = FileCache(dir, memory_cache = False, prefix='foo')
             sage: k = ((),(('a',1),))
@@ -2226,7 +2234,7 @@ class FileCache:
         EXAMPLES::
 
             sage: from sage.misc.cachefunc import FileCache
-            sage: dir = tmp_dir() + '/'
+            sage: dir = tmp_dir()
             sage: FC1 = FileCache(dir, memory_cache = False, prefix='foo')
             sage: FC2 = FileCache(dir, memory_cache = False, prefix='foo')
             sage: k = ((),(('a',1),))
@@ -2255,7 +2263,7 @@ class FileCache:
         EXAMPLES::
 
             sage: from sage.misc.cachefunc import FileCache
-            sage: dir = tmp_dir() + '/'
+            sage: dir = tmp_dir()
             sage: FC1 = FileCache(dir, memory_cache = False, prefix='foo')
             sage: FC2 = FileCache(dir, memory_cache = False, prefix='foo')
             sage: k = ((),(('a',1),))
