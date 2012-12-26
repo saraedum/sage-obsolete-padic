@@ -186,7 +186,7 @@ def BuckyBall():
         sage: g.is_planar()
         True
 
-    The Bucky Ball can also be created by extracting the 1-skeleton 
+    The Bucky Ball can also be created by extracting the 1-skeleton
     of the Bucky Ball polyhedron, but this is much slower. ::
 
         sage: g = polytopes.buckyball().vertex_graph()
@@ -200,20 +200,20 @@ def BuckyBall():
         sage: g = graphs.BuckyBall()
         sage: g.plot(vertex_labels=False, vertex_size=10).show() # long time
     """
-    edges = [(0, 2), (0, 48), (0, 59), (1, 3), (1, 9), (1, 58), 
-             (2, 3), (2, 36), (3, 17), (4, 6), (4, 8), (4, 12), 
-             (5, 7), (5, 9), (5, 16), (6, 7), (6, 20), (7, 21), 
-             (8, 9), (8, 56), (10, 11), (10, 12), (10, 20), (11, 27), 
-             (11, 47), (12, 13), (13, 46), (13, 54), (14, 15), (14, 16), 
-             (14, 21), (15, 25), (15, 41), (16, 17), (17, 40), (18, 19), 
-             (18, 20), (18, 26), (19, 21), (19, 24), (22, 23), (22, 31), 
-             (22, 34), (23, 25), (23, 38), (24, 25), (24, 30), (26, 27), 
-             (26, 30), (27, 29), (28, 29), (28, 31), (28, 35), (29, 44), 
-             (30, 31), (32, 34), (32, 39), (32, 50), (33, 35), (33, 45), 
-             (33, 51), (34, 35), (36, 37), (36, 40), (37, 39), (37, 52), 
-             (38, 39), (38, 41), (40, 41), (42, 43), (42, 46), (42, 55), 
-             (43, 45), (43, 53), (44, 45), (44, 47), (46, 47), (48, 49), 
-             (48, 52), (49, 53), (49, 57), (50, 51), (50, 52), (51, 53), 
+    edges = [(0, 2), (0, 48), (0, 59), (1, 3), (1, 9), (1, 58),
+             (2, 3), (2, 36), (3, 17), (4, 6), (4, 8), (4, 12),
+             (5, 7), (5, 9), (5, 16), (6, 7), (6, 20), (7, 21),
+             (8, 9), (8, 56), (10, 11), (10, 12), (10, 20), (11, 27),
+             (11, 47), (12, 13), (13, 46), (13, 54), (14, 15), (14, 16),
+             (14, 21), (15, 25), (15, 41), (16, 17), (17, 40), (18, 19),
+             (18, 20), (18, 26), (19, 21), (19, 24), (22, 23), (22, 31),
+             (22, 34), (23, 25), (23, 38), (24, 25), (24, 30), (26, 27),
+             (26, 30), (27, 29), (28, 29), (28, 31), (28, 35), (29, 44),
+             (30, 31), (32, 34), (32, 39), (32, 50), (33, 35), (33, 45),
+             (33, 51), (34, 35), (36, 37), (36, 40), (37, 39), (37, 52),
+             (38, 39), (38, 41), (40, 41), (42, 43), (42, 46), (42, 55),
+             (43, 45), (43, 53), (44, 45), (44, 47), (46, 47), (48, 49),
+             (48, 52), (49, 53), (49, 57), (50, 51), (50, 52), (51, 53),
              (54, 55), (54, 56), (55, 57), (56, 58), (57, 59), (58, 59)
              ]
     g = graph.Graph()
@@ -436,18 +436,18 @@ def CircularLadderGraph(n):
     drawn at the top of the inner-circle, moving clockwise after that.
     The outer circle is drawn with the (n+1)th node at the top, then
     counterclockwise as well.
-    
+
     EXAMPLES: Construct and show a circular ladder graph with 26 nodes
-    
+
     ::
-    
+
         sage: g = graphs.CircularLadderGraph(13)
         sage: g.show() # long time
-    
+
     Create several circular ladder graphs in a Sage graphics array
-    
+
     ::
-    
+
         sage: g = []
         sage: j = []
         sage: for i in range(9):
@@ -475,26 +475,26 @@ def CircularLadderGraph(n):
     import networkx
     G = networkx.circular_ladder_graph(n)
     return graph.Graph(G, pos=pos_dict, name="Circular Ladder graph")
-    
+
 def ClawGraph():
     """
     Returns a claw graph.
-    
+
     A claw graph is named for its shape. It is actually a complete
     bipartite graph with (n1, n2) = (1, 3).
-    
+
     PLOTTING: See CompleteBipartiteGraph.
-    
+
     EXAMPLES: Show a Claw graph
-    
+
     ::
-    
+
         sage: (graphs.ClawGraph()).show() # long time
-    
+
     Inspect a Claw graph
-    
+
     ::
-    
+
         sage: G = graphs.ClawGraph()
         sage: G
         Claw graph: Graph on 4 vertices
@@ -507,40 +507,40 @@ def ClawGraph():
 def CycleGraph(n):
     r"""
     Returns a cycle graph with n nodes.
-    
+
     A cycle graph is a basic structure which is also typically called
     an n-gon.
-    
+
     This constructor is dependent on vertices numbered 0 through n-1 in
     NetworkX ``cycle_graph()``
-    
+
     PLOTTING: Upon construction, the position dictionary is filled to
     override the spring-layout algorithm. By convention, each cycle
     graph will be displayed with the first (0) node at the top, with
     the rest following in a counterclockwise manner.
-    
+
     The cycle graph is a good opportunity to compare efficiency of
     filling a position dictionary vs. using the spring-layout algorithm
     for plotting. Because the cycle graph is very symmetric, the
     resulting plots should be similar (in cases of small n).
-    
+
     Filling the position dictionary in advance adds O(n) to the
     constructor.
-    
+
     EXAMPLES: Compare plotting using the predefined layout and
     networkx::
-    
-        sage: import networkx            
+
+        sage: import networkx
         sage: n = networkx.cycle_graph(23)
         sage: spring23 = Graph(n)
         sage: posdict23 = graphs.CycleGraph(23)
         sage: spring23.show() # long time
         sage: posdict23.show() # long time
-    
+
     We next view many cycle graphs as a Sage graphics array. First we
     use the ``CycleGraph`` constructor, which fills in the
     position dictionary::
-    
+
         sage: g = []
         sage: j = []
         sage: for i in range(9):
@@ -555,13 +555,13 @@ def CycleGraph(n):
         ...
         sage: G = sage.plot.graphics.GraphicsArray(j)
         sage: G.show() # long time
-    
+
     Compare to plotting with the spring-layout algorithm::
-    
+
         sage: g = []
         sage: j = []
         sage: for i in range(9):
-        ...    spr = networkx.cycle_graph(i+3)       
+        ...    spr = networkx.cycle_graph(i+3)
         ...    k = Graph(spr)
         ...    g.append(k)
         ...
@@ -579,29 +579,281 @@ def CycleGraph(n):
         x = float(cos((pi/2) + ((2*pi)/n)*i))
         y = float(sin((pi/2) + ((2*pi)/n)*i))
         pos_dict[i] = (x,y)
-    import networkx                    
+    import networkx
     G = networkx.cycle_graph(n)
     return graph.Graph(G, pos=pos_dict, name="Cycle graph")
-    
+
+def CompleteGraph(n):
+    """
+    Returns a complete graph on n nodes.
+
+    A Complete Graph is a graph in which all nodes are connected to all
+    other nodes.
+
+    This constructor is dependent on vertices numbered 0 through n-1 in
+    NetworkX complete_graph()
+
+    PLOTTING: Upon construction, the position dictionary is filled to
+    override the spring-layout algorithm. By convention, each complete
+    graph will be displayed with the first (0) node at the top, with
+    the rest following in a counterclockwise manner.
+
+    In the complete graph, there is a big difference visually in using
+    the spring-layout algorithm vs. the position dictionary used in
+    this constructor. The position dictionary flattens the graph,
+    making it clear which nodes an edge is connected to. But the
+    complete graph offers a good example of how the spring-layout
+    works. The edges push outward (everything is connected), causing
+    the graph to appear as a 3-dimensional pointy ball. (See examples
+    below).
+
+    EXAMPLES: We view many Complete graphs with a Sage Graphics Array,
+    first with this constructor (i.e., the position dictionary
+    filled)::
+
+        sage: g = []
+        sage: j = []
+        sage: for i in range(9):
+        ...    k = graphs.CompleteGraph(i+3)
+        ...    g.append(k)
+        ...
+        sage: for i in range(3):
+        ...    n = []
+        ...    for m in range(3):
+        ...        n.append(g[3*i + m].plot(vertex_size=50, vertex_labels=False))
+        ...    j.append(n)
+        ...
+        sage: G = sage.plot.graphics.GraphicsArray(j)
+        sage: G.show() # long time
+
+    We compare to plotting with the spring-layout algorithm::
+
+        sage: import networkx
+        sage: g = []
+        sage: j = []
+        sage: for i in range(9):
+        ...    spr = networkx.complete_graph(i+3)
+        ...    k = Graph(spr)
+        ...    g.append(k)
+        ...
+        sage: for i in range(3):
+        ...    n = []
+        ...    for m in range(3):
+        ...        n.append(g[3*i + m].plot(vertex_size=50, vertex_labels=False))
+        ...    j.append(n)
+        ...
+        sage: G = sage.plot.graphics.GraphicsArray(j)
+        sage: G.show() # long time
+
+    Compare the constructors (results will vary)
+
+    ::
+
+        sage: import networkx
+        sage: t = cputime()
+        sage: n = networkx.complete_graph(389); spring389 = Graph(n)
+        sage: cputime(t)           # random
+        0.59203700000000126
+        sage: t = cputime()
+        sage: posdict389 = graphs.CompleteGraph(389)
+        sage: cputime(t)           # random
+        0.6680419999999998
+
+    We compare plotting::
+
+        sage: import networkx
+        sage: n = networkx.complete_graph(23)
+        sage: spring23 = Graph(n)
+        sage: posdict23 = graphs.CompleteGraph(23)
+        sage: spring23.show() # long time
+        sage: posdict23.show() # long time
+    """
+    pos_dict = {}
+    for i in range(n):
+        x = float(cos((pi/2) + ((2*pi)/n)*i))
+        y = float(sin((pi/2) + ((2*pi)/n)*i))
+        pos_dict[i] = (x,y)
+    import networkx
+    G = networkx.complete_graph(n)
+    return graph.Graph(G, pos=pos_dict, name="Complete graph")
+
+def CompleteBipartiteGraph(n1, n2):
+    """
+    Returns a Complete Bipartite Graph sized n1+n2, with each of the
+    nodes [0,(n1-1)] connected to each of the nodes [n1,(n2-1)] and
+    vice versa.
+
+    A Complete Bipartite Graph is a graph with its vertices partitioned
+    into two groups, V1 and V2. Each v in V1 is connected to every v in
+    V2, and vice versa.
+
+    PLOTTING: Upon construction, the position dictionary is filled to
+    override the spring-layout algorithm. By convention, each complete
+    bipartite graph will be displayed with the first n1 nodes on the
+    top row (at y=1) from left to right. The remaining n2 nodes appear
+    at y=0, also from left to right. The shorter row (partition with
+    fewer nodes) is stretched to the same length as the longer row,
+    unless the shorter row has 1 node; in which case it is centered.
+    The x values in the plot are in domain [0,maxn1,n2].
+
+    In the Complete Bipartite graph, there is a visual difference in
+    using the spring-layout algorithm vs. the position dictionary used
+    in this constructor. The position dictionary flattens the graph and
+    separates the partitioned nodes, making it clear which nodes an
+    edge is connected to. The Complete Bipartite graph plotted with the
+    spring-layout algorithm tends to center the nodes in n1 (see
+    spring_med in examples below), thus overlapping its nodes and
+    edges, making it typically hard to decipher.
+
+    Filling the position dictionary in advance adds O(n) to the
+    constructor. Feel free to race the constructors below in the
+    examples section. The much larger difference is the time added by
+    the spring-layout algorithm when plotting. (Also shown in the
+    example below). The spring model is typically described as
+    `O(n^3)`, as appears to be the case in the NetworkX source
+    code.
+
+    EXAMPLES: Two ways of constructing the complete bipartite graph,
+    using different layout algorithms::
+
+        sage: import networkx
+        sage: n = networkx.complete_bipartite_graph(389,157); spring_big = Graph(n)   # long time
+        sage: posdict_big = graphs.CompleteBipartiteGraph(389,157)                    # long time
+
+    Compare the plotting::
+
+        sage: n = networkx.complete_bipartite_graph(11,17)
+        sage: spring_med = Graph(n)
+        sage: posdict_med = graphs.CompleteBipartiteGraph(11,17)
+
+    Notice here how the spring-layout tends to center the nodes of n1
+
+    ::
+
+        sage: spring_med.show() # long time
+        sage: posdict_med.show() # long time
+
+    View many complete bipartite graphs with a Sage Graphics Array,
+    with this constructor (i.e., the position dictionary filled)::
+
+        sage: g = []
+        sage: j = []
+        sage: for i in range(9):
+        ...    k = graphs.CompleteBipartiteGraph(i+1,4)
+        ...    g.append(k)
+        ...
+        sage: for i in range(3):
+        ...    n = []
+        ...    for m in range(3):
+        ...        n.append(g[3*i + m].plot(vertex_size=50, vertex_labels=False))
+        ...    j.append(n)
+        ...
+        sage: G = sage.plot.graphics.GraphicsArray(j)
+        sage: G.show() # long time
+
+    We compare to plotting with the spring-layout algorithm::
+
+        sage: g = []
+        sage: j = []
+        sage: for i in range(9):
+        ...    spr = networkx.complete_bipartite_graph(i+1,4)
+        ...    k = Graph(spr)
+        ...    g.append(k)
+        ...
+        sage: for i in range(3):
+        ...    n = []
+        ...    for m in range(3):
+        ...        n.append(g[3*i + m].plot(vertex_size=50, vertex_labels=False))
+        ...    j.append(n)
+        ...
+        sage: G = sage.plot.graphics.GraphicsArray(j)
+        sage: G.show() # long time
+
+    Trac ticket #12155::
+
+        sage: graphs.CompleteBipartiteGraph(5,6).complement()
+        complement(Complete bipartite graph): Graph on 11 vertices
+    """
+    pos_dict = {}
+    c1 = 1 # scaling factor for top row
+    c2 = 1 # scaling factor for bottom row
+    c3 = 0 # pad to center if top row has 1 node
+    c4 = 0 # pad to center if bottom row has 1 node
+    if n1 > n2:
+        if n2 == 1:
+            c4 = (n1-1)/2
+        else:
+            c2 = ((n1-1)/(n2-1))
+    elif n2 > n1:
+        if n1 == 1:
+            c3 = (n2-1)/2
+        else:
+            c1 = ((n2-1)/(n1-1))
+    for i in range(n1):
+        x = c1*i + c3
+        y = 1
+        pos_dict[i] = (x,y)
+    for i in range(n1+n2)[n1:]:
+        x = c2*(i-n1) + c4
+        y = 0
+        pos_dict[i] = (x,y)
+    import networkx
+    from sage.graphs.graph import Graph
+    G = networkx.complete_bipartite_graph(n1,n2)
+    return Graph(G, pos=pos_dict, name="Complete bipartite graph")
+
+def CompleteMultipartiteGraph(l):
+    r"""
+    Returns a complete multipartite graph.
+
+    INPUT:
+
+    - ``l`` -- a list of integers : the respective sizes
+      of the components.
+
+    EXAMPLE:
+
+    A complete tripartite graph with sets of sizes
+    `5, 6, 8`::
+
+        sage: g = graphs.CompleteMultipartiteGraph([5, 6, 8]); g
+        Multipartite Graph with set sizes [5, 6, 8]: Graph on 19 vertices
+
+    It clearly has a chromatic number of 3::
+
+        sage: g.chromatic_number()
+        3
+    """
+
+    from sage.graphs.graph import Graph
+    g = Graph()
+    for i in l:
+        g = g + CompleteGraph(i)
+
+    g = g.complement()
+    g.name("Multipartite Graph with set sizes "+str(l))
+
+    return g
+
 def DiamondGraph():
     """
     Returns a diamond graph with 4 nodes.
-    
+
     A diamond graph is a square with one pair of diagonal nodes
     connected.
-    
+
     This constructor depends on NetworkX numeric labeling.
-    
+
     PLOTTING: Upon construction, the position dictionary is filled to
     override the spring-layout algorithm. By convention, the diamond
     graph is drawn as a diamond, with the first node on top, second on
     the left, third on the right, and fourth on the bottom; with the
     second and third node connected.
-    
+
     EXAMPLES: Construct and show a diamond graph
-    
+
     ::
-    
+
         sage: g = graphs.DiamondGraph()
         sage: g.show() # long time
     """
@@ -609,27 +861,27 @@ def DiamondGraph():
     import networkx
     G = networkx.diamond_graph()
     return graph.Graph(G, pos=pos_dict, name="Diamond Graph")
-    
+
 def EmptyGraph():
     """
     Returns an empty graph (0 nodes and 0 edges).
-    
+
     This is useful for constructing graphs by adding edges and vertices
     individually or in a loop.
-    
+
     PLOTTING: When plotting, this graph will use the default
     spring-layout algorithm, unless a position dictionary is
     specified.
-    
+
     EXAMPLES: Add one vertex to an empty graph and then show::
-    
+
         sage: empty1 = graphs.EmptyGraph()
         sage: empty1.add_vertex()
         0
         sage: empty1.show() # long time
-    
+
     Use for loops to build a graph from an empty graph::
-    
+
         sage: empty2 = graphs.EmptyGraph()
         sage: for i in range(5):
         ...    empty2.add_vertex() # add 5 nodes, labeled 0-4
@@ -802,25 +1054,25 @@ def Grid2dGraph(n1, n2):
 def GridGraph(dim_list):
     """
     Returns an n-dimensional grid graph.
-    
+
     INPUT:
-    
-    
+
+
     -  ``dim_list`` - a list of integers representing the
        number of nodes to extend in each dimension.
-    
-    
+
+
     PLOTTING: When plotting, this graph will use the default
     spring-layout algorithm, unless a position dictionary is
     specified.
-    
+
     EXAMPLES::
-    
+
         sage: G = graphs.GridGraph([2,3,4])
         sage: G.show()  # long time
-    
+
     ::
-    
+
         sage: C = graphs.CubeGraph(4)
         sage: G = graphs.GridGraph([2,2,2,2])
         sage: C.show()  # long time
@@ -837,12 +1089,12 @@ def GridGraph(dim_list):
 def HouseGraph():
     """
     Returns a house graph with 5 nodes.
-    
+
     A house graph is named for its shape. It is a triangle (roof) over a
     square (walls).
-    
+
     This constructor depends on NetworkX numeric labeling.
-    
+
     PLOTTING: Upon construction, the position dictionary is filled to
     override the spring-layout algorithm. By convention, the house
     graph is drawn with the first node in the lower-left corner of the
@@ -851,11 +1103,11 @@ def HouseGraph():
     and the fourth is in the upper-right corner connecting the roof to
     the wall. The fifth node is the top of the roof, connected only to
     the third and fourth.
-    
+
     EXAMPLES: Construct and show a house graph
-    
+
     ::
-    
+
         sage: g = graphs.HouseGraph()
         sage: g.show() # long time
     """
@@ -863,17 +1115,17 @@ def HouseGraph():
     import networkx
     G = networkx.house_graph()
     return graph.Graph(G, pos=pos_dict, name="House Graph")
-    
+
 def HouseXGraph():
     """
     Returns a house X graph with 5 nodes.
-    
+
     A house X graph is a house graph with two additional edges. The
     upper-right corner is connected to the lower-left. And the
     upper-left corner is connected to the lower-right.
-    
+
     This constructor depends on NetworkX numeric labeling.
-    
+
     PLOTTING: Upon construction, the position dictionary is filled to
     override the spring-layout algorithm. By convention, the house X
     graph is drawn with the first node in the lower-left corner of the
@@ -882,11 +1134,11 @@ def HouseXGraph():
     and the fourth is in the upper-right corner connecting the roof to
     the wall. The fifth node is the top of the roof, connected only to
     the third and fourth.
-    
+
     EXAMPLES: Construct and show a house X graph
-    
+
     ::
-    
+
         sage: g = graphs.HouseXGraph()
         sage: g.show() # long time
     """
@@ -898,21 +1150,21 @@ def HouseXGraph():
 def KrackhardtKiteGraph():
     """
     Returns a Krackhardt kite graph with 10 nodes.
-    
+
     The Krackhardt kite graph was originally developed by David
     Krackhardt for the purpose of studying social networks. It is used
     to show the distinction between: degree centrality, betweeness
     centrality, and closeness centrality. For more information read the
     plotting section below in conjunction with the example.
-    
+
     REFERENCES:
 
     - [1] Kreps, V. (2002). "Social Network Analysis".  [Online] Available:
       http://www.fsu.edu/~spap/water/network/intro.htm [2007,
       January 17]
-    
+
     This constructor depends on NetworkX numeric labeling.
-    
+
     PLOTTING: Upon construction, the position dictionary is filled to
     override the spring-layout algorithm. By convention, the graph is
     drawn left to right, in top to bottom row sequence of [2, 3, 2, 1,
@@ -926,11 +1178,11 @@ def KrackhardtKiteGraph():
     third row and have degree = 5. These nodes have the shortest path
     to all other nodes in the graph (i.e.: Closeness Centrality).
     Please execute the example for visualization.
-    
+
     EXAMPLE: Construct and show a Krackhardt kite graph
-    
+
     ::
-    
+
         sage: g = graphs.KrackhardtKiteGraph()
         sage: g.show() # long time
     """
@@ -942,29 +1194,29 @@ def KrackhardtKiteGraph():
 def LadderGraph(n):
     """
     Returns a ladder graph with 2\*n nodes.
-    
+
     A ladder graph is a basic structure that is typically displayed as
     a ladder, i.e.: two parallel path graphs connected at each
     corresponding node pair.
-    
+
     This constructor depends on NetworkX numeric labels.
-    
+
     PLOTTING: Upon construction, the position dictionary is filled to
     override the spring-layout algorithm. By convention, each ladder
     graph will be displayed horizontally, with the first n nodes
     displayed left to right on the top horizontal line.
-    
+
     EXAMPLES: Construct and show a ladder graph with 14 nodes
-    
+
     ::
-    
+
         sage: g = graphs.LadderGraph(7)
         sage: g.show() # long time
-    
+
     Create several ladder graphs in a Sage graphics array
-    
+
     ::
-    
+
         sage: g = []
         sage: j = []
         sage: for i in range(9):
@@ -993,30 +1245,30 @@ def LadderGraph(n):
 def LollipopGraph(n1, n2):
     """
     Returns a lollipop graph with n1+n2 nodes.
-    
+
     A lollipop graph is a path graph (order n2) connected to a complete
     graph (order n1). (A barbell graph minus one of the bells).
-    
+
     This constructor depends on NetworkX numeric labels.
-    
+
     PLOTTING: Upon construction, the position dictionary is filled to
     override the spring-layout algorithm. By convention, the complete
     graph will be drawn in the lower-left corner with the (n1)th node
     at a 45 degree angle above the right horizontal center of the
     complete graph, leading directly into the path graph.
-    
+
     EXAMPLES: Construct and show a lollipop graph Candy = 13, Stick =
     4
-    
+
     ::
-    
+
         sage: g = graphs.LollipopGraph(13,4)
         sage: g.show() # long time
-    
+
     Create several lollipop graphs in a Sage graphics array
-    
+
     ::
-    
+
         sage: g = []
         sage: j = []
         sage: for i in range(6):
@@ -1033,7 +1285,7 @@ def LollipopGraph(n1, n2):
         sage: G.show() # long time
     """
     pos_dict = {}
-    
+
     for i in range(n1):
         x = float(cos((pi/4) - ((2*pi)/n1)*i) - n2/2 - 1)
         y = float(sin((pi/4) - ((2*pi)/n1)*i) - n2/2 - 1)
@@ -1043,24 +1295,24 @@ def LollipopGraph(n1, n2):
         x = float(i - n1 - n2/2 + 1)
         y = float(i - n1 - n2/2 + 1)
         pos_dict[i] = (x,y)
-        
+
     import networkx
     G = networkx.lollipop_graph(n1,n2)
     return graph.Graph(G, pos=pos_dict, name="Lollipop Graph")
-    
+
 def PathGraph(n, pos=None):
     """
     Returns a path graph with n nodes. Pos argument takes a string
     which is either 'circle' or 'line', (otherwise the default is
     used). See the plotting section below for more detail.
-    
+
     A path graph is a graph where all inner nodes are connected to
     their two neighbors and the two end-nodes are connected to their
     one inner neighbors. (i.e.: a cycle graph without the first and
     last node connected).
-    
+
     This constructor depends on NetworkX numeric labels.
-    
+
     PLOTTING: Upon construction, the position dictionary is filled to
     override the spring-layout algorithm. By convention, the graph may
     be drawn in one of two ways: The 'line' argument will draw the
@@ -1072,42 +1324,42 @@ def PathGraph(n, pos=None):
     circle in a clockwise manner. By default (without an appropriate
     string argument) the graph will be drawn as a 'circle' if 10 n 41
     and as a 'line' for all other n.
-    
+
     EXAMPLES: Show default drawing by size: 'line': n 11
-    
+
     ::
-    
+
         sage: p = graphs.PathGraph(10)
         sage: p.show() # long time
-    
+
     'circle': 10 n 41
-    
+
     ::
-    
+
         sage: q = graphs.PathGraph(25)
         sage: q.show() # long time
-    
+
     'line': n 40
-    
+
     ::
-    
+
         sage: r = graphs.PathGraph(55)
         sage: r.show() # long time
-    
+
     Override the default drawing::
-    
+
         sage: s = graphs.PathGraph(5,'circle')
         sage: s.show() # long time
     """
     pos_dict = {}
-    
+
     # Choose appropriate drawing pattern
     circle = False
     if pos == "circle": circle = True
     elif pos == "line": circle = False
     # Otherwise use default by size of n
     elif 10 < n < 41: circle = True
-    
+
     # Draw 'circle'
     if circle:
         for i in range(n):
@@ -1120,13 +1372,13 @@ def PathGraph(n, pos=None):
         rem = n%10 # remainder to appear on last row
         rows = n//10 # number of rows (not counting last row)
         lr = True # left to right
-        
+
         for i in range(rows): # note that rows doesn't include last row
             y = -i
             for j in range(10):
                 if lr:
                     x = j
-                else: 
+                else:
                     x = 9 - j
                 pos_dict[counter] = (x,y)
                 counter += 1
@@ -1136,7 +1388,7 @@ def PathGraph(n, pos=None):
         for j in range(rem): # last row
             if lr:
                 x = j
-            else: 
+            else:
                 x = 9 - j
             pos_dict[counter] = (x,y)
             counter += 1
@@ -1148,43 +1400,43 @@ def PathGraph(n, pos=None):
 def StarGraph(n):
     """
     Returns a star graph with n+1 nodes.
-    
+
     A Star graph is a basic structure where one node is connected to
     all other nodes.
-    
+
     This constructor is dependent on NetworkX numeric labels.
-    
+
     PLOTTING: Upon construction, the position dictionary is filled to
     override the spring-layout algorithm. By convention, each star
     graph will be displayed with the first (0) node in the center, the
     second node (1) at the top, with the rest following in a
     counterclockwise manner. (0) is the node connected to all other
     nodes.
-    
+
     The star graph is a good opportunity to compare efficiency of
     filling a position dictionary vs. using the spring-layout algorithm
     for plotting. As far as display, the spring-layout should push all
     other nodes away from the (0) node, and thus look very similar to
     this constructor's positioning.
-    
+
     EXAMPLES::
-    
+
         sage: import networkx
-    
+
     Compare the plots::
-    
+
         sage: n = networkx.star_graph(23)
         sage: spring23 = Graph(n)
         sage: posdict23 = graphs.StarGraph(23)
         sage: spring23.show() # long time
         sage: posdict23.show() # long time
-    
+
     View many star graphs as a Sage Graphics Array
-    
+
     With this constructor (i.e., the position dictionary filled)
-    
+
     ::
-    
+
         sage: g = []
         sage: j = []
         sage: for i in range(9):
@@ -1199,15 +1451,15 @@ def StarGraph(n):
         ...
         sage: G = sage.plot.graphics.GraphicsArray(j)
         sage: G.show() # long time
-    
+
     Compared to plotting with the spring-layout algorithm
-    
+
     ::
-    
+
         sage: g = []
         sage: j = []
         sage: for i in range(9):
-        ...    spr = networkx.star_graph(i+3)       
+        ...    spr = networkx.star_graph(i+3)
         ...    k = Graph(spr)
         ...    g.append(k)
         ...
@@ -1233,26 +1485,26 @@ def StarGraph(n):
 def WheelGraph(n):
     """
     Returns a Wheel graph with n nodes.
-    
+
     A Wheel graph is a basic structure where one node is connected to
     all other nodes and those (outer) nodes are connected cyclically.
-    
+
     This constructor depends on NetworkX numeric labels.
-    
+
     PLOTTING: Upon construction, the position dictionary is filled to
     override the spring-layout algorithm. By convention, each wheel
     graph will be displayed with the first (0) node in the center, the
     second node at the top, and the rest following in a
     counterclockwise manner.
-    
+
     With the wheel graph, we see that it doesn't take a very large n at
     all for the spring-layout to give a counter-intuitive display. (See
     Graphics Array examples below).
-    
+
     EXAMPLES: We view many wheel graphs with a Sage Graphics Array,
     first with this constructor (i.e., the position dictionary
     filled)::
-    
+
         sage: g = []
         sage: j = []
         sage: for i in range(9):
@@ -1267,14 +1519,14 @@ def WheelGraph(n):
         ...
         sage: G = sage.plot.graphics.GraphicsArray(j)
         sage: G.show() # long time
-    
+
     Next, using the spring-layout algorithm::
-    
+
         sage: import networkx
         sage: g = []
         sage: j = []
         sage: for i in range(9):
-        ...    spr = networkx.wheel_graph(i+3)       
+        ...    spr = networkx.wheel_graph(i+3)
         ...    k = Graph(spr)
         ...    g.append(k)
         ...
@@ -1286,9 +1538,9 @@ def WheelGraph(n):
         ...
         sage: G = sage.plot.graphics.GraphicsArray(j)
         sage: G.show() # long time
-    
+
     Compare the plotting::
-    
+
         sage: n = networkx.wheel_graph(23)
         sage: spring23 = Graph(n)
         sage: posdict23 = graphs.WheelGraph(23)
@@ -1301,6 +1553,6 @@ def WheelGraph(n):
         x = float(cos((pi/2) + ((2*pi)/(n-1))*(i-1)))
         y = float(sin((pi/2) + ((2*pi)/(n-1))*(i-1)))
         pos_dict[i] = (x,y)
-    import networkx                    
+    import networkx
     G = networkx.wheel_graph(n)
     return graph.Graph(G, pos=pos_dict, name="Wheel graph")
