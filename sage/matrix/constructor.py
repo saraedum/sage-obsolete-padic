@@ -78,7 +78,7 @@ def matrix_method(func=None, name=None):
 
 def _matrix_constructor(*args, **kwds):
     """
-    Create a matrix.  
+    Create a matrix.
 
     This implements the ``matrix`` constructor::
 
@@ -93,7 +93,7 @@ def _matrix_constructor(*args, **kwds):
         [1 0]
         [0 1]
 
-    INPUT: 
+    INPUT:
 
     The matrix command takes the entries of a matrix, optionally
     preceded by a ring and the dimensions of the matrix, and returns a
@@ -748,6 +748,15 @@ class MatrixFactory(object):
     __call__ = staticmethod(_matrix_constructor)
 
     def _sage_src_(self):
+        """
+        For introspection of the global matrix object.
+        
+        TESTS::
+        
+            sage: from sage.misc.sageinspect import sage_getsource
+            sage: sage_getsource(matrix) == sage_getsource(sage.matrix.constructor._matrix_constructor)
+            True
+        """
         from sage.misc.sageinspect import sage_getsource
         return sage_getsource(_matrix_constructor)
 
