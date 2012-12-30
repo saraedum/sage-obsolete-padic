@@ -309,6 +309,7 @@ from sage.rings.integer import Integer
 from sage.rings.rational import Rational
 from generic_graph_pyx import GenericGraph_pyx, spring_layout_fast
 from sage.graphs.dot2tex_utils import assert_have_dot2tex
+from sage.misc.superseded import deprecated_function_alias
 
 class GenericGraph(GenericGraph_pyx):
     """
@@ -323,7 +324,7 @@ class GenericGraph(GenericGraph_pyx):
         Every graph carries a dictionary of options, which is set
         here to ``None``.  Some options are added to the global
         :data:`sage.misc.latex.latex` instance which will insure
-        that if `\mbox{\rm\LaTeX}` is used to render the graph,
+        that if LaTeX is used to render the graph,
         then the right packages are loaded and MathJax reacts
         properly.
 
@@ -592,8 +593,9 @@ class GenericGraph(GenericGraph_pyx):
         return s
 
     def _latex_(self):
-        r""" Returns a string to render the graph using
-        `\mbox{\rm{\LaTeX}}`.
+        r"""
+
+        Returns a string to render the graph using LaTeX.
 
         To adjust the string, use the
         :meth:`set_latex_options` method to set options,
@@ -13734,10 +13736,9 @@ class GenericGraph(GenericGraph_pyx):
         Returns an instance of
         :class:`~sage.graphs.graph_latex.GraphLatex` for the graph.
 
-        Changes to this object will affect the `\mbox{\rm\LaTeX}`
-        version of the graph.    For a full explanation of
-        how to use LaTeX to render graphs, see the introduction to the
-        :mod:`~sage.graphs.graph_latex` module.
+        Changes to this object will affect the LaTeX version of the graph.  For
+        a full explanation of how to use LaTeX to render graphs, see the
+        introduction to the :mod:`~sage.graphs.graph_latex` module.
 
         EXAMPLES::
 
@@ -13835,17 +13836,18 @@ class GenericGraph(GenericGraph_pyx):
         Here is the list of all the available layout options::
 
             sage: from sage.graphs.graph_plot import layout_options
-            sage: list(sorted(layout_options.iteritems()))
-            [('by_component', 'Whether to do the spring layout by connected component -- a boolean.'),
-             ('dim', 'The dimension of the layout -- 2 or 3.'),
-             ('heights', 'A dictionary mapping heights to the list of vertices at this height.'),
-             ('iterations', 'The number of times to execute the spring layout algorithm.'),
-             ('layout', 'A layout algorithm -- one of "acyclic", "circular", "ranked", "graphviz", "planar", "spring", or "tree".'),
-             ('prog', 'Which graphviz layout program to use -- one of "circo", "dot", "fdp", "neato", or "twopi".'),
-             ('save_pos', 'Whether or not to save the computed position for the graph.'),
-             ('spring', 'Use spring layout to finalize the current layout.'),
-             ('tree_orientation', 'The direction of tree branches -- "up" or "down".'),
-             ('tree_root', 'A vertex designation for drawing trees.')]
+            sage: for key, value in list(sorted(layout_options.iteritems())):
+            ...      print "option", key, ":", value
+            option by_component : Whether to do the spring layout by connected component -- a boolean.
+            option dim : The dimension of the layout -- 2 or 3.
+            option heights : A dictionary mapping heights to the list of vertices at this height.
+            option iterations : The number of times to execute the spring layout algorithm.
+            option layout : A layout algorithm -- one of : "acyclic", "circular" (plots the graph with vertices evenly distributed on a circle), "ranked", "graphviz", "planar", "spring" (traditional spring layout, using the graph's current positions as initial positions), or "tree" (the tree will be plotted in levels, depending on minimum distance for the root).
+            option prog : Which graphviz layout program to use -- one of "circo", "dot", "fdp", "neato", or "twopi".
+            option save_pos : Whether or not to save the computed position for the graph.
+            option spring : Use spring layout to finalize the current layout.
+            option tree_orientation : The direction of tree branches -- "up" or "down".
+            option tree_root : A vertex designation for drawing trees. a vertex of the tree to be used as the root for the ``layout="tree"`` option. If no root is specified, then one is chosen at random. Ignored unless ``layout='tree'``
 
         Some of them only apply to certain layout algorithms. For
         details, see :meth:`.layout_acyclic`, :meth:`.layout_planar`,
@@ -14222,22 +14224,14 @@ class GenericGraph(GenericGraph_pyx):
 
         return [xmin, xmax, ymin, ymax]
 
-
-
-    @options(vertex_size=200, vertex_labels=True, layout=None,
-            edge_style='solid', edge_color='black',edge_colors=None, edge_labels=False, 
-            iterations=50, tree_orientation='down', heights=None, graph_border=False, 
-            talk=False, color_by_label=False, partition=None,
-            dist = .075, max_dist=1.5, loop_size=.075)
     def graphplot(self, **options):
         """
         Returns a GraphPlot object.
-        
-        
+
         EXAMPLES:
-        
+
         Creating a graphplot object uses the same options as graph.plot()::
-        
+
             sage: g = Graph({}, loops=True, multiedges=True, sparse=True)
             sage: g.add_edges([(0,0,'a'),(0,0,'b'),(0,1,'c'),(0,1,'d'),
             ...     (0,1,'e'),(0,1,'f'),(0,1,'f'),(2,1,'g'),(2,2,'h')])
@@ -14246,7 +14240,7 @@ class GenericGraph(GenericGraph_pyx):
             sage: GP.plot()
 
         We can modify the graphplot object.  Notice that the changes are cumulative::
-        
+
             sage: GP.set_edges(edge_style='solid')
             sage: GP.plot()
             sage: GP.set_vertices(talk=True)
@@ -14255,48 +14249,42 @@ class GenericGraph(GenericGraph_pyx):
         from sage.graphs.graph_plot import GraphPlot
         return GraphPlot(graph=self, options=options)
 
-    @options(vertex_size=200, vertex_labels=True, layout=None,
-            edge_style='solid', edge_color = 'black', edge_colors=None, edge_labels=False, 
-            iterations=50, tree_orientation='down', heights=None, graph_border=False, 
-            talk=False, color_by_label=False, partition=None,
-            dist = .075, max_dist=1.5, loop_size=.075)
+    @options()
     def plot(self, **options):
         r"""
         Returns a graphics object representing the (di)graph.
-        See also the :mod:`sage.graphs.graph_latex` module for ways
-        to use  `\mbox{\rm\LaTeX}` to produce an image of a graph.
-        
+
         INPUT:
-            
+
         - ``pos`` - an optional positioning dictionary
-            
+
         - ``layout`` - what kind of layout to use, takes precedence
           over pos
-                
+
            - 'circular' -- plots the graph with vertices evenly
              distributed on a circle
-             
+
            - 'spring' - uses the traditional spring layout, using the
              graph's current positions as initial positions
-                
+
            - 'tree' - the (di)graph must be a tree. One can specify
              the root of the tree using the keyword tree_root,
              otherwise a root will be selected at random. Then the
              tree will be plotted in levels, depending on minimum
              distance for the root.
-            
+
         - ``vertex_labels`` - whether to print vertex labels
 
         - ``edge_labels`` - whether to print edge labels. By default,
           False, but if True, the result of str(l) is printed on the
           edge for each label l. Labels equal to None are not printed
           (to set edge labels, see set_edge_label).
-            
+
         - ``vertex_size`` - size of vertices displayed
 
         - ``vertex_shape`` - the shape to draw the vertices (Not
           available for multiedge digraphs.)
-                
+
         - ``graph_border`` - whether to include a box around the graph
 
         - ``vertex_colors`` - optional dictionary to specify vertex
@@ -14304,7 +14292,7 @@ class GenericGraph(GenericGraph_pyx):
           each corresponding entry is a list of vertices. If a vertex
           is not listed, it looks invisible on the resulting plot (it
           doesn't get drawn).
-                
+
         - ``edge_colors`` - a dictionary specifying edge colors: each
           key is a color recognized by matplotlib, and each entry is a
           list of edges.
@@ -14323,7 +14311,7 @@ class GenericGraph(GenericGraph_pyx):
 
         - ``heights`` - if specified, this is a dictionary from a set
           of floating point heights to a set of vertices
-                
+
         - ``edge_style`` - keyword arguments passed into the
           edge-drawing routine.  This currently only works for
           directed graphs, since we pass off the undirected graph to
@@ -14331,17 +14319,32 @@ class GenericGraph(GenericGraph_pyx):
 
         - ``tree_root`` - a vertex of the tree to be used as the root
           for the layout="tree" option. If no root is specified, then one
-          is chosen at random. Ignored unless layout='tree'. 
+          is chosen at random. Ignored unless layout='tree'.
 
-        - ``tree_orientation`` - "up" or "down" (default is "down"). 
+        - ``tree_orientation`` - "up" or "down" (default is "down").
           If "up" (resp., "down"), then the root of the tree will
           appear on the bottom (resp., top) and the tree will grow
           upwards (resp. downwards). Ignored unless layout='tree'.
 
         - ``save_pos`` - save position computed during plotting
-            
+
+        .. NOTE::
+
+            - See the documentation of the :mod:`sage.graphs.graph_plot` module
+              for information and examples of how to define parameters that will
+              be applied to **all** graph plots.
+
+            - Default parameters for this method *and a specific graph* can also
+              be set through the :class:`~sage.misc.decorators.options`
+              mechanism. For more information on this different way to set
+              default parameters, see the help of the :class:`options decorator
+              <~sage.misc.decorators.options>`.
+
+            - See also the :mod:`sage.graphs.graph_latex` module for ways to use
+              LaTeX to produce an image of a graph.
+
         EXAMPLES::
-        
+
             sage: from sage.graphs.graph_plot import graphplot_options
             sage: list(sorted(graphplot_options.iteritems()))
             [...]
@@ -14462,15 +14465,15 @@ class GenericGraph(GenericGraph_pyx):
              7: [1.46..., -0.473...], 
              8: [0.902..., 0.773...], 
              9: [2.48..., -0.119...]}
-        
+
         ::
-        
+
             sage: T = list(graphs.trees(7))
             sage: t = T[3]
             sage: t.plot(heights={0:[0], 1:[4,5,1], 2:[2], 3:[3,6]})
-        
+
         ::
-        
+
             sage: T = list(graphs.trees(7))
             sage: t = T[3]
             sage: t.plot(heights={0:[0], 1:[4,5,1], 2:[2], 3:[3,6]})
@@ -14482,26 +14485,26 @@ class GenericGraph(GenericGraph_pyx):
             sage: t.set_edge_label(2,6,3/2)
             sage: t.set_edge_label(0,4,66)
             sage: t.plot(heights={0:[0], 1:[4,5,1], 2:[2], 3:[3,6]}, edge_labels=True)
-        
+
         ::
-        
+
             sage: T = list(graphs.trees(7))
             sage: t = T[3]
             sage: t.plot(layout='tree')
-        
+
         ::
-        
+
             sage: t = DiGraph('JCC???@A??GO??CO??GO??')
             sage: t.plot(layout='tree', tree_root=0, tree_orientation="up")
             sage: D = DiGraph({0:[1,2,3], 2:[1,4], 3:[0]})
             sage: D.plot()
-            
+
             sage: D = DiGraph(multiedges=True,sparse=True)
             sage: for i in range(5):
             ...     D.add_edge((i,i+1,'a'))
             ...     D.add_edge((i,i-1,'b'))
             sage: D.plot(edge_labels=True,edge_colors=D._color_by_label())
-            
+
             sage: g = Graph({}, loops=True, multiedges=True,sparse=True)
             sage: g.add_edges([(0,0,'a'),(0,0,'b'),(0,1,'c'),(0,1,'d'),
             ...     (0,1,'e'),(0,1,'f'),(0,1,'f'),(2,1,'g'),(2,2,'h')])
@@ -14515,58 +14518,65 @@ class GenericGraph(GenericGraph_pyx):
             sage: P = D.plot()
 
         ::
-        
+
             sage: G=Graph({'a':['a','b','b','b','e'],'b':['c','d','e'],'c':['c','d','d','d'],'d':['e']},sparse=True)
             sage: G.show(pos={'a':[0,1],'b':[1,1],'c':[2,0],'d':[1,0],'e':[0,0]})
-        
         """
-        from sage.graphs.graph_plot import GraphPlot
-        return GraphPlot(graph=self, options=options).plot()
+        return self.graphplot(**options).plot()
 
     def show(self, **kwds):
         """
         Shows the (di)graph.
-        
-        For syntax and lengthy documentation, see G.plot?. Any options not
-        used by plot will be passed on to the Graphics.show method.
-        
+
+        INPUT:
+
+        This method accepts any option understood by
+        :meth:`~sage.graphs.generic_graph.plot` (graph-specific) or by
+        :meth:`sage.plot.graphics.Graphics.show`.
+
+        .. NOTE::
+
+            See the documentation of the :mod:`sage.graphs.graph_plot` module
+            for information on default arguments of this method.
+
         EXAMPLES::
-        
+
             sage: C = graphs.CubeGraph(8)
             sage: P = C.plot(vertex_labels=False, vertex_size=0, graph_border=True)
             sage: P.show()  # long time (3s on sage.math, 2011)
         """
-        kwds.setdefault('figsize', [4,4])
+        from sage.graphs.graph_plot import GraphPlot
         from graph_plot import graphplot_options
-        vars = graphplot_options.keys()
-        plot_kwds = {}
-        for kwd in vars:
-            if kwds.has_key(kwd):
-                plot_kwds[kwd] = kwds.pop(kwd)
-        self.plot(**plot_kwds).show(**kwds)
+
+        # This dictionary only contains the options that graphplot
+        # understands. These options are removed from kwds at the same
+        # time.
+        plot_kwds = {k:kwds.pop(k) for k in graphplot_options if k in kwds}
+
+        return self.graphplot(**plot_kwds).show(**kwds)
 
     def plot3d(self, bgcolor=(1,1,1), vertex_colors=None, vertex_size=0.06,
                      edge_colors=None, edge_size=0.02, edge_size2=0.0325,
                      pos3d=None, color_by_label=False,
                      engine='jmol', **kwds):
         r"""
-        Plot a graph in three dimensions.    See also the
-        :mod:`sage.graphs.graph_latex` module for ways to use
-        `\mbox{\rm\LaTeX}` to produce an image of a graph.
-        
+        Plot a graph in three dimensions.
+
+        See also the :mod:`sage.graphs.graph_latex` module for ways to use LaTeX
+        to produce an image of a graph.
+
         INPUT:
-        
-        
+
         -  ``bgcolor`` - rgb tuple (default: (1,1,1))
-        
+
         -  ``vertex_size`` - float (default: 0.06)
-        
+
         -  ``vertex_colors`` - optional dictionary to specify
            vertex colors: each key is a color recognizable by tachyon (rgb
            tuple (default: (1,0,0))), and each corresponding entry is a list
            of vertices. If a vertex is not listed, it looks invisible on the
            resulting plot (it doesn't get drawn).
-        
+
         -  ``edge_colors`` - a dictionary specifying edge
            colors: each key is a color recognized by tachyon ( default:
            (0,0,0) ), and each entry is a list of edges.

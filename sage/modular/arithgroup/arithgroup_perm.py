@@ -1290,7 +1290,7 @@ class ArithmeticSubgroup_Permutation_class(ArithmeticSubgroup):
             res.plot.options['edge_labels'] = True
 
         return res
-      
+
     def generalised_level(self):
         r"""
         Return the generalised level of this subgroup.
