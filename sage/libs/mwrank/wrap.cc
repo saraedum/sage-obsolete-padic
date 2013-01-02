@@ -9,12 +9,12 @@ using namespace std;
 
 /**************** Miscellaneous functions ****************/
 
-long mwrank_get_precision() 
+long mwrank_get_precision()
 {
   return decimal_precision();
 }
 
-void mwrank_set_precision(long n) 
+void mwrank_set_precision(long n)
 {
   set_precision(n);
   /*
@@ -30,7 +30,7 @@ void mwrank_set_precision(long n)
     {n++; set_precision(n);}
 }
 
-void mwrank_initprimes(char* pfilename, int verb) 
+void mwrank_initprimes(char* pfilename, int verb)
 {
   initprimes((const char*)pfilename, verb);
 }
@@ -61,7 +61,7 @@ bigint* str_to_bigint(char* s) {
   return y;
 }
 
-char* bigint_to_str(bigint* x) 
+char* bigint_to_str(bigint* x)
 {
   ostringstream instore;
   instore << (*x);
@@ -71,9 +71,9 @@ char* bigint_to_str(bigint* x)
 
 //////// Curvedata //////////
 
-struct Curvedata* Curvedata_new(const struct bigint* a1, const struct bigint* a2, 
-				const struct bigint* a3, const struct bigint* a4, 
-				const struct bigint* a6, int min_on_init) 
+struct Curvedata* Curvedata_new(const struct bigint* a1, const struct bigint* a2,
+                                const struct bigint* a3, const struct bigint* a4,
+                                const struct bigint* a6, int min_on_init)
 {
   return new Curvedata(*a1, *a2, *a3, *a4, *a6, min_on_init);
 }
@@ -91,7 +91,7 @@ char* Curvedata_repr(struct Curvedata* curve)
   return stringstream_to_char(instore);
 }
 
-double Curvedata_silverman_bound(const struct Curvedata* curve) 
+double Curvedata_silverman_bound(const struct Curvedata* curve)
 {
   return silverman_bound(*curve);
 }
@@ -161,7 +161,7 @@ void mw_del(struct mw* m)
 }
 
 int mw_process(struct Curvedata* curve, struct mw* m,
-                      const struct bigint* x, const struct bigint* y, 
+                      const struct bigint* x, const struct bigint* y,
                       const struct bigint* z, int sat)
 {
   Point P(*curve, *x, *y, *z);
@@ -216,7 +216,7 @@ int mw_rank(struct mw* m)
 }
 
 /* Returns index and unsat long array, which user must deallocate */
-int mw_saturate(struct mw* m, struct bigint* index, char** unsat, 
+int mw_saturate(struct mw* m, struct bigint* index, char** unsat,
                        long sat_bd, int odd_primes_only)
 {
   vector<long> v;
@@ -246,10 +246,10 @@ void mw_search(struct mw* m, char* h_lim, int moduli_option, int verb)
 
 //////// two_descent //////////
 
-struct two_descent* two_descent_new(struct Curvedata* curve,  \
-				    int verb, int sel, 
-				    long firstlim, long secondlim, 
-				    long n_aux, int second_descent) 
+struct two_descent* two_descent_new(struct Curvedata* curve,
+                                    int verb, int sel,
+                                    long firstlim, long secondlim,
+                                    long n_aux, int second_descent)
 {
   return new two_descent(curve, verb, sel, firstlim, secondlim, n_aux, second_descent);
 }
@@ -279,7 +279,7 @@ char* two_descent_get_basis(struct two_descent* t)
   return p2point_vector_to_str(t->getbasis());
 }
 
-int two_descent_ok(const struct two_descent* t) 
+int two_descent_ok(const struct two_descent* t)
 {
   return t->ok();
 }
@@ -294,7 +294,7 @@ void two_descent_saturate(struct two_descent* t, long sat_bd)
   t->saturate(sat_bd);
 }
 
-char* two_descent_regulator(struct two_descent* t) 
+char* two_descent_regulator(struct two_descent* t)
 {
   bigfloat reg = t->regulator();
   ostringstream instore;
