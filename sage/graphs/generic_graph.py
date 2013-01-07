@@ -9964,7 +9964,7 @@ class GenericGraph(GenericGraph_pyx):
         Brute-force search.
 
         EXAMPLES:
-    
+
         The Petersen graph contains the path graph `P_5`::
 
              sage: g = graphs.PetersenGraph()
@@ -10032,7 +10032,13 @@ class GenericGraph(GenericGraph_pyx):
             sage: k3.relabel(list('abc'))
             sage: k3.subgraph_search(p3, induced=True) is None
             True
-        
+
+        TESTS:
+
+        Inside of a small graph (:trac:`13906`)::
+
+            sage: Graph(5).subgraph_search(Graph(1))
+            Graph on 1 vertex
         """
         from sage.graphs.generic_graph_pyx import SubgraphSearch
         from sage.graphs.graph_generators import GraphGenerators
@@ -10124,6 +10130,13 @@ class GenericGraph(GenericGraph_pyx):
 
             sage: g.subgraph_search_count(graphs.EmptyGraph())
             1
+
+        TESTS:
+
+        Inside of a small graph (:trac:`13906`)::
+
+            sage: Graph(5).subgraph_search_count(Graph(1))
+            5
         """
         from sage.graphs.generic_graph_pyx import SubgraphSearch
 
@@ -10132,7 +10145,7 @@ class GenericGraph(GenericGraph_pyx):
 
         if self.order() == 0:
             return 0
-    
+
         if G.order() == 1:
             return self.order()
 
@@ -10178,7 +10191,7 @@ class GenericGraph(GenericGraph_pyx):
         EXAMPLE:
 
         Iterating through all the labelled `P_3` of `P_5`::
-        
+
             sage: g = graphs.PathGraph(5)
             sage: for p in g.subgraph_search_iterator(graphs.PathGraph(3)):
             ...      print p
@@ -10188,6 +10201,13 @@ class GenericGraph(GenericGraph_pyx):
             [2, 3, 4]
             [3, 2, 1]
             [4, 3, 2]
+
+        TESTS:
+
+        Inside of a small graph (:trac:`13906`)::
+
+            sage: list(Graph(5).subgraph_search_iterator(Graph(1)))
+            [Graph on 1 vertex, Graph on 1 vertex, Graph on 1 vertex, Graph on 1 vertex, Graph on 1 vertex]
         """
 
         if G.order() == 0:
