@@ -9538,4 +9538,8 @@ sage/misc/readline_extra_commands.c
 sage/sat/solvers/satsolver.c
 sage/schemes/toric/divisor_class.c
 sage/structure/misc.c
-
+sage/algebras/letterplace/free_algebra_element_letterplace.cpp
+sage/algebras/letterplace/free_algebra_letterplace.cpp
+sage/algebras/letterplace/letterplace_ideal.cpp
+sage/numerical/backends/ppl_backend.c
+sage/numerical/linear_functions.c
