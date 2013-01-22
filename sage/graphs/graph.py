@@ -2389,7 +2389,6 @@ class Graph(GenericGraph):
         return Infinity
 
     def is_edge_transitive(self):
-
         """
         Returns true if self is an edge transitive graph.
 
@@ -2410,7 +2409,7 @@ class Graph(GenericGraph):
           - :meth:`~Graph.is_semi_symmetric`
 
         EXAMPLES::
-        
+
             sage: P = graphs.PetersenGraph()
             sage: P.is_edge_transitive()
             True
@@ -2493,26 +2492,26 @@ class Graph(GenericGraph):
 
         EXAMPLES:
 
-            The Petersen Graph is not half-transitive::
+        The Petersen Graph is not half-transitive::
 
             sage: P = graphs.PetersenGraph()
             sage: P.is_half_transitive()
             False
-       
+
         The smallest half-transitive graph is the Holt Graph::
-       
+
             sage: H = graphs.HoltGraph()
             sage: H.is_half_transitive()
             True
         """
 
-        # A half-transitive graph always has only vertices of even degree 
+        # A half-transitive graph always has only vertices of even degree
         if not all(d%2 == 0 for d in self.degree_iterator()):
-            return False 
+            return False
 
-        return (self.is_edge_transitive() and 
-                self.is_vertex_transitive() and 
-                not self.is_arc_transitive())        
+        return (self.is_edge_transitive() and
+                self.is_vertex_transitive() and
+                not self.is_arc_transitive())
 
     def is_semi_symmetric(self):
         """
@@ -2529,33 +2528,33 @@ class Graph(GenericGraph):
           - :meth:`~Graph.is_edge_transitive`
           - :meth:`~Graph.is_arc_transitive`
           - :meth:`~Graph.is_half-transitive`
- 
+
         EXAMPLES:
 
-            The Petersen graph is not semi-symmetric::  
+        The Petersen graph is not semi-symmetric::
 
-                sage: P = graphs.PetersenGraph()
-                sage: P.is_semi_symmetric()
-                False 
+            sage: P = graphs.PetersenGraph()
+            sage: P.is_semi_symmetric()
+            False
 
-            The Gray graph is the smallest possible semi-symmetric graph::
+        The Gray graph is the smallest possible semi-symmetric graph::
 
-                sage: G = graphs.GrayGraph()
-                sage: G.is_semi_symmetric()
-                True
-            
-            Another well known semi-symmetric graph is the Ljubljana graph::
+            sage: G = graphs.GrayGraph()
+            sage: G.is_semi_symmetric()
+            True
 
-                sage: L = graphs.LjubljanaGraph()
-                sage: L.is_semi_symmetric()
-                True
+        Another well known semi-symmetric graph is the Ljubljana graph::
+
+            sage: L = graphs.LjubljanaGraph()
+            sage: L.is_semi_symmetric()
+            True
         """
         # A semi-symmetric graph is always bipartite
         if  not self.is_bipartite() :
             return False
 
-        return (self.is_regular() and 
-                self.is_edge_transitive() and not 
+        return (self.is_regular() and
+                self.is_edge_transitive() and not
                 self.is_vertex_transitive())
 
     def degree_constrained_subgraph(self, bounds=None, solver=None, verbose=0):
