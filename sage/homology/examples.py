@@ -23,8 +23,8 @@ These provide examples of large simplicial complexes; for example,
 simplices.
 
 All of these examples are accessible by typing
-"simplicial_complexes.NAME", where "NAME" is the name of the example.
-You can get a list by typing "simplicial_complexes." and hitting the
+``simplicial_complexes.NAME``, where ``NAME`` is the name of the example.
+You can get a list by typing ``simplicial_complexes.`` and hitting the
 TAB key::
 
    simplicial_complexes.ChessboardComplex
@@ -40,6 +40,7 @@ TAB key::
    simplicial_complexes.RealProjectiveSpace
    simplicial_complexes.Simplex
    simplicial_complexes.Sphere
+   simplicial_complexes.SumComplex
    simplicial_complexes.SurfaceOfGenus
    simplicial_complexes.Torus
 
@@ -54,19 +55,20 @@ from sage.combinat.subset import Subsets
 import sage.misc.prandom as random
 
 def matching(A, B):
-    """
-    List of maximal matchings between the sets A and B: a matching
-    is a set of pairs (a,b) in A x B where each a, b appears in at
-    most one pair.  A maximal matching is one which is maximal
-    with respect to inclusion of subsets of A x B.
+    r"""
+    List of maximal matchings between the sets ``A`` and ``B``.
+
+    A matching is a set of pairs `(a,b) \in A \times B` where each `a` and
+    `b` appears in at most one pair.  A maximal matching is one which is
+    maximal with respect to inclusion of subsets of `A \times B`.
 
     INPUT:
 
-    -  ``A``, ``B`` - list, tuple, or indeed anything which can be
+    -  ``A``, ``B`` -- list, tuple, or indeed anything which can be
        converted to a set.
 
     EXAMPLES::
-    
+
         sage: from sage.homology.examples import matching
         sage: matching([1,2], [3,4])
         [set([(1, 3), (2, 4)]), set([(2, 3), (1, 4)])]
@@ -87,9 +89,12 @@ def matching(A, B):
 def facets_for_RP4():
     """
     Return the list of facets for a minimal triangulation of 4-dimensional
-    real projective space. We use vertices numbered 1 through 16, define two
-    facets, and define a certain subgroup `G` of the symmetric group `S_{16}`.
-    Then the set of all facets is the `G`-orbit of the two given facets.
+    real projective space.
+
+    We use vertices numbered 1 through 16, define two facets, and define
+    a certain subgroup `G` of the symmetric group `S_{16}`. Then the set
+    of all facets is the `G`-orbit of the two given facets.
+
     See the description in Example 3.12 in Datta [Da2007]_.
 
     EXAMPLES::
@@ -119,13 +124,15 @@ def facets_for_RP4():
 
 def facets_for_K3():
     """
-    Returns the facets for a minimal triangulation of the K3
-    surface. This is a pure simplicial complex of dimension 4 with 16
+    Returns the facets for a minimal triangulation of the K3 surface.
+
+    This is a pure simplicial complex of dimension 4 with 16
     vertices and 288 facets. The facets are obtained by constructing a
     few facets and a permutation group `G`, and then computing the
-    `G`-orbit of those facets. See Casella and Kühnel in [CK2001]_ and
-    Spreer and Kühnel [SK2011]_; the construction here uses the
-    labeling from Spreer and Kühnel.
+    `G`-orbit of those facets.
+
+    See Casella and Kühnel in [CK2001]_ and Spreer and Kühnel [SK2011]_;
+    the construction here uses the labeling from Spreer and Kühnel.
 
     EXAMPLES::
 
@@ -149,23 +156,24 @@ class SimplicialComplexExamples():
     Some examples of simplicial complexes.
 
     Here are the available examples; you can also type
-    "simplicial_complexes."  and hit tab to get a list::
+    ``simplicial_complexes.``  and hit tab to get a list:
 
-        ChessboardComplex
-        ComplexProjectivePlane
-        K3Surface
-        KleinBottle
-        MatchingComplex
-        MooreSpace
-        NotIConnectedGraphs
-        PoincareHomologyThreeSphere
-        RandomComplex
-        RealProjectivePlane
-        RealProjectiveSpace
-        Simplex
-        Sphere
-        SurfaceOfGenus
-        Torus
+    - :meth:`ChessboardComplex`
+    - :meth:`ComplexProjectivePlane`
+    - :meth:`K3Surface`
+    - :meth:`KleinBottle`
+    - :meth:`MatchingComplex`
+    - :meth:`MooreSpace`
+    - :meth:`NotIConnectedGraphs`
+    - :meth:`PoincareHomologyThreeSphere`
+    - :meth:`RandomComplex`
+    - :meth:`RealProjectivePlane`
+    - :meth:`RealProjectiveSpace`
+    - :meth:`Simplex`
+    - :meth:`Sphere`
+    - :meth:`SumComplex`
+    - :meth:`SurfaceOfGenus`
+    - :meth:`Torus`
 
     EXAMPLES::
 
@@ -183,11 +191,11 @@ class SimplicialComplexExamples():
 
     def Sphere(self,n):
         """
-        A minimal triangulation of the n-dimensional sphere.
+        A minimal triangulation of the `n`-dimensional sphere.
         
         INPUT:
 
-        -  ``n`` - positive integer
+        -  ``n`` -- positive integer
 
         EXAMPLES::
 
@@ -207,8 +215,7 @@ class SimplicialComplexExamples():
         """
         S = Simplex(n+1)
         facets = S.faces()
-        S = SimplicialComplex(n+1, facets)
-        return S
+        return SimplicialComplex(facets, is_mutable=False)
 
     def Simplex(self, n):
         """
@@ -216,7 +223,7 @@ class SimplicialComplexExamples():
 
         INPUT:
 
-        -  ``n`` - a non-negative integer
+        -  ``n`` -- a non-negative integer
 
         OUTPUT: the simplicial complex consisting of the `n`-simplex
         on vertices `(0, 1, ..., n)` and all of its faces.
@@ -228,9 +235,7 @@ class SimplicialComplexExamples():
             sage: simplicial_complexes.Simplex(5).euler_characteristic()
             1
         """
-        S = Simplex(n)
-        return SimplicialComplex(n, list(S))
-        
+        return SimplicialComplex([Simplex(n)], is_mutable=False)
 
     def Torus(self):
         """
@@ -241,10 +246,11 @@ class SimplicialComplexExamples():
             sage: simplicial_complexes.Torus().homology(1)
             Z x Z
         """
-        return SimplicialComplex(6, [[0,1,2], [1,2,4], [1,3,4], [1,3,6],
-                                     [0,1,5], [1,5,6], [2,3,5], [2,4,5],
-                                     [2,3,6], [0,2,6], [0,3,4], [0,3,5],
-                                     [4,5,6], [0,4,6]])
+        return SimplicialComplex([[0,1,2], [1,2,4], [1,3,4], [1,3,6],
+                                  [0,1,5], [1,5,6], [2,3,5], [2,4,5],
+                                  [2,3,6], [0,2,6], [0,3,4], [0,3,5],
+                                  [4,5,6], [0,4,6]],
+                                 is_mutable=False)
 
     def RealProjectivePlane(self):
         """
@@ -265,9 +271,10 @@ class SimplicialComplexExamples():
             sage: P.cohomology(2, base_ring=GF(2))
             Vector space of dimension 1 over Finite Field of size 2
         """
-        return SimplicialComplex(5, [[0,1,2], [0,2,3], [0,1,5], [0,4,5],
-                                     [0,3,4], [1,2,4], [1,3,4], [1,3,5],
-                                     [2,3,5], [2,4,5]])
+        return SimplicialComplex([[0,1,2], [0,2,3], [0,1,5], [0,4,5],
+                                  [0,3,4], [1,2,4], [1,3,4], [1,3,5],
+                                  [2,3,5], [2,4,5]],
+                                 is_mutable=False)
 
     ProjectivePlane = RealProjectivePlane
 
@@ -290,23 +297,23 @@ class SimplicialComplexExamples():
         return SimplicialComplex([[2,3,7], [1,2,3], [1,3,5], [1,5,7],
                                   [1,4,7], [2,4,6], [1,2,6], [1,6,0],
                                   [1,4,0], [2,4,0], [3,4,7], [3,4,6],
-                                  [3,5,6], [5,6,0], [2,5,0], [2,5,7]])
+                                  [3,5,6], [5,6,0], [2,5,0], [2,5,7]],
+                                 is_mutable=False)
 
     def SurfaceOfGenus(self, g, orientable=True):
         """
-        A surface of genus g.
+        A surface of genus `g`.
 
         INPUT:
 
-        -  ``g`` - a non-negative integer.  The desired genus
+        -  ``g`` -- a non-negative integer.  The desired genus
 
-        -  ``orientable`` - boolean (optional, default True). If True,
-           return an orientable surface, and if False, return a
-           non-orientable surface.
+        -  ``orientable`` -- boolean (optional, default ``True``). If
+           ``True``, return an orientable surface, and if ``False``,
+           return a non-orientable surface.
 
         In the orientable case, return a sphere if `g` is zero, and
-        otherwise return a `g`-fold connected sum of a torus with
-        itself.
+        otherwise return a `g`-fold connected sum of a torus with itself.
 
         In the non-orientable case, raise an error if `g` is zero.  If
         `g` is positive, return a `g`-fold connected sum of a
@@ -330,16 +337,16 @@ class SimplicialComplexExamples():
             T = simplicial_complexes.RealProjectivePlane()
         S = T
         for i in range(g-1):
-            S = S.connected_sum(T)
+            S = S.connected_sum(T, is_mutable=False)
         return S
 
     def MooreSpace(self, q):
         """
-        Triangulation of the mod q Moore space.
+        Triangulation of the mod `q` Moore space.
 
         INPUT:
 
-        -  ``q`` - integer, at least 2
+        -  ``q`` -0 integer, at least 2
 
         This is a simplicial complex with simplices of dimension 0, 1,
         and 2, such that its reduced homology is isomorphic to
@@ -368,17 +375,14 @@ class SimplicialComplexExamples():
             Simplicial complex with 19 vertices and 54 facets
         """
         if q <= 1:
-            raise ValueError, "The mod q Moore space is only defined if q is at least 2"
+            raise ValueError("The mod q Moore space is only defined if q is at least 2")
         if q == 2:
-            return simplicial_complexes.RealProjectivePlane()
-        vertices = [1, 2, 3]
+            return RealProjectivePlane()
         facets = []
         for i in range(q):
             Ai = "A" + str(i)
             Aiplus = "A" + str((i+1)%q)
             Bi = "B" + str(i)
-            vertices.append(Ai)
-            vertices.append(Bi)
             facets.append([1, 2, Ai])
             facets.append([2, 3, Ai])
             facets.append([3, 1, Bi])
@@ -389,7 +393,7 @@ class SimplicialComplexExamples():
             Ai = "A" + str(i)
             Aiplus = "A" + str((i+1)%q)
             facets.append(["A0", Ai, Aiplus])
-        return SimplicialComplex(vertices, facets)
+        return SimplicialComplex(facets, is_immutable=True)
 
     def ComplexProjectivePlane(self):
         """
@@ -425,7 +429,8 @@ class SimplicialComplexExamples():
              [7, 8, 1, 2, 3], [8, 9, 2, 3, 1], [9, 7, 3, 1, 2],
              [7, 8, 1, 2, 6], [8, 9, 2, 3, 4], [9, 7, 3, 1, 5],
              [8, 9, 3, 1, 6], [9, 7, 1, 2, 4], [7, 8, 2, 3, 5],
-             [9, 7, 2, 3, 6], [7, 8, 3, 1, 4], [8, 9, 1, 2, 5]])
+             [9, 7, 2, 3, 6], [7, 8, 3, 1, 4], [8, 9, 1, 2, 5]],
+            is_mutable=False)
 
     def PoincareHomologyThreeSphere(self):
         """
@@ -473,7 +478,8 @@ class SimplicialComplexExamples():
              [7, 8, 11, 15], [7, 8, 14, 15], [7, 9, 14, 15], [8, 12, 14, 15],
              [9, 10, 11, 12], [9, 10, 11, 16], [9, 10, 15, 16], [9, 11, 14, 16],
              [9, 14, 15, 16], [10, 11, 13, 16], [10, 13, 15, 16],
-             [11, 13, 14, 16], [12, 13, 14, 15], [13, 14, 15, 16]])
+             [11, 13, 14, 16], [12, 13, 14, 15], [13, 14, 15, 16]],
+            is_mutable=False)
 
     def RealProjectiveSpace(self, n):
         r"""
@@ -481,7 +487,7 @@ class SimplicialComplexExamples():
 
         INPUT:
 
-        - ``n`` - integer, the dimension of the real projective space
+        - ``n`` -- integer, the dimension of the real projective space
           to construct
 
         The first few cases are pretty trivial:
@@ -576,7 +582,7 @@ class SimplicialComplexExamples():
         but if you have CHomP installed, Sage will use that and the
         computation should only take a second or two.  (You can
         download CHomP from http://chomp.rutgers.edu/, or you can
-        install it as a Sage package using "sage -i chomp"). ::
+        install it as a Sage package using ``sage -i chomp``). ::
 
             sage: P5.homology()  # long time # optional - CHomP
             {0: 0, 1: C2, 2: 0, 3: C2, 4: 0, 5: Z}
@@ -608,7 +614,8 @@ class SimplicialComplexExamples():
                  [4, 5, 6, 11], [1, 3, 5, 10], [1, 5, 6, 11], [2, 4, 8, 10],
                  [3, 4, 8, 9], [4, 5, 7, 9], [1, 3, 5, 11], [1, 5, 8, 10],
                  [2, 5, 7, 8], [3, 5, 9, 10], [4, 6, 7, 10], [1, 3, 7, 10],
-                 [1, 6, 8, 9], [2, 5, 7, 9], [3, 6, 7, 8], [5, 6, 7, 8]])
+                 [1, 6, 8, 9], [2, 5, 7, 9], [3, 6, 7, 8], [5, 6, 7, 8]],
+                is_mutable=False)
         if n == 4:
             return SimplicialComplex(
                 [(1, 3, 8, 12, 13), (2, 7, 8, 13, 16), (4, 8, 9, 12, 14),
@@ -660,7 +667,8 @@ class SimplicialComplexExamples():
                     (4, 7, 8, 12, 15), (2, 3, 5, 10, 15), (2, 6, 8, 10, 16),
                     (3, 4, 10, 15, 16), (1, 5, 6, 14, 16), (2, 3, 5, 14, 15),
                     (2, 3, 7, 9, 16), (2, 7, 9, 13, 14), (3, 4, 6, 7, 15),
-                    (4, 8, 10, 14, 16), (3, 4, 7, 15, 16), (2, 8, 10, 15, 16)])
+                    (4, 8, 10, 14, 16), (3, 4, 7, 15, 16), (2, 8, 10, 15, 16)],
+                 is_mutable=False)
         if n >= 5:
             # Use the construction given by Datta in Example 3.21.
             V = set(range(0, n+2))
@@ -675,12 +683,13 @@ class SimplicialComplexExamples():
                     else:
                         new.append(v)
                 facets.add(tuple(new))
-            return SimplicialComplex(list(facets))
+            return SimplicialComplex(list(facets), is_mutable=False)
 
     def K3Surface(self):
         """
-        Returns a minimal triangulation of the K3 surface. This is
-        a pure simplicial complex of dimension 4 with 16 vertices
+        Returns a minimal triangulation of the K3 surface.
+
+        This is a pure simplicial complex of dimension 4 with 16 vertices
         and 288 facets. It was constructed by Casella and Kühnel
         in [CK2001]_. The construction here uses the labeling from
         Spreer and Kühnel [SK2011]_.
@@ -803,15 +812,16 @@ class SimplicialComplexExamples():
                 (6, 9, 10, 13, 16), (2, 4, 9, 13, 16), (1, 6, 7, 8, 13),
                 (1, 4, 12, 13, 15), (2, 4, 7, 10, 11), (1, 4, 9, 11, 13),
                 (6, 7, 11, 14, 16), (1, 4, 9, 11, 16), (1, 4, 12, 15, 16),
-                (1, 2, 4, 7, 15), (2, 3, 7, 8, 16), (1, 4, 5, 6, 10)])
+                (1, 2, 4, 7, 15), (2, 3, 7, 8, 16), (1, 4, 5, 6, 10)],
+             is_mutable=False)
 
     ###############################################################
     # examples from graph theory:
 
     def NotIConnectedGraphs(self, n, i):
         """
-        The simplicial complex of all graphs on n vertices which are
-        not i-connected.
+        The simplicial complex of all graphs on `n` vertices which are
+        not `i`-connected.
 
         Fix an integer `n>0` and consider the set of graphs on `n`
         vertices.  View each graph as its set of edges, so it is a
@@ -828,11 +838,11 @@ class SimplicialComplexExamples():
 
         INPUT:
 
-        -  ``n``, ``i`` - non-negative integers with `i` at most `n`
+        -  ``n``, ``i`` -- non-negative integers with `i` at most `n`
 
-        See Dumas et al. [DHSW2003]_ for information on computing its homology by
-        computer, and see Babson et al. [BBLSW1999]_ for theory.  For example,
-        Babson et al. show that when `i=2`, the reduced homology of
+        See Dumas et al. [DHSW2003]_ for information on computing its homology
+        by computer, and see Babson et al. [BBLSW1999]_ for theory.  For
+        example, Babson et al. show that when `i=2`, the reduced homology of
         this complex is nonzero only in dimension `2n-5`, where it is
         free abelian of rank `(n-2)!`.
 
@@ -874,11 +884,11 @@ class SimplicialComplexExamples():
                             bad_edge = (min(v,w), max(v,w))
                             facet = facet.difference(Set([bad_edge]))
                     facets.append(facet)
-        return SimplicialComplex(E_list, facets)
+        return SimplicialComplex(facets, is_mutable=False)
                 
     def MatchingComplex(self, n):
         """
-        The matching complex of graphs on n vertices.
+        The matching complex of graphs on `n` vertices.
 
         Fix an integer `n>0` and consider a set `V` of `n` vertices.
         A 'partial matching' on `V` is a graph formed by edges so that
@@ -892,14 +902,13 @@ class SimplicialComplexExamples():
 
         INPUT:
 
-        -  ``n`` - positive integer.
+        -  ``n`` -- positive integer.
     
-        See Dumas et al. [DHSW2003]_ for information on computing its homology by
-        computer, and see Wachs [Wa2003]_ for an expository article about the
-        theory.  For example, the homology of these complexes seems to
+        See Dumas et al. [DHSW2003]_ for information on computing its homology
+        by computer, and see Wachs [Wa2003]_ for an expository article about
+        the theory.  For example, the homology of these complexes seems to
         have only mod 3 torsion, and this has been proved for the
-        bottom non-vanishing homology group for the matching complex
-        `M_n`.
+        bottom non-vanishing homology group for the matching complex `M_n`.
 
         EXAMPLES::
 
@@ -920,10 +929,6 @@ class SimplicialComplexExamples():
            345-385)
         """
         G_vertices = Set(range(1,n+1))
-        E_list = []
-        for w in G_vertices:
-            for v in range(1,w):
-                E_list.append((v,w))
         facets = []
         if is_even(n):
             half = int(n/2)
@@ -958,11 +963,11 @@ class SimplicialComplexExamples():
                         for pair in M:
                             facet.append(tuple(sorted(pair)))
                         facets.append(facet)
-        return SimplicialComplex(E_list, facets)
+        return SimplicialComplex(facets, is_mutable=False)
                 
     def ChessboardComplex(self, n, i):
         r"""
-        The chessboard complex for an n by i chessboard.
+        The chessboard complex for an `n \times i` chessboard.
 
         Fix integers `n, i > 0` and consider sets `V` of `n` vertices
         and `W` of `i` vertices.  A 'partial matching' between `V` and
@@ -980,7 +985,7 @@ class SimplicialComplexExamples():
 
         INPUT:
 
-        -  ``n, i`` - positive integers.
+        -  ``n, i`` -- positive integers.
     
         See Dumas et al. [DHSW2003]_ for information on computing its homology
         by computer, and see Wachs [Wa2003]_ for an expository article about
@@ -1002,33 +1007,32 @@ class SimplicialComplexExamples():
             for w in B:
                 E_dict[(v,w)] = index
                 index += 1
-        E = range(n*i)
         facets = []
         for M in matching(A, B):
             facet = []
             for pair in M:
                 facet.append(E_dict[pair])
             facets.append(facet)
-        return SimplicialComplex(E, facets)
+        return SimplicialComplex(facets, is_mutable=False)
 
     def RandomComplex(self, n, d, p=0.5):
         """
-        A random ``d``-dimensional simplicial complex on ``n``
-        vertices.
+        A random ``d``-dimensional simplicial complex on ``n`` vertices.
 
         INPUT:
 
-        - ``n`` - number of vertices
-        - ``d`` - dimension of the complex
-        -  ``p`` - floating point number between 0 and 1
+        - ``n`` -- number of vertices
+
+        - ``d`` -- dimension of the complex
+
+        -  ``p`` -- floating point number between 0 and 1
            (optional, default 0.5)
 
         A random `d`-dimensional simplicial complex on `n` vertices,
         as defined for example by Meshulam and Wallach [MW2009]_, is
         constructed as follows: take `n` vertices and include all of
         the simplices of dimension strictly less than `d`, and then for each
-        possible simplex of dimension `d`, include it with probability
-        `p`.
+        possible simplex of dimension `d`, include it with probability `p`.
 
         EXAMPLES::
 
@@ -1056,6 +1060,116 @@ class SimplicialComplexExamples():
             facets = Subsets(vertices, d).list()
             maybe = Subsets(vertices, d+1)
             facets.extend([f for f in maybe if random.random() <= p])
-            return SimplicialComplex(n-1, facets)
+            return SimplicialComplex(facets, is_mutable=False)
+
+    def SumComplex(self, n, A):
+        r"""
+        The sum complexes of Linial, Meshulam, and Rosenthal [LMR2010]_.
+
+        If `k+1` is the cardinality of `A`, then this returns a
+        `k`-dimensional simplicial complex `X_A` with vertices
+        `\ZZ/(n)`, and facets given by all `k+1`-tuples `(x_0, x_1,
+        ..., x_k)` such that the sum `\sum x_i` is in `A`. See the
+        paper by Linial, Meshulam, and Rosenthal [LMR2010]_, in which
+        they prove various results about these complexes; for example,
+        if `n` is prime, then `X_A` is rationally acyclic, and if in
+        addition `A` forms an arithmetic progression in `\ZZ/(n)`,
+        then `X_A` is `\ZZ`-acyclic. Throughout their paper, they
+        assume that `n` and `k` are relatively prime, but the
+        construction makes sense in general.
+
+        In addition to the results from the cited paper, these
+        complexes can have large torsion, given the number of
+        vertices; for example, if `n=10`, and `A=\{0,1,2,3,6\}`, then
+        `H_3(X_A)` is cyclic of order 2728, and there is a
+        4-dimensional complex on 13 vertices with `H_3` having a
+        cyclic summand of order
+
+        .. MATH::
+    
+            706565607945 = 3 \cdot 5 \cdot 53 \cdot 79 \cdot 131
+            \cdot 157 \cdot 547.
+
+        See the examples.
+
+        INPUT:
+
+        - ``n`` -- a positive integer
+
+        - ``A`` -- a subset of `\ZZ/(n)`
+
+        REFERENCES:
+
+        .. [LMR2010] N. Linial, R. Meshulam and M. Rosenthal, "Sum
+           complexes -- a new family of hypertrees", Discrete &
+           Computational Geometry, 2010, Volume 44, Number 3, Pages
+           622-636
+
+        EXAMPLES::
+
+            sage: S = simplicial_complexes.SumComplex(10, [0,1,2,3,6]); S
+            Simplicial complex with 10 vertices and 126 facets
+            sage: S.homology()
+            {0: 0, 1: 0, 2: 0, 3: C2728, 4: 0}
+            sage: factor(2728)
+            2^3 * 11 * 31
+
+            sage: S = simplicial_complexes.SumComplex(11, [0, 1, 3]); S
+            Simplicial complex with 11 vertices and 45 facets
+            sage: S.homology(1)
+            C23
+            sage: S = simplicial_complexes.SumComplex(11, [0,1,2,3,4,7]); S
+            Simplicial complex with 11 vertices and 252 facets
+            sage: S.homology() # long time
+            {0: 0, 1: 0, 2: 0, 3: 0, 4: C645679, 5: 0}
+            sage: factor(645679)
+            23 * 67 * 419
+
+            sage: S = simplicial_complexes.SumComplex(13, [0, 1, 3]); S
+            Simplicial complex with 13 vertices and 66 facets
+            sage: S.homology(1)
+            C159
+            sage: factor(159)
+            3 * 53
+            sage: S = simplicial_complexes.SumComplex(13, [0,1,2,5]); S
+            Simplicial complex with 13 vertices and 220 facets
+            sage: S.homology() # long time
+            {0: 0, 1: 0, 2: C146989209, 3: 0}
+            sage: factor(1648910295)
+            3^2 * 5 * 53 * 521 * 1327
+            sage: S = simplicial_complexes.SumComplex(13, [0,1,2,3,5]); S
+            Simplicial complex with 13 vertices and 495 facets
+            sage: S.homology() # long time
+            {0: 0, 1: 0, 2: 0, 3: C3 x C237 x C706565607945, 4: 0}
+            sage: factor(706565607945)
+            3 * 5 * 53 * 79 * 131 * 157 * 547
+
+            sage: S = simplicial_complexes.SumComplex(17, [0, 1, 4]); S
+            Simplicial complex with 17 vertices and 120 facets
+            sage: S.homology(1)
+            C140183
+            sage: factor(140183)
+            103 * 1361
+            sage: S = simplicial_complexes.SumComplex(19, [0, 1, 4]); S
+            Simplicial complex with 19 vertices and 153 facets
+            sage: S.homology(1)
+            C5670599
+            sage: factor(5670599)
+            11 * 191 * 2699
+            sage: S = simplicial_complexes.SumComplex(31, [0, 1, 4]); S
+            Simplicial complex with 31 vertices and 435 facets
+            sage: S.homology(1) # long time
+            C5 x C5 x C5 x C5 x C26951480558170926865
+            sage: factor(26951480558170926865)
+            5 * 311 * 683 * 1117 * 11657 * 1948909
+        """
+        from sage.rings.all import Integers
+        Zn = Integers(n)
+        A = frozenset([Zn(x) for x in A])
+        facets = []
+        for f in Set(Zn).subsets(len(A)):
+            if sum(f) in A:
+                facets.append(tuple(f))
+        return SimplicialComplex(facets, is_mutable=False)
 
 simplicial_complexes = SimplicialComplexExamples()

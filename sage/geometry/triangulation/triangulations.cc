@@ -11,25 +11,25 @@ triangulations::triangulations(const flips& all_flips)
     star(-1),
     fine(false),
     need_resize(false)
-{}  
+{}
 
 
 // find the correct position for t in the hash
-void triangulations::find_hash_position(const compact_simplices& t, 
-					hash_value& pos, bool& is_new) const
+void triangulations::find_hash_position(const compact_simplices& t,
+                                        hash_value& pos, bool& is_new) const
 {
   hash_value freespace;
   const hash_value initial_guess = t.hash_function() % hash_max;
 
   for (hash_value i=0; i<hash_max; ++i) {
     pos = (initial_guess+i) % hash_max;
-    if (hash_list[pos]==hash_max) { 
+    if (hash_list[pos]==hash_max) {
       // found empty place in hash
       is_new=true;
       if (i>5)
-	need_resize = true;
+        need_resize = true;
       return;
-    }  
+    }
     else if ((*this)[hash_list[pos]]==t) {
       // found ourselves in hash
       is_new = false;
@@ -54,28 +54,28 @@ void triangulations::add_triang_if_new(const compact_simplices & new_triang)
     for (size_t i=0; i<size(); i++) {
       find_hash_position( (*this)[i], pos, is_new);
       assert(is_new);
-      hash_list[pos] = i;  
+      hash_list[pos] = i;
     }
     need_resize = false;
     find_hash_position(new_triang, pos, is_new);
   }
 
-  push_back(new_triang);   
-  hash_list[pos] = size()-1;  
+  push_back(new_triang);
+  hash_list[pos] = size()-1;
 }
 
 
 void triangulations::add_neighbours(const simplices & s)
 {
-  for (flips::const_iterator 
-	 f=bistellar_flips.begin(); f!=bistellar_flips.end(); ++f) {
-    goodcircuit goody(s,*f);    
+  for (flips::const_iterator
+         f=bistellar_flips.begin(); f!=bistellar_flips.end(); ++f) {
+    goodcircuit goody(s,*f);
     if (goody.is_good()) {
       goody.do_flip(s,*f);
-      compact_simplices new_triang=goody.get_neighbor();   
-      add_triang_if_new(new_triang);      
-    }    
-  } 
+      compact_simplices new_triang=goody.get_neighbor();
+      add_triang_if_new(new_triang);
+    }
+  }
 }
 
 
@@ -84,7 +84,7 @@ bool triangulations::have_more_triangulations()
   while (position != this->size()) {
      // eat all non-star triangulations
     simplices triangulation((*this)[position]);
-    
+
     if ((star>=0) && !(triangulation.starshaped(star))) {
       next_triangulation();
       continue;
@@ -113,7 +113,7 @@ const compact_simplices& triangulations::next_triangulation()
 triangulations_ptr init_triangulations
 (int n, int d, int star, bool fine, PyObject* py_seed, PyObject* py_flips)
 {
-  vertices().set_dimensions(n,d);  
+  vertices().set_dimensions(n,d);
 
   compact_simplices seed;
   for (int i=0; i<PySequence_Size(py_seed); i++) {
@@ -133,9 +133,9 @@ triangulations_ptr init_triangulations
       PyObject* py_simplex = PySequence_GetItem(py_flip_pos,j);
       vertices simplex;
       for (int k=0; k<PySequence_Size(py_simplex); k++) {
-	PyObject* py_vertex = PySequence_GetItem(py_simplex,k);
-	simplex.insert(simplex.begin(), PyInt_AS_LONG(py_vertex));
-	Py_DECREF(py_vertex);
+        PyObject* py_vertex = PySequence_GetItem(py_simplex,k);
+        simplex.insert(simplex.begin(), PyInt_AS_LONG(py_vertex));
+        Py_DECREF(py_vertex);
       }
       pos.push_back(simplex);
       Py_DECREF(py_simplex);
@@ -146,9 +146,9 @@ triangulations_ptr init_triangulations
       PyObject* py_simplex = PySequence_GetItem(py_flip_neg,j);
       vertices simplex;
       for (int k=0; k<PySequence_Size(py_simplex); k++) {
-	PyObject* py_vertex = PySequence_GetItem(py_simplex,k);
-	simplex.insert(simplex.begin(), PyInt_AS_LONG(py_vertex));
-	Py_DECREF(py_vertex);
+        PyObject* py_vertex = PySequence_GetItem(py_simplex,k);
+        simplex.insert(simplex.begin(), PyInt_AS_LONG(py_vertex));
+        Py_DECREF(py_vertex);
       }
       neg.push_back(simplex);
       Py_DECREF(py_simplex);
@@ -164,12 +164,12 @@ triangulations_ptr init_triangulations
   // print data so we can see that it worked
   /*
   std::cout << "\n" << "Seed triangulation: " << seed << "\n";
-  {    
-    std::cout << "Vertices of seed triangulation: ";    
-    simplices s(seed);    
-    std::cout << s << "\n";    
-  }       
-  std::cout << "All flips:\n";  
+  {
+    std::cout << "Vertices of seed triangulation: ";
+    simplices s(seed);
+    std::cout << s << "\n";
+  }
+  std::cout << "All flips:\n";
   for (flips::const_iterator i=all_flips.begin(); i!=all_flips.end(); ++i)
     std::cout << *i << std::endl;
   */
@@ -182,7 +182,7 @@ triangulations_ptr init_triangulations
   if (fine)
     t->require_fine_triangulation(fine);
 
-  t->add_triang_if_new(seed); 
+  t->add_triang_if_new(seed);
 
   return t;
 }
@@ -197,7 +197,7 @@ PyObject* next_triangulation(triangulations_ptr t)
   PyObject* py_triang = PyTuple_New(triang.size());
   for (int i=0; i<triang.size(); i++)
     PyTuple_SET_ITEM(py_triang, i, PyInt_FromLong(triang[i]));
-  
+
   return py_triang;
 }
 

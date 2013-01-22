@@ -1833,6 +1833,31 @@ cdef class MixedIntegerLinearProgram(SageObject):
         return self.linear_functions_parent()(d)
 
 
+    def get_backend(self):
+        r"""
+        Returns the backend instance used.
+
+        This might be useful when acces to additional functions provided by
+        the backend is needed.
+
+        EXAMPLE:
+
+        This example uses the simplex algorthm and prints information::
+
+            sage: p = MixedIntegerLinearProgram()
+            sage: x, y = p[0], p[1]
+            sage: p.add_constraint(2*x + 3*y, max = 6)
+            sage: p.add_constraint(3*x + 2*y, max = 6)
+            sage: p.set_objective(x + y + 7)
+            sage: b = p.get_backend()
+            sage: b.solver_parameter("simplex_or_intopt", "simplex_only")
+            sage: b.solver_parameter("verbosity_simplex", "GLP_MSG_ALL")
+            sage: p.solve() # tol 0.00001
+            9.4
+
+        """
+        return self._backend
+
 class MIPSolverException(RuntimeError):
     r"""
     Exception raised when the solver fails.
@@ -2074,10 +2099,15 @@ def Sum(x):
         sage: Sum([])
         doctest:...: DeprecationWarning: use MixedIntegerLinearProgram.sum() instead
         See http://trac.sagemath.org/13646 for details.
+
+        sage: p = MixedIntegerLinearProgram()
+        sage: x = p.new_variable()
+        sage: Sum([ x[0]+x[1], x[1]+x[2], x[2]+x[3] ])   # deprecation is only shown once
+        x_0 + 2*x_1 + 2*x_2 + x_3
     """
     from sage.misc.superseded import deprecation
     deprecation(13646, 'use MixedIntegerLinearProgram.sum() instead')
     if not x:
         return None
-    parent = x[0]
+    parent = x[0].parent()
     return parent.sum(x)

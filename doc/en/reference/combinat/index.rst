@@ -48,7 +48,7 @@ Combinatorics
    ../sage/combinat/subword
    ../sage/combinat/tiling
    ../sage/combinat/tuple
-   ../sage/combinat/cluster_algebra_quiver/quiver_mutation_type
+   cluster_algebras
 
    algebra
    tableaux
@@ -67,5 +67,6 @@ Combinatorics
    words
    iet
 
+   ../sage/combinat/dict_addition
    ../sage/combinat/misc
 

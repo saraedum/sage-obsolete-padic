@@ -24,11 +24,22 @@ You can construct the following permutation groups:
 
 -- TransitiveGroups(d), TransitiveGroups(), set of all of the above
 
+-- PrimitiveGroup, $n^{th}$ primitive group of degree $d$
+                      from the GAP tables of primitive groups (requires
+                      the "optional" package database_gap)
+
+-- PrimitiveGroups(d), PrimitiveGroups(), set of all of the above
+
 -- MathieuGroup(degree), Mathieu group of degree 9, 10, 11, 12, 21, 22, 23, or 24.
 
 -- KleinFourGroup, subgroup of $S_4$ of order $4$ which is not $C_2 \times C_2$
 
 -- QuaternionGroup, non-abelian group of order `8`, `\{\pm 1, \pm I, \pm J, \pm K\}`
+
+-- SplitMetacyclicGroup, nonabelian groups of order `p^m` with cyclic
+subgroups of index p
+
+-- SemidihedralGroup, nonabelian 2-groups with cyclic subgroups of index 2
 
 -- PGL(n,q), projective general linear group of $n\times n$ matrices over 
              the finite field GF(q)
@@ -76,7 +87,6 @@ from sage.rings.all      import Integer
 from sage.interfaces.all import gap
 from sage.rings.finite_rings.constructor import FiniteField as GF
 from sage.rings.arith import factor
-from sage.rings.integer_ring import ZZ
 from sage.groups.abelian_gps.abelian_group import AbelianGroup
 from sage.misc.functional import is_even
 from sage.misc.cachefunc import cached_method
@@ -91,6 +101,7 @@ from sage.sets.disjoint_union_enumerated_sets import DisjointUnionEnumeratedSets
 from sage.categories.enumerated_sets import EnumeratedSets
 from sage.sets.non_negative_integers import NonNegativeIntegers
 from sage.sets.family import Family
+from sage.sets.primes import Primes
 
 class PermutationGroup_unique(UniqueRepresentation, PermutationGroup_generic):
     @staticmethod
@@ -914,7 +925,7 @@ class GeneralDihedralGroup(PermutationGroup_generic):
         sage: GeneralDihedralGroup([3, 1.5])
         Traceback (most recent call last):
         ...
-        TypeError: the input list must contain all Integers
+        TypeError: the input list must consist of Integers
 
         sage: GeneralDihedralGroup([4, -8])
         Traceback (most recent call last):
@@ -951,7 +962,7 @@ class GeneralDihedralGroup(PermutationGroup_generic):
             raise ValueError, 'there must be at least one direct factor in the abelian group being dihedralized'
 
         if not all(isinstance(x, Integer) for x in factors):
-            raise TypeError, 'the input list must contain all Integers'
+            raise TypeError, 'the input list must consist of Integers'
 
         if not all(x >= 2 for x in factors):
             s = 'all direct factors must be greater than 1'
@@ -976,7 +987,8 @@ class GeneralDihedralGroup(PermutationGroup_generic):
             # make contribution to the generator that dihedralizes the
             # abelian group
             for i in range(1, (a//2)+1):
-                genx.append(tuple((jumppoint+i, jumppoint+a-i)))
+                if i != a-i:
+                   genx.append(tuple((jumppoint+i, jumppoint+a-i)))
             jumppoint = jumppoint + a
         # If all of the direct factors are C2, then the action turning
         # each element into its inverse is trivial, and the
@@ -1079,6 +1091,266 @@ class DihedralGroup(PermutationGroup_unique):
 
 
 
+class SplitMetacyclicGroup(PermutationGroup_unique):
+    def __init__(self, p, m):
+        r"""
+        The split metacyclic group of order `p^m`.
+      
+        INPUT:
+
+        - ``p`` - a prime number that is the prime underlying this 
+          p-group
+
+        - ``m`` - a positive integer such that the order of this
+          group is the `p^m`. Be aware that, for even `p`, `m` must be
+          greater than 3, while for odd `p`, `m` must be greater than
+          2. 
+
+        OUTPUT:
+
+        The split metacyclic group of order `p^m`. This family of
+        groups has presentation
+
+        .. MATH::
+
+            \langle x, y\mid x^{p^{m-1}}, y^{p}, y^{-1}xy=x^{1+p^{m-2}} \rangle
+
+        This family is notable because, for odd `p`, these are the
+        only `p`-groups with a cyclic subgroup of index `p`, a
+        result proven in [GORENSTEIN]_. It is also shown in
+        [GORENSTEIN]_ that this is one of four families containing
+        nonabelian 2-groups with a cyclic subgroup of index 2
+        (with the others being the dicyclic groups, the dihedral
+        groups, and the semidihedral groups).
+
+        EXAMPLES:
+            
+        Using the last relation in the group's presentation,
+        one can see that the elements of the form `y^{i}x`, 
+        `0 \leq i \leq p-1` all have order `p^{m-1}`, as it can be
+        shown that their `p` th powers are all `x^{p^{m-2}+p}`,
+        an element with order `p^{m-2}`. Manipulation of the same 
+        relation shows that none of these elements are powers of
+        any other. Thus, there are `p` cyclic maximal subgroups in
+        each split metacyclic group. It is also proven in
+        [GORENSTEIN]_ that this family has commutator subgroup
+        of order `p`, and the Frattini subgroup is equal to the
+        center, with this group being cyclic of order `p^{m-2}`.
+        These characteristics are necessary to identify these
+        groups in the case that `p=2`, although the possession of
+        a cyclic maximal subgroup in a non-abelian `p`-group is
+        enough for odd `p` given the group's order. ::
+
+            sage: G = SplitMetacyclicGroup(2,8)
+            sage: G.order() == 2**8
+            True
+            sage: G.is_abelian()
+            False
+            sage: len([H for H in G.subgroups() if H.order() == 2^7 and H.is_cyclic()])
+            2
+            sage: G.commutator().order()
+            2
+            sage: G.frattini_subgroup() == G.center()
+            True
+            sage: G.center().order() == 2^6
+            True
+            sage: G.center().is_cyclic()
+            True
+
+            sage: G = SplitMetacyclicGroup(3,3)
+            sage: len([H for H in G.subgroups() if H.order() == 3^2 and H.is_cyclic()])
+            3
+            sage: G.commutator().order()
+            3
+            sage: G.frattini_subgroup() == G.center() 
+            True
+            sage: G.center().order()
+            3
+
+        TESTS::
+
+            sage: G = SplitMetacyclicGroup(3,2.5)
+            Traceback (most recent call last):
+            ...
+            TypeError: both p and m must be integers
+
+            sage: G = SplitMetacyclicGroup(4,3)
+            Traceback (most recent call last):
+            ...
+            ValueError: p must be prime, 4 is not prime
+
+            sage: G = SplitMetacyclicGroup(2,2)
+            Traceback (most recent call last):
+            ...
+            ValueError: if prime is 2, the exponent must be greater than 3, not 2
+
+            sage: G = SplitMetacyclicGroup(11,2)
+            Traceback (most recent call last):
+            ...
+            ValueError: if prime is odd, the exponent must be greater than 2, not 2
+
+        REFERENCES:
+
+        .. [GORENSTEIN] Daniel Gorenstein, Finite Groups (New York: Chelsea Publishing, 1980)
+
+        AUTHOR:
+
+        - Kevin Halasz (2012-8-7)
+
+        """
+
+        if not isinstance(p, Integer) or not isinstance(m, Integer):
+            raise TypeError, 'both p and m must be integers'
+
+        if not p in Primes():
+            raise ValueError, 'p must be prime, %s is not prime'%p
+
+        if p == 2 and m <= 3:
+            raise ValueError, 'if prime is 2, the exponent must be greater than 3, not %s'%m
+
+        if p%2 == 1 and m <= 2:
+            raise ValueError, 'if prime is odd, the exponent must be greater than 2, not %s'%m
+
+        self.p = p
+        self.m = m
+
+        # x is created with list, rather than cycle, notation
+        x = range(2, p**(m-1)+1)
+        x.append(1)
+        # y is also created with list notation, where the list
+        # used is equivalent to the cycle notation representation of
+        # x^(1+p^(m-2)). This technique is inspired by exercise 5.30
+        # Judson's "Abstract Algebra" (abstract.pugetsound.edu).
+        y = [1]
+        point = 1
+        for i in range(p**(m-1)-1):
+            next = (point + 1 + p**(m-2))%(p**(m-1))
+            if next == 0:
+                next = p**(m-1)
+            y.append(next)
+            point = next
+        PermutationGroup_unique.__init__(self, gens = [x,y])
+
+    def _repr_(self):
+        """
+        EXAMPLES::
+            sage: G = SplitMetacyclicGroup(7,4);G
+            The split metacyclic group of order 7 ^ 4
+        """
+        return 'The split metacyclic group of order %s ^ %s'%(self.p,self.m)
+
+class SemidihedralGroup(PermutationGroup_unique):
+    def __init__(self,m):
+        r"""
+        The semidihedral group of order `2^m`.
+            
+        INPUT:
+
+        - ``m`` - a positive integer; the power of 2 that is the
+          group's order
+
+        OUTPUT:
+
+        The semidihedral group of order `2^m`. These groups can be
+        thought of as a semidirect product of `C_{2^{m-1}}` with
+        `C_2`, where the nontrivial element of `C_2` is sent to
+        the element of the automorphism group of `C_{2^{m-1}}` that
+        sends elements to their `-1+2^{m-2}` th power. Thus, the
+        group has the presentation:
+
+        .. MATH::
+
+            \langle x, y\mid x^{2^{m-1}}, y^{2}, y^{-1}xy=x^{-1+2^{m-2}} \rangle
+
+        This family is notable because it is made up of non-abelian
+        2-groups that all contain cyclic subgroups of index 2. It
+        is one of only four such families.
+
+        EXAMPLES:
+
+        In [GORENSTEIN1980]_ it is shown that the semidihedral groups
+        have center of order 2. It is also shown that they have a 
+        Frattini subgroup equal to their commutator, which is a
+        cyclic subgroup of order `2^{m-2}`. ::
+
+            sage: G = SemidihedralGroup(12)
+            sage: G.order() == 2^12
+            True
+            sage: G.commutator() == G.frattini_subgroup()
+            True
+            sage: G.commutator().order() == 2^10
+            True
+            sage: G.commutator().is_cyclic()
+            True
+            sage: G.center().order()
+            2
+
+            sage: G = SemidihedralGroup(4)
+            sage: len([H for H in G.subgroups() if H.is_cyclic() and H.order() == 8]) 
+            1
+            sage: G.gens()
+            [(2,4)(3,7)(6,8), (1,2,3,4,5,6,7,8)]
+            sage: x = G.gens()[1]; y = G.gens()[0]
+            sage: x.order() == 2^3; y.order() == 2
+            True
+            True
+            sage: y*x*y == x^(-1+2^2)  
+            True
+
+        TESTS::
+
+            sage: G = SemidihedralGroup(4.4)
+            Traceback (most recent call last):
+            ...
+            TypeError: m must be an integer, not 4.40000000000000 
+
+            sage: G = SemidihedralGroup(-5) 
+            Traceback (most recent call last):
+            ...
+            ValueError: the exponent must be greater than 3, not -5      
+
+        REFERENCES:
+
+        .. [GORENSTEIN1980] Daniel Gorenstein, Finite Groups (New York: Chelsea Publishing, 1980)
+
+        AUTHOR:
+
+        - Kevin Halasz (2012-8-7)                
+
+        """
+        if not isinstance(m, Integer):
+            raise TypeError, 'm must be an integer, not %s'%m
+
+        if m <= 3:
+            raise ValueError, 'the exponent must be greater than 3, not %s'%m
+
+        self.m = m
+
+        # x is created with list, rather than cycle, notation
+        x = range(2, 2**(m-1)+1)
+        x.append(1)
+        # y is also created with list notation, where the list
+        # used is equivalent to the cycle notation representation of
+        # x^(1+p^(m-2)). This technique is inspired by exercise 5.30
+        # Judson's "Abstract Algebra" (abstract.pugetsound.edu).
+        y = [1]
+        k = 1
+        for i in range(2**(m-1)-1):
+            next = (k - 1 + 2**(m-2))%(2**(m-1))
+            if next == 0:
+                next = 2**(m-1)
+            y.append(next)
+            k = next
+        PermutationGroup_unique.__init__(self, gens = [x,y])
+
+    def _repr_(self):
+        r"""
+        EXAMPLES::
+            sage: G = SemidihedralGroup(6); G
+            The semidiheral group of order 64
+        """
+        return 'The semidiheral group of order %s'%(2**self.m)
+
 class MathieuGroup(PermutationGroup_unique):
     def __init__(self, n):
         """
@@ -1127,8 +1399,9 @@ class TransitiveGroup(PermutationGroup_unique):
         The transitive group from the GAP tables of transitive groups.
 
         INPUT:
-            d -- positive integer; the degree
-            n -- positive integer; the number
+            d -- non-negative integer; the degree
+            n -- positive integer; the index of the group in the GAP database, starting at 1
+
 
         OUTPUT:
             the n-th transitive group of degree d
@@ -1150,11 +1423,10 @@ class TransitiveGroup(PermutationGroup_unique):
         .. warning:: this follows GAP's naming convention of indexing
           the transitive groups starting from ``1``::
 
-            sage: TransitiveGroup(5,0)
+            sage: TransitiveGroup(5,0)                 # requires optional database_gap
             Traceback (most recent call last):
             ...
-              assert n > 0
-            AssertionError
+            ValueError: Index n must be in {1,..,5}
 
         .. warning:: only transitive groups of "small" degree are
           available in GAP's database::
@@ -1170,17 +1442,18 @@ class TransitiveGroup(PermutationGroup_unique):
             sage: TestSuite(TransitiveGroup(1,1)).run()
             sage: TestSuite(TransitiveGroup(5,2)).run()# requires optional database_gap
 
-            sage: TransitiveGroup(1,5)
+            sage: TransitiveGroup(1,5)                 # requires optional database_gap
             Traceback (most recent call last):
             ...
-            AssertionError: n should be in {1,..,1}
+            ValueError: Index n must be in {1,..,1}
         """
-        d = ZZ(d)
-        n = ZZ(n)
-        assert d >= 0
-        assert n > 0
+        d = Integer(d)
+        n = Integer(n)
+        if d < 0:
+            raise ValueError("Degree d must not be negative")
         max_n = TransitiveGroups(d).cardinality()
-        assert n <= max_n, "n should be in {1,..,%s}"%max_n
+        if n > max_n or n <= 0:
+            raise ValueError("Index n must be in {1,..,%s}" % max_n)
         gap_group = 'Group([()])' if d in [0,1] else 'TransitiveGroup(%s,%s)'%(d,n)
         try:
             PermutationGroup_generic.__init__(self, gap_group=gap_group)
@@ -1207,8 +1480,8 @@ def TransitiveGroups(d=None):
      - ``d`` -- an integer (optional)
 
     Returns the set of all transitive groups of a given degree
-    ``d``. If ``d`` is not specified, it returns the set of all
-    transitive groups.
+    ``d`` up to isomorphisms. If ``d`` is not specified, it returns the set of all
+    transitive groups up to isomorphisms.
 
     Warning: TransitiveGroups requires the optional GAP database
     package. Please install it with ``sage -i database_gap``.
@@ -1237,13 +1510,14 @@ def TransitiveGroups(d=None):
     if d == None:
         return TransitiveGroupsAll()
     else:
-        d == Integer(d)
-        assert d >= 0, "A transitive group acts on a non negative integer number of positions"
+        d = Integer(d)
+        if d < 0:
+            raise ValueError("A transitive group acts on a non negative integer number of positions")
         return TransitiveGroupsOfDegree(d)
 
 class TransitiveGroupsAll(DisjointUnionEnumeratedSets):
     """
-    The infinite set of all transitive groups.
+    The infinite set of all transitive groups up to isomorphisms.
 
     EXAMPLES::
 
@@ -1294,20 +1568,9 @@ class TransitiveGroupsAll(DisjointUnionEnumeratedSets):
         """
         return isinstance(G,TransitiveGroup)
 
-    def _an_element_(self):
-        """
-        Returns an element of ``self``.
-
-        EXAMPLES::
-
-            sage: TransitiveGroups(5).an_element() # requires optional database_gap # indirect doctest
-            Transitive group number 1 of degree 5
-        """
-        return TransitiveGroup(7,3)
-
 class TransitiveGroupsOfDegree(UniqueRepresentation, Parent):
     """
-    The set of all transitive groups of a given (small) degree.
+    The set of all transitive groups of a given (small) degree up to isomorphisms.
 
     EXAMPLES::
 
@@ -1387,11 +1650,10 @@ class TransitiveGroupsOfDegree(UniqueRepresentation, Parent):
         .. warning:: this follows GAP's naming convention of indexing
         the transitive groups starting from ``1``::
 
-            sage: TransitiveGroups(5)[0]
+            sage: TransitiveGroups(5)[0]          # requires optional database_gap
             Traceback (most recent call last):
             ...
-                assert n > 0
-            AssertionError
+            ValueError: Index n must be in {1,..,5}
         """
         return TransitiveGroup(self._degree, n)
 
@@ -1404,8 +1666,6 @@ class TransitiveGroupsOfDegree(UniqueRepresentation, Parent):
         """
         for n in xrange(1, self.cardinality() + 1):
             yield self[n]
-
-    _an_element_ = EnumeratedSets.ParentMethods._an_element_
 
     @cached_method
     def cardinality(self):
@@ -1448,7 +1708,7 @@ class TransitiveGroupsOfDegree(UniqueRepresentation, Parent):
         # While we are at it, and since Sage also handles the
         # transitive group of degree 1, we may as well handle 1
         if self._degree <= 1:
-            return ZZ(1)
+            return Integer(1)
         else:
             try:
                 return Integer(gap.NrTransitiveGroups(gap(self._degree)))
@@ -1457,6 +1717,421 @@ class TransitiveGroupsOfDegree(UniqueRepresentation, Parent):
                 verbose("Warning: TransitiveGroups requires the GAP database package. Please install it with ``sage -i database_gap``.", level=0)
             except TypeError:
                 raise NotImplementedError, "Only the transitive groups of order less than 30 are available in GAP's database"
+
+class PrimitiveGroup(PermutationGroup_unique):
+    """
+    The primitive group from the GAP tables of primitive groups.
+
+    INPUT:
+
+    - ``d`` -- non-negative integer. the degree of the group.
+
+    - ``n`` -- positive integer. the index of the group in the GAP
+      database, starting at 1
+
+    OUTPUT:
+
+    The ``n``-th primitive group of degree ``d``.
+
+    EXAMPLES::
+
+        sage: PrimitiveGroup(0,1)
+        Trivial group
+        sage: PrimitiveGroup(1,1)
+        Trivial group
+        sage: G = PrimitiveGroup(5, 2); G           # requires optional database_gap
+        D(2*5)
+        sage: G.gens()                              # requires optional database_gap
+        [(2,4)(3,5), (1,2,3,5,4)]
+        sage: G.category()                          # requires optional database_gap
+        Category of finite permutation groups
+
+    .. warning::
+
+        this follows GAP's naming convention of indexing the primitive
+        groups starting from ``1``::
+
+            sage: PrimitiveGroup(5,0)               # requires optional database_gap
+            Traceback (most recent call last):
+            ...
+            ValueError: Index n must be in {1,..,5}
+
+    Only primitive groups of "small" degree are available in GAP's
+    database::
+
+        sage: PrimitiveGroup(2500,1)          # requires optional database_gap
+        Traceback (most recent call last):
+        ...
+        NotImplementedError: Only the primitive groups of degree less
+        than 2500 are available in GAP's database
+    """
+
+    def __init__(self, d, n):
+        """
+        The Python constructor.
+
+        INPUT/OUTPUT:
+
+        See :class:`PrimitiveGroup`.
+
+        TESTS::
+
+            sage: TestSuite(PrimitiveGroup(0,1)).run()
+            sage: TestSuite(PrimitiveGroup(1,1)).run()
+            sage: TestSuite(PrimitiveGroup(5,2)).run()  # requires optional database_gap
+            sage: PrimitiveGroup(6,5)                   # requires optional database_gap
+            Traceback (most recent call last):
+            ...
+            ValueError: Index n must be in {1,..,4}
+        """
+        d = Integer(d)
+        n = Integer(n)
+        if d < 0:
+            raise ValueError("Degree d must not be negative")
+        max_n = PrimitiveGroups(d).cardinality()
+        if n > max_n or n <= 0:
+            raise ValueError("Index n must be in {1,..,%s}" % max_n)
+        if d in [0,1]:
+            gap_group = gap.Group("[()]")
+            self._pretty_name = "Trivial group"
+        else:
+            gap_group = gap.PrimitiveGroup(d, n)
+            self._pretty_name = gap_group.str()
+        try:
+            PermutationGroup_generic.__init__(self, gap_group=gap_group)
+        except RuntimeError:
+            from sage.misc.misc import verbose
+            verbose("Warning: Computing with PrimitiveGroups requires the optional database_gap package. Please install it.", level=0)
+
+        self._d = d
+        self._n = n
+        self._domain = range(1, d+1)
+
+    def _repr_(self):
+        """
+        Return a string representation.
+
+        OUTPUT:
+
+        String.
+
+        EXAMPLES::
+
+            sage: G = PrimitiveGroup(5,1); G             # requires optional database_gap
+            C(5)
+        """
+        return self._pretty_name
+
+    def group_primitive_id(self):
+        """
+        Return the index of this group in the GAP database of primitive groups.
+
+        Requires "optional" database_gap package.
+
+        OUTPUT:
+
+        A positive integer, following GAP's conventions.
+
+        EXAMPLES::
+
+            sage: G = PrimitiveGroup(5,2); G.group_primitive_id()  # requires optional database_gap
+            2
+        """
+        return self._n
+
+def PrimitiveGroups(d=None):
+    """
+    Return the set of all primitive groups of a given degree ``d``
+
+    INPUT:
+
+    - ``d`` -- an integer (optional)
+
+    OUTPUT:
+
+    The set of all primitive groups of a given degree ``d`` up to
+    isomorphisms using GAP. If ``d`` is not specified, it returns the
+    set of all primitive groups up to isomorphisms stored in GAP.
+
+    .. attention::
+
+        PrimitiveGroups requires the optional GAP database
+        package. Please install it with
+        ``install_package(`database_gap')``.
+
+    EXAMPLES::
+
+        sage: PrimitiveGroups(3)
+        Primitive Groups of degree 3
+        sage: PrimitiveGroups(7)
+        Primitive Groups of degree 7
+        sage: PrimitiveGroups(8)
+        Primitive Groups of degree 8
+        sage: PrimitiveGroups()
+        Primitive Groups
+
+    The database currently only contains primitive groups up to degree
+    2499::
+
+         sage: PrimitiveGroups(2500).cardinality() # requires optional database_gap
+         Traceback (most recent call last):
+         ...
+         NotImplementedError: Only the primitive groups of degree less
+         than 2500 are available in GAP's database
+
+    TODO:
+
+    This enumeration helper could be extended based on
+    ``PrimitiveGroupsIterator`` in GAP.  This method allows to
+    enumerate groups with specified properties such as transitivity,
+    solvability, ..., without creating all groups.
+    """
+    if d == None:
+        return PrimitiveGroupsAll()
+    else:
+        d = Integer(d)
+        if d < 0:
+            raise ValueError("A primitive group acts on a non negative integer number of positions")
+        return PrimitiveGroupsOfDegree(d)
+
+
+class PrimitiveGroupsAll(DisjointUnionEnumeratedSets):
+    """
+    The infinite set of all primitive groups up to isomorphisms.
+
+    EXAMPLES::
+
+        sage: L = PrimitiveGroups(); L
+        Primitive Groups
+        sage: L.category()
+        Category of infinite enumerated sets
+        sage: L.cardinality()
+        +Infinity
+
+        sage: p = L.__iter__()            # requires optional database_gap
+        sage: (p.next(), p.next(), p.next(), p.next(), # requires optional database_gap
+        ...    p.next(), p.next(), p.next(), p.next())
+        (Trivial group, Trivial group, S(2), A(3), S(3), A(4), S(4), C(5))
+
+    TESTS::
+
+        sage: TestSuite(PrimitiveGroups()).run() # requires optional database_gap # long time
+    """
+    def __init__(self):
+        """
+        TESTS::
+
+            sage: S = PrimitiveGroups() # requires optional database_gap
+            sage: S.category() # requires optional database_gap
+            Category of infinite enumerated sets
+        """
+        DisjointUnionEnumeratedSets.__init__(self, Family(NonNegativeIntegers(), lambda i: PrimitiveGroups(i)) )
+
+    def _repr_(self):
+        """
+        Return a string representation.
+
+        OUTPUT:
+
+        String.
+
+        TESTS::
+
+            sage: PrimitiveGroups() # requires optional database_gap # indirect doctest
+            Primitive Groups
+        """
+        return "Primitive Groups"
+
+    def __contains__(self, G):
+        r"""
+        Test whether `G` is in ``self``.
+
+        INPUT:
+
+        - `G` -- anything.
+
+        OUTPUT:
+
+        Boolean.
+
+        EXAMPLES::
+
+            sage: PrimitiveGroup(5,2) in PrimitiveGroups() # requires optional database_gap
+            True
+            sage: PrimitiveGroup(6,4) in PrimitiveGroups() # requires optional database_gap
+            True
+            sage: 1 in PrimitiveGroups() # requires optional database_gap
+            False
+        """
+        return isinstance(G,PrimitiveGroup)
+
+class PrimitiveGroupsOfDegree(UniqueRepresentation, Parent):
+    """
+    The set of all primitive groups of a given degree up to isomorphisms.
+
+    EXAMPLES::
+
+        sage: S = PrimitiveGroups(5); S       # requires optional database_gap
+        Primitive Groups of degree 5
+        sage: S.list()                          # requires optional database_gap
+        [C(5), D(2*5), AGL(1, 5), A(5), S(5)]
+        sage: S.an_element() # requires optional database_gap
+        C(5)
+
+    We write the cardinality of all primitive groups of degree 5::
+
+        sage: for G in PrimitiveGroups(5):    # requires optional database_gap
+        ...       print G.cardinality()
+        5
+        10
+        20
+        60
+        120
+
+    TESTS::
+
+        sage: TestSuite(PrimitiveGroups(3)).run() # requires optional database_gap
+    """
+    def __init__(self, n):
+        """
+        TESTS::
+
+            sage: S = PrimitiveGroups(4) # requires optional database_gap
+            sage: S.category() # requires optional database_gap
+            Category of finite enumerated sets
+        """
+        self._degree = n
+        Parent.__init__(self, category = FiniteEnumeratedSets())
+
+    def _repr_(self):
+        """
+        Return a string representation.
+
+        OUTPUT:
+
+        String.
+
+        TESTS::
+
+            sage: PrimitiveGroups(6) # requires optional database_gap
+            Primitive Groups of degree 6
+        """
+        return "Primitive Groups of degree %s"%(self._degree)
+
+    def __contains__(self, G):
+        r"""
+        Test whether `G` is in ``self``.
+
+        INPUT:
+
+        - `G` -- anything.
+
+        OUTPUT:
+
+        Boolean.
+
+        EXAMPLES::
+
+            sage: PrimitiveGroup(6,4) in PrimitiveGroups(4) # requires optional database_gap
+            False
+            sage: PrimitiveGroup(4,2) in PrimitiveGroups(4) # requires optional database_gap
+            True
+            sage: 1 in PrimitiveGroups(4) # requires optional database_gap
+            False
+        """
+        if isinstance(G,PrimitiveGroup):
+            return G._d == self._degree
+        else:
+            False
+
+    def __getitem__(self, n):
+        r"""
+        Return the `n`-th primitive group of a given degree.
+
+        INPUT:
+
+         - ``n`` -- a positive integer
+
+        EXAMPLES::
+
+            sage: PrimitiveGroups(5)[3]          # requires optional database_gap
+            AGL(1, 5)
+
+        .. warning::
+
+            this follows GAP's naming convention of indexing the
+            primitive groups starting from ``1``::
+
+                sage: PrimitiveGroups(5)[0]      # requires optional database_gap
+                Traceback (most recent call last):
+                ...
+                ValueError: Index n must be in {1,..,5}
+        """
+        return PrimitiveGroup(self._degree, n)
+
+    def __iter__(self):
+        """
+        EXAMPLES::
+
+            sage: list(PrimitiveGroups(5)) # indirect doctest # requires optional database_gap
+            [C(5), D(2*5), AGL(1, 5), A(5), S(5)]
+        """
+        for n in xrange(1, self.cardinality() + 1):
+            yield self[n]
+
+    @cached_method
+    def cardinality(self):
+        r"""
+        Return the cardinality of ``self``.
+
+        OUTPUT:
+
+        An integer. The number of primitive groups of a given degree
+        up to isomorphism.
+
+        EXAMPLES::
+
+            sage: PrimitiveGroups(0).cardinality()                      # requires optional database_gap
+            1
+            sage: PrimitiveGroups(2).cardinality()                      # requires optional database_gap
+            1
+            sage: PrimitiveGroups(7).cardinality()                      # requires optional database_gap
+            7
+            sage: PrimitiveGroups(12).cardinality()                     # requires optional database_gap
+            6
+            sage: [PrimitiveGroups(i).cardinality() for i in range(11)] # requires optional database_gap
+            [1, 1, 1, 2, 2, 5, 4, 7, 7, 11, 9]
+
+        The database_gap contains all primitive groups up to degree
+        2499::
+
+            sage: PrimitiveGroups(2500).cardinality()                     # requires optional database_gap
+            Traceback (most recent call last):
+            ...
+            NotImplementedError: Only the primitive groups of degree less than
+            2500 are available in GAP's database
+
+        TESTS::
+
+            sage: type(PrimitiveGroups(12).cardinality())               # requires optional database_gap
+            <type 'sage.rings.integer.Integer'>
+            sage: type(PrimitiveGroups(0).cardinality())
+            <type 'sage.rings.integer.Integer'>
+        """
+        # gap.NrPrimitiveGroups(0) fails, so Sage needs to handle this
+        # While we are at it, and since Sage also handles the
+        # primitive group of degree 1, we may as well handle 1
+        if self._degree <= 1:
+            return Integer(1)
+        elif self._degree >= 2500:
+            raise NotImplementedError("Only the primitive groups of degree less than 2500 are available in GAP's database")
+        else:
+            try:
+                return Integer(gap.NrPrimitiveGroups(gap(self._degree)))
+            except RuntimeError:
+                from sage.misc.misc import verbose
+                verbose("Warning: PrimitiveGroups requires the GAP database package. Please install it with ``sage -i database_gap``.", level=0)
+
 
 class PermutationGroup_plg(PermutationGroup_unique):
     def base_ring(self):

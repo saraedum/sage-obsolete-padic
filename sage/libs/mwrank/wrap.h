@@ -1,16 +1,16 @@
 #ifdef __cplusplus
 /* The order here is very important. */
 #include "eclib/curve.h"
-#include "eclib/egr.h"    
+#include "eclib/egr.h"
 #include "eclib/descent.h"
 #include "eclib/points.h"
 #include "eclib/isogs.h"
-#include "eclib/marith.h" 
+#include "eclib/marith.h"
 #endif
 
 #ifdef __cplusplus
 #define EXTERN extern "C"
-#else 
+#else
 #define EXTERN
 #endif
 
@@ -27,8 +27,8 @@ struct bigint;
 #endif
 
 #ifdef __cplusplus
-extern "C" 
-#endif 
+extern "C"
+#endif
 struct bigint* new_bigint(void);
 
 EXTERN void del_bigint(struct bigint* x);
@@ -45,9 +45,9 @@ EXTERN char* bigint_to_str(struct bigint* x);
 struct Curvedata;
 #endif
 
-EXTERN struct Curvedata* Curvedata_new(const struct bigint* a1, const struct bigint* a2, 
-				       const struct bigint* a3, const struct bigint* a4, 
-				       const struct bigint* a6, int min_on_init);
+EXTERN struct Curvedata* Curvedata_new(const struct bigint* a1, const struct bigint* a2,
+                                       const struct bigint* a3, const struct bigint* a4,
+                                       const struct bigint* a6, int min_on_init);
 
 EXTERN void Curvedata_del(struct Curvedata* curve);
 
@@ -76,7 +76,7 @@ EXTERN struct mw* mw_new(struct Curvedata* curve, int verb, int pp, int maxr);
 EXTERN void mw_del(struct mw* m);
 
 EXTERN int mw_process(struct Curvedata* curve, struct mw* m,
-                      const struct bigint* x, const struct bigint* y, 
+                      const struct bigint* x, const struct bigint* y,
                       const struct bigint* z, int sat);
 
 EXTERN char* mw_getbasis(struct mw* m);
@@ -86,7 +86,7 @@ EXTERN char* mw_regulator(struct mw* m);
 EXTERN int mw_rank(struct mw* m);
 
 /* Returns index and unsat long array, which user must deallocate */
-EXTERN int mw_saturate(struct mw* m, struct bigint* index, char** unsat, 
+EXTERN int mw_saturate(struct mw* m, struct bigint* index, char** unsat,
                        long sat_bd, int odd_primes_only);
 
 EXTERN void mw_search(struct mw* m, char* h_lim, int moduli_option, int verb);
@@ -98,10 +98,10 @@ EXTERN void mw_search(struct mw* m, char* h_lim, int moduli_option, int verb);
 struct two_descent;
 #endif
 
-EXTERN struct two_descent* two_descent_new(struct Curvedata* curve,  \
-				    int verb, int sel, 
-				    long firstlim, long secondlim, 
-				    long n_aux, int second_descent);
+EXTERN struct two_descent* two_descent_new(struct Curvedata* curve,
+                                    int verb, int sel,
+                                    long firstlim, long secondlim,
+                                    long n_aux, int second_descent);
 
 EXTERN void two_descent_del(struct two_descent* t);
 

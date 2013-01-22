@@ -1,11 +1,35 @@
 """
 Graph Plotting
+
+All graphs have an associated Sage graphics object, which you can display::
+
+    sage: G = graphs.WheelGraph(15)
+    sage: P = G.plot()
+    sage: P.show() # long time
+
+If you create a graph in Sage using the ``Graph`` command, then plot that graph,
+the positioning of nodes is determined using the spring-layout algorithm. For
+the special graph constructors, which you get using ``graphs.[tab]``, the
+positions are preset. For example, consider the Petersen graph with default node
+positioning vs. the Petersen graph constructed by this database::
+
+    sage: petersen_spring = Graph({0:[1,4,5], 1:[0,2,6], 2:[1,3,7], 3:[2,4,8], 4:[0,3,9], 5:[0,7,8], 6:[1,8,9], 7:[2,5,9], 8:[3,5,6], 9:[4,6,7]})
+    sage: petersen_spring.show() # long time
+    sage: petersen_database = graphs.PetersenGraph()
+    sage: petersen_database.show() # long time
+
+For all the constructors in this database (except the octahedral, dodecahedral,
+random and empty graphs), the position dictionary is filled in, instead of using
+the spring-layout algorithm.
+
+Functions and methods
+---------------------
 """
 
 #*****************************************************************************
 #      Copyright (C) 2009   Emily Kirkman
 #                    2009   Robert L. Miller <rlmillster@gmail.com>
-#                   
+#
 #  Distributed under the terms of the GNU General Public License (GPL)
 #
 #    This code is distributed in the hope that it will be useful,
@@ -906,16 +930,85 @@ class GraphPlot(SageObject):
                         x = ox
                 obstruction[y] = x+1
                 continue
-            
+
             t = C.pop()
             pt = parent[t]
-    
+
             ct = [u for u in T.neighbors(t) if u != pt]
             for c in ct:
                 parent[c] = t
             children[t] = ct
-            
+
             stack.append([c for c in ct])
             stick.append(t)
 
         return pos
+
+####################
+# Helper functions #
+####################
+
+def _circle_embedding(g, vertices, center=(0, 0), radius=1, shift=0):
+    r"""
+    Set some vertices on a circle in the embedding of a graph G.
+
+    This method modifies the graph's embedding so that the vertices
+    listed in ``vertices`` appear in this ordering on a circle of given
+    radius and center. The ``shift`` parameter is actually a rotation of
+    the circle. A value of ``shift=1`` will replace in the drawing the
+    `i`-th element of the list by the `(i-1)`-th. Non-integer values are
+    admissible, and a value of `\alpha` corresponds to a rotation of the
+    circle by an angle of `\alpha 2\pi/n` (where `n` is the number of
+    vertices set on the circle).
+
+    EXAMPLE::
+
+        sage: from sage.graphs.graph_plot import _circle_embedding
+        sage: g = graphs.CycleGraph(5)
+        sage: _circle_embedding(g, [0, 2, 4, 1, 3], radius=2, shift=.5)
+        sage: g.show()
+    """
+    c_x, c_y = center
+    n = len(vertices)
+    d = g.get_pos()
+    if d is None:
+        d = {}
+
+    for i,v in enumerate(vertices):
+        i += shift
+        v_x = c_x + radius * cos(2*i*pi / n)
+        v_y = c_y + radius * sin(2*i*pi / n)
+        d[v] = (v_x, v_y)
+
+    g.set_pos(d)
+
+def _line_embedding(g, vertices, first=(0, 0), last=(0, 1)):
+    r"""
+    Sets some vertices on a line in the embedding of a graph G.
+
+    This method modifies the graph's embedding so that the vertices of
+    ``vertices`` appear on a line, where the position of ``vertices[0]``
+    is the pair ``first`` and the position of ``vertices[-1]`` is
+    ``last``. The vertices are evenly spaced.
+
+    EXAMPLE::
+
+        sage: from sage.graphs.graph_plot import _line_embedding
+        sage: g = graphs.PathGraph(5)
+        sage: _line_embedding(g, [0, 2, 4, 1, 3], first=(-1, -1), last=(1, 1))
+        sage: g.show()
+    """
+    n = len(vertices) - 1.
+
+    fx, fy = first
+    dx = (last[0] - first[0])/n
+    dy = (last[1] - first[1])/n
+
+    d = g.get_pos()
+    if d is None:
+        d = {}
+
+    for v in vertices:
+        d[v] = (fx, fy)
+        fx += dx
+        fy += dy

@@ -12,6 +12,7 @@ can be applied on both. Here is what it can do:
     :delim: |
 
     :meth:`~GenericGraph.networkx_graph` | Creates a new NetworkX graph from the Sage graph
+    :meth:`~GenericGraph.to_dictionary` | Creates a dictionary encoding the graph.
     :meth:`~GenericGraph.adjacency_matrix` | Returns the adjacency matrix of the (di)graph.
     :meth:`~GenericGraph.incidence_matrix` | Returns an incidence matrix of the (di)graph
     :meth:`~GenericGraph.weighted_adjacency_matrix` | Returns the weighted adjacency matrix of the graph
@@ -113,6 +114,7 @@ can be applied on both. Here is what it can do:
     :meth:`~GenericGraph.cycle_basis` | Returns a list of cycles which form a basis of the cycle space of ``self``.
     :meth:`~GenericGraph.interior_paths` | Returns an exhaustive list of paths (also lists) through only interior vertices from vertex start to vertex end in the (di)graph.
     :meth:`~GenericGraph.all_paths` | Returns a list of all paths (also lists) between a pair of vertices in the (di)graph.
+    :meth:`~GenericGraph.triangles_count` | Returns the number of triangles in the (di)graph.
 
 **Linear algebra:**
 
@@ -224,7 +226,7 @@ can be applied on both. Here is what it can do:
     :meth:`~GenericGraph.connected_components_subgraphs` | Returns a list of connected components as graph objects.
     :meth:`~GenericGraph.connected_component_containing_vertex` | Returns a list of the vertices connected to vertex.
     :meth:`~GenericGraph.blocks_and_cut_vertices` | Computes the blocks and cut vertices of the graph.
-    :meth=`~GenericGraph.is_cut_edge` | Returns True if the input edge is a cut-edge or a bridge.
+    :meth:=`~GenericGraph.is_cut_edge` | Returns True if the input edge is a cut-edge or a bridge.
     :meth:`~GenericGraph.is_cut_vertex` | Returns True if the input vertex is a cut-vertex.
     :meth:`~GenericGraph.edge_cut` | Returns a minimum edge cut between vertices `s` and `t`
     :meth:`~GenericGraph.vertex_cut` | Returns a minimum vertex cut between non-adjacent vertices `s` and `t`
@@ -295,19 +297,6 @@ can be applied on both. Here is what it can do:
     :meth:`~GenericGraph.characteristic_polynomial` | Returns the characteristic polynomial of the adjacency matrix of the (di)graph.
     :meth:`~GenericGraph.genus` | Returns the minimal genus of the graph.
     :meth:`~GenericGraph.trace_faces` | A helper function for finding the genus of a graph.
-
-**Graph stuff that should not be in this file:**
-
-.. csv-table::
-    :class: contentstable
-    :widths: 30, 70
-    :delim: |
-
-    :meth:`~GenericGraph.minimum_outdegree_orientation` | Returns an orientation of ``self`` with the smallest possible maximum outdegree
-    :meth:`~GenericGraph.matching` | Returns a maximum weighted matching of the graph
-    :meth:`~GenericGraph.maximum_average_degree` | Returns the Maximum Average Degree (MAD) of the current graph.
-    :meth:`~GenericGraph.cores` | Returns the core number for each vertex in an ordered list.
-
 
 Methods
 -------
@@ -863,6 +852,165 @@ class GenericGraph(GenericGraph_pyx):
                     except (TypeError, ValueError, NetworkXError):
                         N.add_edge(u,v,weight=l)
             return N
+
+    def to_dictionary(self, edge_labels=False, multiple_edges=False):
+        r"""
+        Returns the graph as a dictionary.
+
+        INPUT:
+
+        - ``edge_labels`` (boolean) -- whether to include edge labels in the
+          output.
+
+        - ``multiple_edges`` (boolean) -- whether to include multiple edges in
+          the output.
+
+        OUTPUT:
+
+        The output depends on the input:
+
+        * If ``edge_labels == False`` and ``multiple_edges == False``, the
+          output is a dictionary associating to each vertex the list of its
+          neighbors.
+
+        * If ``edge_labels == False`` and ``multiple_edges == True``, the output
+          is a dictionary the same as previously with one difference : the
+          neighbors are listed with multiplicity.
+
+        * If ``edge_labels == True`` and ``multiple_edges == False``, the output
+          is a dictionary associating to each vertex `u` [a dictionary
+          associating to each vertex `v` incident to `u` the label of edge
+          `(u,v)`].
+
+        * If ``edge_labels == True`` and ``multiple_edges == True``, the output
+          is a dictionary associating to each vertex `u` [a dictionary
+          associating to each vertex `v` incident to `u` [the list of labels of
+          all edges between `u` and `v`]].
+
+        .. NOTE::
+
+          When used on directed graphs, the explanations above can be understood
+          by replacing the word "neigbours" by "out-neighbors"
+
+        EXAMPLES::
+
+            sage: graphs.PetersenGraph().to_dictionary()
+            {0: [1, 4, 5], 1: [0, 2, 6],
+             2: [1, 3, 7], 3: [8, 2, 4],
+             4: [0, 9, 3], 5: [0, 8, 7],
+             6: [8, 1, 9], 7: [9, 2, 5],
+             8: [3, 5, 6], 9: [4, 6, 7]}
+            sage: graphs.PetersenGraph().to_dictionary(multiple_edges=True)
+            {0: [1, 4, 5], 1: [0, 2, 6],
+             2: [1, 3, 7], 3: [2, 4, 8],
+             4: [0, 3, 9], 5: [0, 7, 8],
+             6: [1, 8, 9], 7: [2, 5, 9],
+             8: [3, 5, 6], 9: [4, 6, 7]}
+            sage: graphs.PetersenGraph().to_dictionary(edge_labels=True)
+            {0: {1: None, 4: None, 5: None},
+             1: {0: None, 2: None, 6: None},
+             2: {1: None, 3: None, 7: None},
+             3: {8: None, 2: None, 4: None},
+             4: {0: None, 9: None, 3: None},
+             5: {0: None, 8: None, 7: None},
+             6: {8: None, 1: None, 9: None},
+             7: {9: None, 2: None, 5: None},
+             8: {3: None, 5: None, 6: None},
+             9: {4: None, 6: None, 7: None}}
+            sage: graphs.PetersenGraph().to_dictionary(edge_labels=True,multiple_edges=True)
+            {0: {1: [None], 4: [None], 5: [None]},
+             1: {0: [None], 2: [None], 6: [None]},
+             2: {1: [None], 3: [None], 7: [None]},
+             3: {8: [None], 2: [None], 4: [None]},
+             4: {0: [None], 9: [None], 3: [None]},
+             5: {0: [None], 8: [None], 7: [None]},
+             6: {8: [None], 1: [None], 9: [None]},
+             7: {9: [None], 2: [None], 5: [None]},
+             8: {3: [None], 5: [None], 6: [None]},
+             9: {4: [None], 6: [None], 7: [None]}}
+        """
+
+        # Returning the resuls as a dictionary of lists
+        #
+        # dictionary :
+        # {vertex : [list of (out-)neighbors]}
+
+        if not edge_labels and not multiple_edges:
+            d = {}
+
+            if self.is_directed():
+                for u in self:
+                    d[u]=self.neighbors_out(u)
+            else:
+                for u in self:
+                    d[u]=self.neighbors(u)
+
+
+        # Returning the result as a dictionary of lists
+        #
+        # dictionary :
+        # {vertex : [list of (out-)neighbors, with multiplicity]}
+        elif not edge_labels and multiple_edges:
+            d={v:[] for v in self}
+
+            if self.is_directed():
+                for u,v in self.edge_iterator(labels = False):
+                    d[u].append(v)
+
+            else:
+                for u,v in self.edge_iterator(labels = False):
+                    d[u].append(v)
+                    d[v].append(u)
+
+        # Returning the result as a dictionary of dictionaries
+        #
+        # Each vertex is associated with the dictionary associating to each of
+        # its neighbors the corresponding edge label.
+        #
+        # dictionary :
+        # {v : dictionary                          }
+        #      {neighbor u of v : label of edge u,v}
+
+        elif edge_labels and not multiple_edges:
+            d={v:{} for v in self}
+
+            if self.is_directed():
+                for u,v,l in self.edge_iterator():
+                    d[u][v] = l
+
+            else:
+                for u,v,l in self.edge_iterator():
+                    d[u][v] = l
+                    d[v][u] = l
+
+        # Returning the result as a dictionary of dictionaries
+        #
+        # Each vertex is associated with the dictionary associating to each of
+        # its neighbors the list of edge labels between the two vertices
+        #
+        # dictionary :
+        # {v : dictionary                                          }
+        #      {neighbor u of v : [labels of edges between u and v]}
+
+        elif edge_labels and multiple_edges:
+            d={v:{} for v in self}
+
+            if self.is_directed():
+                for u,v,l in self.edge_iterator():
+                    if not v in d[u]:
+                        d[u][v] = []
+                    d[u][v].append(l)
+
+            else:
+                for u,v,l in self.edge_iterator():
+                    if not v in d[u]:
+                        d[u][v] = []
+                        d[v][u] = []
+
+                    d[u][v].append(l)
+                    d[v][u].append(l)
+
+        return d
 
     def adjacency_matrix(self, sparse=None, boundary_first=False):
         """
@@ -2846,116 +2994,6 @@ class GenericGraph(GenericGraph_pyx):
 
         import networkx
         return networkx.cycle_basis(self.networkx_graph(copy=False))
-
-    def minimum_outdegree_orientation(self, use_edge_labels=False, solver=None, verbose=0):
-        r"""
-        Returns an orientation of ``self`` with the smallest possible maximum
-        outdegree.
-
-        Given a Graph `G`, is is polynomial to compute an orientation
-        `D` of the edges of `G` such that the maximum out-degree in
-        `D` is minimized. This problem, though, is NP-complete in the
-        weighted case [AMOZ06]_.
-
-        INPUT:
-
-        - ``use_edge_labels`` -- boolean (default: ``False``)
-
-          - When set to ``True``, uses edge labels as weights to
-            compute the orientation and assumes a weight of `1`
-            when there is no value available for a given edge.
-
-          - When set to ``False`` (default), gives a weight of 1
-            to all the edges.
-
-        - ``solver`` -- (default: ``None``) Specify a Linear Program (LP)
-          solver to be used. If set to ``None``, the default one is used. For
-          more information on LP solvers and which default solver is used, see
-          the method
-          :meth:`solve <sage.numerical.mip.MixedIntegerLinearProgram.solve>`
-          of the class
-          :class:`MixedIntegerLinearProgram <sage.numerical.mip.MixedIntegerLinearProgram>`.
-
-        - ``verbose`` -- integer (default: ``0``). Sets the level of
-          verbosity. Set to 0 by default, which means quiet.
-
-        EXAMPLE:
-
-        Given a complete bipartite graph `K_{n,m}`, the maximum out-degree
-        of an optimal orientation is `\left\lceil \frac {nm} {n+m}\right\rceil`::
-
-            sage: g = graphs.CompleteBipartiteGraph(3,4)
-            sage: o = g.minimum_outdegree_orientation()
-            sage: max(o.out_degree()) == ceil((4*3)/(3+4))
-            True
-
-        REFERENCES:
-        
-        .. [AMOZ06] Asahiro, Y. and Miyano, E. and Ono, H. and Zenmyo, K.
-          Graph orientation algorithms to minimize the maximum outdegree
-          Proceedings of the 12th Computing: The Australasian Theory Symposium
-          Volume 51, page 20
-          Australian Computer Society, Inc. 2006
-        """
-
-        if self.is_directed():
-            raise ValueError("Cannot compute an orientation of a DiGraph. "+\
-                                 "Please convert it to a Graph if you really mean it.")
-
-        if use_edge_labels:
-            from sage.rings.real_mpfr import RR
-            weight = lambda u,v : self.edge_label(u,v) if self.edge_label(u,v) in RR else 1
-        else:
-            weight = lambda u,v : 1
-
-        from sage.numerical.mip import MixedIntegerLinearProgram
-        
-        p = MixedIntegerLinearProgram(maximization=False, solver=solver)
-
-        # The orientation of an edge is boolean
-        # and indicates whether the edge uv 
-        # with u<v goes from u to v ( equal to 0 )
-        # or from v to u ( equal to 1)
-        orientation = p.new_variable(dim=2)
-        
-        degree = p.new_variable()
-
-        # Whether an edge adjacent to a vertex u counts
-        # positively or negatively
-        outgoing = lambda u,v,variable : (1-variable) if u>v else variable
-        
-        for u in self:
-            p.add_constraint(p.sum([weight(u,v)*outgoing(u,v,orientation[min(u,v)][max(u,v)]) for v in self.neighbors(u)])-degree['max'],max=0)
-
-        p.set_objective(degree['max'])
-
-        p.set_binary(orientation)
-
-        p.solve(log=verbose)
-
-        orientation = p.get_values(orientation)
-
-        # All the edges from self are doubled in O
-        # ( one in each direction )
-        from sage.graphs.digraph import DiGraph
-        O = DiGraph(self)
-
-        # Builds the list of edges that should be removed
-        edges=[]
-
-        for u,v in self.edge_iterator(labels=None):
-            # assumes u<v
-            if u>v:
-                u,v=v,u
-
-            if orientation[min(u,v)][max(u,v)] == 1:
-                edges.append((max(u,v),min(u,v)))
-            else:
-                edges.append((min(u,v),max(u,v)))
-
-        O.delete_edges(edges)
-
-        return O
 
     ### Planarity
 
@@ -5696,7 +5734,7 @@ class GenericGraph(GenericGraph_pyx):
             True
 
         If we pick `1/2` instead of `2` as a cost for these new edges, they
-        clearly become the optimal solution
+        clearly become the optimal solution::
 
             sage: for u,v in cycle.edges(labels = None):
             ...      g.set_edge_label(u,v,1/2)
@@ -6935,141 +6973,6 @@ class GenericGraph(GenericGraph_pyx):
             paths.append(path)
 
         return paths
-
-    def matching(self, value_only=False, algorithm="Edmonds", use_edge_labels=True, solver=None, verbose=0):
-        r"""
-        Returns a maximum weighted matching of the graph
-        represented by the list of its edges. For more information, see the
-        `Wikipedia article on matchings
-        <http://en.wikipedia.org/wiki/Matching_%28graph_theory%29>`_.
-
-        Given a graph `G` such that each edge `e` has a weight `w_e`,
-        a maximum matching is a subset `S` of the edges of `G` of
-        maximum weight such that no two edges of `S` are incident
-        with each other.
-
-        As an optimization problem, it can be expressed as:
-
-        .. math::
-
-            \mbox{Maximize : }&\sum_{e\in G.edges()} w_e b_e\\
-            \mbox{Such that : }&\forall v \in G, \sum_{(u,v)\in G.edges()} b_{(u,v)}\leq 1\\
-            &\forall x\in G, b_x\mbox{ is a binary variable}
-
-        INPUT:
-
-        - ``value_only`` -- boolean (default: ``False``). When set to
-          ``True``, only the cardinal (or the weight) of the matching is
-          returned.
-
-        - ``algorithm`` -- string (default: ``"Edmonds"``)
-
-          - ``"Edmonds"`` selects Edmonds' algorithm as implemented in NetworkX
-
-          - ``"LP"`` uses a Linear Program formulation of the matching problem
-
-        - ``use_edge_labels`` -- boolean (default: ``False``)
-
-          - When set to ``True``, computes a weighted matching where each edge
-            is weighted by its label. (If an edge has no label, `1` is assumed.)
-
-          - When set to ``False``, each edge has weight `1`.
-
-        - ``solver`` -- (default: ``None``) Specify a Linear Program (LP)
-          solver to be used. If set to ``None``, the default one is used. For
-          more information on LP solvers and which default solver is used, see
-          the method
-          :meth:`solve <sage.numerical.mip.MixedIntegerLinearProgram.solve>`
-          of the class
-          :class:`MixedIntegerLinearProgram <sage.numerical.mip.MixedIntegerLinearProgram>`.
-
-        - ``verbose`` -- integer (default: ``0``). Sets the level of
-          verbosity. Set to 0 by default, which means quiet.
-          Only useful when ``algorithm == "LP"``.
-
-        ALGORITHM:
-
-        The problem is solved using Edmond's algorithm implemented in
-        NetworkX, or using Linear Programming depending on the value of
-        ``algorithm``.
-
-        EXAMPLES:
-
-        Maximum matching in a Pappus Graph::
-
-           sage: g = graphs.PappusGraph()
-           sage: g.matching(value_only=True)
-           9.0
-
-        Same test with the Linear Program formulation::
-
-           sage: g = graphs.PappusGraph()
-           sage: g.matching(algorithm="LP", value_only=True)
-           9.0
-
-        TESTS:
-
-        If ``algorithm`` is set to anything different from ``"Edmonds"`` or
-        ``"LP"``, an exception is raised::
-
-           sage: g = graphs.PappusGraph()
-           sage: g.matching(algorithm="somethingdifferent")
-           Traceback (most recent call last):
-           ...
-           ValueError: algorithm must be set to either "Edmonds" or "LP"
-        """
-        from sage.rings.real_mpfr import RR
-        weight = lambda x: x if x in RR else 1
-
-        if algorithm == "Edmonds":
-            import networkx
-            if use_edge_labels:
-                g = networkx.Graph()
-                for u, v, l in self.edges():
-                    g.add_edge(u, v, attr_dict={"weight": weight(l)})
-            else:
-                g = self.networkx_graph(copy=False)
-            d = networkx.max_weight_matching(g)
-            if value_only:
-                if use_edge_labels:
-                    return sum([weight(self.edge_label(u, v))
-                                for u, v in d.iteritems()]) * 0.5
-                else:
-                    return Integer(len(d)/2)
-            else:
-                return [(u, v, self.edge_label(u, v))
-                        for u, v in d.iteritems() if u < v]
-
-        elif algorithm == "LP":
-            from sage.numerical.mip import MixedIntegerLinearProgram
-            g = self
-            # returns the weight of an edge considering it may not be
-            # weighted ...
-            p = MixedIntegerLinearProgram(maximization=True, solver=solver)
-            b = p.new_variable(dim=2)
-            p.set_objective(
-                p.sum([weight(w) * b[min(u, v)][max(u, v)]
-                     for u, v, w in g.edges()]))
-            # for any vertex v, there is at most one edge incident to v in
-            # the maximum matching
-            for v in g.vertex_iterator():
-                p.add_constraint(
-                    p.sum([b[min(u, v)][max(u, v)]
-                         for u in g.neighbors(v)]), max=1)
-            p.set_binary(b)
-            if value_only:
-                if use_edge_labels:
-                    return p.solve(objective_only=True, log=verbose)
-                else:
-                    return Integer(round(p.solve(objective_only=True, log=verbose)))
-            else:
-                p.solve(log=verbose)
-                b = p.get_values(b)
-                return [(u, v, w) for u, v, w in g.edges()
-                        if b[min(u, v)][max(u, v)] == 1]
-
-        else:
-            raise ValueError('algorithm must be set to either "Edmonds" or "LP"')
 
     def dominating_set(self, independent=False, value_only=False, solver=None, verbose=0):
         r"""
@@ -9405,111 +9308,6 @@ class GenericGraph(GenericGraph_pyx):
 
         return 2*Integer(self.size())/Integer(self.order())
 
-    def maximum_average_degree(self, value_only=True, solver = None, verbose = 0):
-        r"""
-        Returns the Maximum Average Degree (MAD) of the current graph.
-
-        The Maximum Average Degree (MAD) of a graph is defined as
-        the average degree of its densest subgraph. More formally,
-        ``Mad(G) = \max_{H\subseteq G} Ad(H)``, where `Ad(G)` denotes
-        the average degree of `G`.
-
-        This can be computed in polynomial time.
-
-        INPUT:
-
-        - ``value_only`` (boolean) -- ``True`` by default
-
-            - If ``value_only=True``, only the numerical
-              value of the `MAD` is returned.
-
-            - Else, the subgraph of `G` realizing the `MAD`
-              is returned.
-
-        - ``solver`` -- (default: ``None``) Specify a Linear Program (LP)
-          solver to be used. If set to ``None``, the default one is used. For
-          more information on LP solvers and which default solver is used, see
-          the method
-          :meth:`solve <sage.numerical.mip.MixedIntegerLinearProgram.solve>`
-          of the class
-          :class:`MixedIntegerLinearProgram <sage.numerical.mip.MixedIntegerLinearProgram>`.
-
-        - ``verbose`` -- integer (default: ``0``). Sets the level of
-          verbosity. Set to 0 by default, which means quiet.
-
-        EXAMPLES:
-
-        In any graph, the `Mad` is always larger than the average
-        degree::
-
-            sage: g = graphs.RandomGNP(20,.3)
-            sage: mad_g = g.maximum_average_degree()
-            sage: g.average_degree() <= mad_g
-            True
-
-        Unlike the average degree, the `Mad` of the disjoint
-        union of two graphs is the maximum of the `Mad` of each
-        graphs::
-
-            sage: h = graphs.RandomGNP(20,.3)
-            sage: mad_h = h.maximum_average_degree()
-            sage: (g+h).maximum_average_degree() == max(mad_g, mad_h)
-            True
-
-        The subgraph of a regular graph realizing the maximum
-        average degree is always the whole graph ::
-
-            sage: g = graphs.CompleteGraph(5)
-            sage: mad_g = g.maximum_average_degree(value_only=False)
-            sage: g.is_isomorphic(mad_g)
-            True
-
-        This also works for complete bipartite graphs ::
-
-            sage: g = graphs.CompleteBipartiteGraph(3,4)
-            sage: mad_g = g.maximum_average_degree(value_only=False)
-            sage: g.is_isomorphic(mad_g)
-            True
-        """
-
-        g = self
-        from sage.numerical.mip import MixedIntegerLinearProgram
-
-        p = MixedIntegerLinearProgram(maximization=True, solver = solver)
-
-        d = p.new_variable()
-        one = p.new_variable()
-
-        # Reorders u and v so that uv and vu are not considered
-        # to be different edges
-        reorder = lambda u,v : (min(u,v),max(u,v))
-
-        for u,v in g.edge_iterator(labels=False):
-            p.add_constraint( one[ reorder(u,v) ] - 2*d[u] , max = 0 )
-            p.add_constraint( one[ reorder(u,v) ] - 2*d[v] , max = 0 )
-
-        p.add_constraint( p.sum([d[v] for v in g]), max = 1)
-
-        p.set_objective( p.sum([ one[reorder(u,v)] for u,v in g.edge_iterator(labels=False)]) )
-
-        obj = p.solve(log = verbose)
-
-        # Paying attention to numerical error :
-        # The zero values could be something like 0.000000000001
-        # so I can not write l > 0
-        # And the non-zero, though they should be equal to
-        # 1/(order of the optimal subgraph) may be a bit lower
-
-        # setting the minimum to 1/(10 * size of the whole graph )
-        # should be safe :-)
-        m = 1/(10 *Integer(g.order()))
-        g_mad = g.subgraph([v for v,l in p.get_values(d).iteritems() if l>m ])
-        
-        if value_only:
-            return g_mad.average_degree()
-        else:
-            return g_mad
-
     def degree_histogram(self):
         """
         Returns a list, whose ith entry is the frequency of degree i.
@@ -11274,158 +11072,6 @@ class GenericGraph(GenericGraph_pyx):
         """
         import networkx
         return networkx.transitivity(self.networkx_graph(copy=False))
-    
-    ### Cores
-    
-    def cores(self, k = None, with_labels=False):
-        """
-        Returns the core number for each vertex in an ordered list.
-        
-
-        **DEFINITIONS**
-
-        * *K-cores* in graph theory were introduced by Seidman in 1983 and by
-          Bollobas in 1984 as a method of (destructively) simplifying graph
-          topology to aid in analysis and visualization. They have been more
-          recently defined as the following by Batagelj et al:
-
-          *Given a graph `G` with vertices set `V` and edges set `E`, the
-          `k`-core of `G` is the graph obtained from `G` by recursively removing
-          the vertices with degree less than `k`, for as long as there are any.*
-
-          This operation can be useful to filter or to study some properties of
-          the graphs. For instance, when you compute the 2-core of graph G, you
-          are cutting all the vertices which are in a tree part of graph.  (A
-          tree is a graph with no loops). [WPkcore]_
-        
-          [PSW1996]_ defines a `k`-core of `G` as the largest subgraph (it is
-          unique) of `G` with minimum degree at least `k`.
-
-        * Core number of a vertex
-
-          The core number of a vertex `v` is the largest integer `k` such that
-          `v` belongs to the `k`-core of `G`.
-
-        * Degeneracy
-
-          The *degeneracy* of a graph `G`, usually denoted `\delta^*(G)`, is the
-          smallest integer `k` such that the graph `G` can be reduced to the
-          empty graph by iteratively removing vertices of degree `\leq
-          k`. Equivalently, `\delta^*(G)=k` if `k` is the smallest integer such
-          that the `k`-core of `G` is empty.
-
-        **IMPLEMENTATION**
-
-        This implementation is based on the NetworkX implementation of
-        the algorithm described in [BZ]_.
-
-        **INPUT**
-        
-        - ``k`` (integer)
-
-            * If ``k = None`` (default), returns the core number for each vertex.
-
-            * If ``k`` is an integer, returns a pair ``(ordering, core)``, where
-              ``core`` is the list of vertices in the `k`-core of ``self``, and
-              ``ordering`` is an elimination order for the other vertices such
-              that each vertex is of degree strictly less than `k` when it is to
-              be eliminated from the graph.
-        
-        - ``with_labels`` (boolean)
-
-           * When set to ``False``, and ``k = None``, the method returns a list
-             whose `i` th element is the core number of the `i` th vertex. When
-             set to ``True``, the method returns a dictionary whose keys are
-             vertices, and whose values are the corresponding core numbers.
-
-             By default, ``with_labels = False``.
-        
-        REFERENCE:
-
-        .. [WPkcore] K-core. Wikipedia. (2007). [Online] Available:
-          http://en.wikipedia.org/wiki/K-core
-
-        .. [PSW1996] Boris Pittel, Joel Spencer and Nicholas Wormald. Sudden
-          Emergence of a Giant k-Core in a Random
-          Graph. (1996). J. Combinatorial Theory. Ser B 67. pages
-          111-151. [Online] Available:
-          http://cs.nyu.edu/cs/faculty/spencer/papers/k-core.pdf
-
-        .. [BZ] Vladimir Batagelj and Matjaz Zaversnik. An `O(m)`
-          Algorithm for Cores Decomposition of
-          Networks. arXiv:cs/0310049v1. [Online] Available:
-          http://arxiv.org/abs/cs/0310049
-        
-        EXAMPLES::
-        
-            sage: (graphs.FruchtGraph()).cores()
-            [3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3]
-            sage: (graphs.FruchtGraph()).cores(with_labels=True)
-            {0: 3, 1: 3, 2: 3, 3: 3, 4: 3, 5: 3, 6: 3, 7: 3, 8: 3, 9: 3, 10: 3, 11: 3}
-            sage: a=random_matrix(ZZ,20,x=2,sparse=True, density=.1) 
-            sage: b=DiGraph(20) 
-            sage: b.add_edges(a.nonzero_positions()) 
-            sage: cores=b.cores(with_labels=True); cores
-            {0: 3, 1: 3, 2: 3, 3: 3, 4: 2, 5: 2, 6: 3, 7: 1, 8: 3, 9: 3, 10: 3, 11: 3, 12: 3, 13: 3, 14: 2, 15: 3, 16: 3, 17: 3, 18: 3, 19: 3}
-            sage: [v for v,c in cores.items() if c>=2] # the vertices in the 2-core
-            [0, 1, 2, 3, 4, 5, 6, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19]
-
-        Checking the 2-core of a random lobster is indeed the empty set::
-
-            sage: g = graphs.RandomLobster(20,.5,.5)
-            sage: ordering, core = g.cores(2)
-            sage: len(core) == 0
-            True
-        """
-        # compute the degrees of each vertex
-        degrees=self.degree(labels=True)
-        
-        # sort vertices by degree.  Store in a list and keep track of
-        # where a specific degree starts (effectively, the list is
-        # sorted by bins).
-        verts= sorted( degrees.keys(), key=lambda x: degrees[x])
-        bin_boundaries=[0]
-        curr_degree=0
-        for i,v in enumerate(verts):
-            if degrees[v]>curr_degree:
-                bin_boundaries.extend([i]*(degrees[v]-curr_degree))
-                curr_degree=degrees[v]
-        vert_pos = dict((v,pos) for pos,v in enumerate(verts))
-        # Set up initial guesses for core and lists of neighbors.
-        core= degrees
-        nbrs=dict((v,set(self.neighbors(v))) for v in self)
-        # form vertex core building up from smallest
-        for v in verts:
-            
-            # If all the vertices have a degree larger than k, we can
-            # return our answer if k != None
-            if k is not None and core[v] >= k:
-                return verts[:vert_pos[v]], verts[vert_pos[v]:]
-
-            for u in nbrs[v]:
-                if core[u] > core[v]:
-                    nbrs[u].remove(v)
-
-                    # cleverly move u to the end of the next smallest
-                    # bin (i.e., subtract one from the degree of u).
-                    # We do this by swapping u with the first vertex
-                    # in the bin that contains u, then incrementing
-                    # the bin boundary for the bin that contains u.
-                    pos=vert_pos[u]
-                    bin_start=bin_boundaries[core[u]]
-                    vert_pos[u]=bin_start
-                    vert_pos[verts[bin_start]]=pos
-                    verts[bin_start],verts[pos]=verts[pos],verts[bin_start]
-                    bin_boundaries[core[u]]+=1
-                    core[u] -= 1
-
-        if k is not None:
-            return verts, []
-
-        if with_labels:
-            return core
-        else:
-            return core.values()
 
     ### Distance
 
@@ -11894,6 +11540,12 @@ class GenericGraph(GenericGraph_pyx):
             sage: graphs.trees(9).next().girth()
             +Infinity
 
+
+        .. SEEALSO::
+
+            * :meth:`~sage.graphs.graph.Graph.odd_girth` -- computes
+              the odd girth of a graph.
+
         TESTS:
 
         Prior to Trac #12243, the girth computation assumed
@@ -12185,7 +11837,88 @@ class GenericGraph(GenericGraph_pyx):
                     done = True                 # ... so we are done
         return all_paths
 
-    
+
+    def triangles_count(self, algorithm='iter'):
+        """
+        Returns the number of triangles in the (di)graph.
+
+        For digraphs, we count the number of directed circuit of length 3.
+
+        INPUT:
+
+        - ``algorithm`` -- (default: ``'matrix'``) specifies the algorithm to
+          use among:
+
+            - ``'matrix'`` uses the trace of the cube of the adjacency matrix.
+
+            - ``'iter'`` iterates over the pairs of neighbors of each
+              vertex. This is faster for sparse graphs.
+
+        EXAMPLES:
+
+        The Petersen graph is triangle free and thus::
+
+            sage: G = graphs.PetersenGraph()
+            sage: G.triangles_count()
+            0
+
+        Any triple of vertices in the complete graph induces a triangle so we have::
+
+            sage: G = graphs.CompleteGraph(150)
+            sage: G.triangles_count() == binomial(150,3)
+            True
+
+        The 2-dimensional DeBruijn graph of 2 symbols has 2 directed C3::
+
+            sage: G = digraphs.DeBruijn(2,2)
+            sage: G.triangles_count()
+            2
+
+        The directed n-cycle is trivially triangle free for n > 3::
+
+            sage: G = digraphs.Circuit(10)
+            sage: G.triangles_count()
+            0
+
+        TESTS:
+
+        Comparison on algorithms::
+
+            sage: for i in xrange(10): # long test
+            ...       G = graphs.RandomBarabasiAlbert(50,2)
+            ...       tm = G.triangles_count(algorithm='matrix')
+            ...       te = G.triangles_count(algorithm='iter')
+            ...       if tm!=te:
+            ...          print "That's not good!"
+
+        Asking for an unknown algorithm::
+
+            sage: G = Graph()
+            sage: G.triangles_count(algorithm='tip top')
+            Traceback (most recent call last):
+            ...
+            ValueError: Algorithm 'tip top' not yet implemented. Please contribute.
+                                                                
+        """
+        if self.is_directed():
+            from sage.graphs.digraph_generators import digraphs
+            return self.subgraph_search_count(digraphs.Circuit(3))/3
+
+        else:
+            if algorithm=='iter':
+                from sage.combinat.combination import Combinations
+                tr = 0
+                ggnx = self.networkx_graph()
+                for u in ggnx.nodes_iter():
+                    tr += sum(ggnx.has_edge(v,w) for v,w in Combinations(ggnx.neighbors(u),2))
+                return tr/3
+
+            elif algorithm=='matrix':
+                return (self.adjacency_matrix()**3).trace()/6
+
+            else:
+                raise ValueError("Algorithm '%s' not yet implemented. Please contribute." %(algorithm))
+
     def shortest_path(self, u, v, by_weight=False, bidirectional=True):
         """
         Returns a list of vertices representing some shortest path from u

@@ -1,8 +1,8 @@
 """
 Wrapping Sage or Python objects as Sage elements
 
-WARNING: This class has serious issues that can lead to subtle 
-segfaults.  Do not use it unless you read trac 8200 first: 
+WARNING: This class has serious issues that can lead to subtle
+segfaults.  Do not use it unless you read trac 8200 first:
 http://trac.sagemath.org/sage_trac/ticket/8200
 """
 #*****************************************************************************
@@ -19,8 +19,8 @@ class ElementWrapper(Element):
     r"""
     A class for wrapping Sage or Python objects as Sage elements
 
-    WARNING: This class has serious issues that can lead to subtle 
-    segfaults.  Do not use it unless you read trac 8200 first: 
+    WARNING: This class has serious issues that can lead to subtle
+    segfaults.  Do not use it unless you read trac 8200 first:
     http://trac.sagemath.org/sage_trac/ticket/8200
 
     EXAMPLES::
@@ -103,10 +103,23 @@ class ElementWrapper(Element):
         EXAMPLES::
 
             sage: from sage.structure.element_wrapper import DummyParent
-            sage: ElementWrapper(1, parent = DummyParent("A parent"))
+            sage: ElementWrapper(1, parent = DummyParent("A parent")) # indirect doctest
             1
         """
         return repr(self.value)
+
+    def _latex_(self):
+        """
+        EXAMPLES::
+
+            sage: from sage.structure.element_wrapper import DummyParent
+            sage: ElementWrapper(1, parent = DummyParent("A parent"))._latex_()
+            1
+            sage: ElementWrapper(3/5, parent = DummyParent("A parent"))._latex_()
+            \frac{3}{5}
+        """
+        from sage.misc.latex import latex
+        return latex(self.value)
 
     def __hash__(self):
         """
@@ -331,7 +344,7 @@ class DummyParent(UniqueRepresentation, Parent):
         EXAMPLES::
 
             sage: from sage.structure.element_wrapper import DummyParent
-            sage: DummyParent("A Parent")
+            sage: DummyParent("A Parent") # indirect doctest
             A Parent
         """
         return self.name
@@ -388,7 +401,7 @@ class ElementWrapperTester(ElementWrapper):
             sage: x = ElementWrapperTester
             sage: x = ElementWrapperTester(); x
             [n=0, value=[]]
-            sage: x.value = [2,32]; x
+            sage: x.value = [2,32]; x # indirect doctest
             [n=0, value=[2, 32]]
         """
         return "[n=%s, value=%s]"%(self.n, self.value)

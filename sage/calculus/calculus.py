@@ -568,10 +568,10 @@ def symbolic_sum(expression, v, a, b, algorithm='maxima'):
         if isinstance(v, str):
             v = var(v)
         else:
-            raise TypeError, "need a summation variable"
+            raise TypeError("need a summation variable")
 
     if v in SR(a).variables() or v in SR(b).variables():
-        raise ValueError, "summation limits must not depend on the summation variable"
+        raise ValueError("summation limits must not depend on the summation variable")
 
     if algorithm == 'maxima':
         return maxima.sr_sum(expression,v,a,b)
@@ -580,12 +580,12 @@ def symbolic_sum(expression, v, a, b, algorithm='maxima'):
         try:
             sum = "Sum[%s, {%s, %s, %s}]" % tuple([repr(expr._mathematica_()) for expr in (expression, v, a, b)])
         except TypeError:
-            raise ValueError, "Mathematica cannot make sense of input"
+            raise ValueError("Mathematica cannot make sense of input")
         from sage.interfaces.mathematica import mathematica
         try:
             result = mathematica(sum)
         except TypeError:
-            raise ValueError, "Mathematica cannot make sense of: %s" % sum
+            raise ValueError("Mathematica cannot make sense of: %s" % sum)
         return result.sage()
 
     elif algorithm == 'maple':
@@ -594,7 +594,7 @@ def symbolic_sum(expression, v, a, b, algorithm='maxima'):
         try:
             result = maple(sum).simplify()
         except TypeError:
-            raise ValueError, "Maple cannot make sense of: %s" % sum
+            raise ValueError("Maple cannot make sense of: %s" % sum)
         return result.sage()
 
     elif algorithm == 'giac':
@@ -603,11 +603,11 @@ def symbolic_sum(expression, v, a, b, algorithm='maxima'):
         try:
             result = giac(sum)
         except TypeError:
-            raise ValueError, "Giac cannot make sense of: %s" % sum
+            raise ValueError("Giac cannot make sense of: %s" % sum)
         return result.sage()
 
     else:
-        raise ValueError, "unknown algorithm: %s" % algorithm
+        raise ValueError("unknown algorithm: %s" % algorithm)
 
 def nintegral(ex, x, a, b,
               desired_relative_error='1e-8',
@@ -739,17 +739,17 @@ def nintegral(ex, x, a, b,
         v = ex._maxima_().quad_qags(x, a, b,
                                     epsrel=desired_relative_error,
                                     limit=maximum_num_subintervals)
-    except TypeError, err:
+    except TypeError as err:
         if "ERROR" in str(err):
-            raise ValueError, "Maxima (via quadpack) cannot compute the integral"
+            raise ValueError("Maxima (via quadpack) cannot compute the integral")
         else:
-            raise TypeError, err
+            raise TypeError(err)
 
     # Maxima returns unevaluated expressions when the underlying library fails
     # to perfom numerical integration. See:
     # http://www.math.utexas.edu/pipermail/maxima/2008/012975.html
     if 'quad_qags' in str(v):
-        raise ValueError, "Maxima (via quadpack) cannot compute the integral"
+        raise ValueError("Maxima (via quadpack) cannot compute the integral")
 
     return float(v[0]), float(v[1]), Integer(v[2]), Integer(v[3])
 
@@ -968,16 +968,16 @@ def minpoly(ex, var='x', algorithm=None, bits=None, degree=None, epsilon=0):
                             elif epsilon and error < epsilon:
                                 return g
                             elif algorithm is not None:
-                                raise NotImplementedError, "Could not prove minimal polynomial %s (epsilon %s)" % (g, RR(error).str(no_sci=False))
+                                raise NotImplementedError("Could not prove minimal polynomial %s (epsilon %s)" % (g, RR(error).str(no_sci=False)))
 
         if algorithm is not None:
-            raise ValueError, "Could not find minimal polynomial (%s bits, degree %s)." % (bits, degree)
+            raise ValueError("Could not find minimal polynomial (%s bits, degree %s)." % (bits, degree))
 
     if algorithm is None or algorithm == 'algebraic':
         from sage.rings.all import QQbar
         return QQ[var](QQbar(ex).minpoly())
 
-    raise ValueError, "Unknown algorithm: %s" % algorithm
+    raise ValueError("Unknown algorithm: %s" % algorithm)
 
 
 ###################################################################
@@ -1170,7 +1170,7 @@ def limit(ex, dir=None, taylor=False, algorithm='maxima', **argv):
         ex = SR(ex)
 
     if len(argv) != 1:
-        raise ValueError, "call the limit function like this, e.g. limit(expr, x=2)."
+        raise ValueError("call the limit function like this, e.g. limit(expr, x=2).")
     else:
         k = argv.keys()[0]
         v = var(k)
@@ -1208,7 +1208,7 @@ def limit(ex, dir=None, taylor=False, algorithm='maxima', **argv):
             import sympy
             l = sympy.limit(ex._sympy_(), v._sympy_(), a._sympy_())
         else:
-            raise NotImplementedError, "sympy does not support one-sided limits"
+            raise NotImplementedError("sympy does not support one-sided limits")
 
     #return l.sage()
     return ex.parent()(l)
@@ -1446,7 +1446,7 @@ def at(ex, *args, **kwds):
             kwds[str(c.lhs())]=c.rhs()
     else:
         if len(args) !=0:
-            raise TypeError,"at can take at most one argument, which must be a list"
+            raise TypeError("at can take at most one argument, which must be a list")
                 
     return ex.subs(**kwds)
 
@@ -1569,7 +1569,7 @@ def dummy_inverse_laplace(*args):
 #
 #######################################################
 
-def _limit_latex_(self, f, x, a):
+def _limit_latex_(self, f, x, a, direction=None):
     r"""
     Return latex expression for limit of a symbolic function.
 
@@ -1578,14 +1578,49 @@ def _limit_latex_(self, f, x, a):
         sage: from sage.calculus.calculus import _limit_latex_
         sage: var('x,a')
         (x, a)
-        sage: f = function('f',x)
-        sage: _limit_latex_(0, f, x, a)
+        sage: f = function('f')
+        sage: _limit_latex_(0, f(x), x, a)
         '\\lim_{x \\to a}\\, f\\left(x\\right)'
-        sage: latex(limit(f, x=oo))
+        sage: latex(limit(f(x), x=oo))
         \lim_{x \to +\infty}\, f\left(x\right)
 
+    TESTS:
+
+    When one-sided limits are converted back from maxima, the direction
+    argument becomes a symbolic variable. We check if typesetting these works::
+
+        sage: var('minus,plus')
+        (minus, plus)
+        sage: _limit_latex_(0, f(x), x, a, minus)
+        '\\lim_{x \\to a^-}\\, f\\left(x\\right)'
+        sage: _limit_latex_(0, f(x), x, a, plus)
+        '\\lim_{x \\to a^+}\\, f\\left(x\\right)'
+        sage: latex(limit(f(x),x=a,dir='+'))
+        \lim_{x \to a^+}\, f\left(x\right)
+        sage: latex(limit(f(x),x=a,dir='right'))
+        \lim_{x \to a^+}\, f\left(x\right)
+        sage: latex(limit(f(x),x=a,dir='-'))
+        \lim_{x \to a^-}\, f\left(x\right)
+        sage: latex(limit(f(x),x=a,dir='left'))
+        \lim_{x \to a^-}\, f\left(x\right)
+
+    Check if :trac:`13181` is fixed::
+
+        sage: t = var('t')
+        sage: latex(limit(exp_integral_e(1/2, I*t - I*x)*sqrt(-t + x),t=x,dir='-'))
+        \lim_{t \to x^-}\, \sqrt{-t + x} exp_integral_e\left(\frac{1}{2}, i \, t - i \, x\right)
+        sage: latex(limit(exp_integral_e(1/2, I*t - I*x)*sqrt(-t + x),t=x,dir='+'))
+        \lim_{t \to x^+}\, \sqrt{-t + x} exp_integral_e\left(\frac{1}{2}, i \, t - i \, x\right)
+        sage: latex(limit(exp_integral_e(1/2, I*t - I*x)*sqrt(-t + x),t=x))
+        \lim_{t \to x}\, \sqrt{-t + x} exp_integral_e\left(\frac{1}{2}, i \, t - i \, x\right)
     """
-    return "\\lim_{%s \\to %s}\\, %s"%(latex(x), latex(a), latex(f))
+    if repr(direction) == 'minus':
+        dir_str = '^-'
+    elif repr(direction) == 'plus':
+        dir_str = '^+'
+    else:
+        dir_str = ''
+    return "\\lim_{%s \\to %s%s}\\, %s"%(latex(x), latex(a), dir_str, latex(f))
 
 def _laplace_latex_(self, *args):
     r"""
@@ -1713,7 +1748,7 @@ def symbolic_expression_from_maxima_string(x, equals_sub=False, maxima=maxima):
     syms = sage.symbolic.pynac.symbol_table.get('maxima', {}).copy()
 
     if len(x) == 0:
-        raise RuntimeError, "invalid symbolic expression -- ''"
+        raise RuntimeError("invalid symbolic expression -- ''")
     maxima.set('_tmp_',x)
 
     # This is inefficient since it so rarely is needed:
@@ -1788,7 +1823,7 @@ def symbolic_expression_from_maxima_string(x, equals_sub=False, maxima=maxima):
         is_simplified = True
         return symbolic_expression_from_string(s, syms, accept_sequence=True)
     except SyntaxError:
-        raise TypeError, "unable to make sense of Maxima expression '%s' in Sage"%s
+        raise TypeError("unable to make sense of Maxima expression '%s' in Sage"%s)
     finally:
         is_simplified = False
 

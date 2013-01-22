@@ -24,7 +24,7 @@
  *      a(n,k) = sum_{h=1, (h,k) = 1}^k exp(\pi i s(h,k) - 2 \pi i h  n / k)
  *
  *      and
- *      
+ *
  *      f_n(k) = \pi sqrt{2} cosh(A_n/(sqrt{3}*k))/(B_n*k) - sinh(C_n/k)/D_n;
  *
  *      where
@@ -46,7 +46,7 @@
  *          -- Search source code for other TODO comments.
  *
  *      OTHER CREDITS:
- *      
+ *
  *      I looked source code written by Ralf Stephan, currently available at
  *
  *              http://www.ark.in-berlin.de/part.c
@@ -80,7 +80,7 @@
  *      GNU General Public License for more details.
  *
  *      You should have received a copy of the GNU General Public License
- *      along with this program.  If not, see <http://www.gnu.org/licenses/>. 
+ *      along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
 
@@ -126,7 +126,7 @@ const bool debug = false;                                       // If true, outp
 
 const bool debug_precision = false;                             // If true, output information that might be useful for
                                                                 // debugging the precision setting code.
-                                        
+
 const bool debugs = false;                                      // If true, output informaiton that might be useful for
                                                                 // debugging the various s() functions.
 const bool debugf = false;                                      // Same for the f() functions.
@@ -155,7 +155,7 @@ const unsigned int long_double_precision = (LDBL_MANT_DIG == 106) ? double_preci
                                                                             // The assumed precision of a long double.
                                                                             // Note: On many systems double_precision = long_double_precision. This is OK, as
                                                                             // the long double stage of the computation will just be skipped.
-                                                                            // 
+                                                                            //
                                                                             // NOTE: If long_double_precision > dd_precision, then, again, long doubles
                                                                             //      will not ever be used. It would be nice if this were fixed.
 
@@ -195,7 +195,7 @@ mpfr_t mp_one_over_12, mp_one_over_24, mp_sqrt2, mp_sqrt3, mp_pi, half, fourth; 
                                                                                         // because we don't know how much precision we will need
                                                                                         // until we know for what n we are computing p(n).
 
-mpfr_t mp_A, mp_B, mp_C, mp_D;                                                          // These "constants" all depend on n, and 
+mpfr_t mp_A, mp_B, mp_C, mp_D;                                                          // These "constants" all depend on n, and
 double d_A, d_B, d_C, d_D;                                                              //
 long double ld_A, ld_B, ld_C, ld_D;                                                     //
 
@@ -237,7 +237,7 @@ mpfr_t tempc1, tempc2;                                                          
  *
  ****************************************************************************/
 
-// 
+//
 // A listing of the main functions, in "conceptual" order.
 //
 
@@ -331,10 +331,10 @@ int test(bool longtest = false, bool forever = false);                          
                                                                                 // have been verified by other programs, and
                                                                                 // also on known congruences for p(n)
 
-static void cospi (mpfr_t res, mpfr_t x);                                       // Puts cos(pi x) in result. This is not currently    
+static void cospi (mpfr_t res, mpfr_t x);                                       // Puts cos(pi x) in result. This is not currently
                                                                                 // used, but should be faster than using mpfr_cos,
                                                                                 // according to comments in the file part.c
-                                                                                // mentioned in the introduction.   
+                                                                                // mentioned in the introduction.
                                                                                 // test
 
 static int grab_last_digits(char * output, int n, mpfr_t x);                    // Might be useful for debugging, but
@@ -355,7 +355,7 @@ int main(int argc, char *argv[]);                                               
  *
  **********************************************************************/
 
-// The following function can be useful for debugging in come circumstances, but should not be used for anything else 
+// The following function can be useful for debugging in come circumstances, but should not be used for anything else
 // unless it is rewritten.
 int grab_last_digits(char * output, int n, mpfr_t x) {
     // fill output with the n digits of x that occur
@@ -373,7 +373,7 @@ int grab_last_digits(char * output, int n, mpfr_t x) {
     int retval;
 
     if(e > 0) {
-        strncpy(output, temp + e - n, n);    
+        strncpy(output, temp + e - n, n);
         retval =  strlen(temp + e);
     }
     else {
@@ -393,7 +393,7 @@ int grab_last_digits(char * output, int n, mpfr_t x) {
 unsigned int compute_initial_precision(unsigned int n) {
     // We just want to know how many bits we will need to
     // compute to get an accurate answer.
-    
+
     // We know that
     //
     //          p(n) ~ exp(pi * sqrt(2n/3))/(4n sqrt(3)),
@@ -405,34 +405,34 @@ unsigned int compute_initial_precision(unsigned int n) {
     // that the TOTAL ERROR in all computations is < (something small).
     // This needs to be worked out carefully. EXTRA = log(n)/log(2) + 3
     // is probably good enough, and is convenient...
-    // 
+    //
     // but we really need:
     //
-    //                  p(n) < something 
+    //                  p(n) < something
     //
     // to be sure that we compute the correct answer
 
     unsigned int result = (unsigned int)(ceil(3.1415926535897931 * sqrt(2.0 * double(n)/ 3.0) / log(2))) + 3;
     if(debug) cout << "Using initial precision of " << result << " bits." << endl;
-    
+
     if(result > min_precision) {
         return result;
     }
-    
+
     else return min_precision;
 
 }
 
 unsigned int compute_current_precision(unsigned int n, unsigned int N, unsigned int extra = 0) {
     // Roughly, we compute
-    // 
+    //
     //      log(A/sqrt(N) + B*sqrt(N/(n-1))*sinh(C * sqrt(n) / N) / log(2)
     //
     // where A, B, and C are the constants listed below. These error bounds
     // are given in the paper by Rademacher listed at the top of this file.
     // We then return this + extra, if extra != 0. If extra == 0, return with
     // what is probably way more extra precision than is needed.
-    // 
+    //
     // extra should probably have been set by a call to compute_extra_precision()
     // before this function was called.
 
@@ -448,7 +448,7 @@ unsigned int compute_current_precision(unsigned int n, unsigned int N, unsigned 
     mpfr_init2(A, 32);
     mpfr_init2(B, 32);
     mpfr_init2(C, 32);
-    
+
     mpfr_set_d(A,1.11431833485164,round_mode);
     mpfr_set_d(B,0.059238439175445,round_mode);
     mpfr_set_d(C,2.5650996603238,round_mode);
@@ -472,15 +472,15 @@ unsigned int compute_current_precision(unsigned int n, unsigned int N, unsigned 
     mpfr_set_ui(t2, N, round_mode);                       // t2 = N
     mpfr_div_ui(t2, t2, n-1, round_mode);                 // t2 = N/(n-1)
     mpfr_sqrt(t2, t2, round_mode);                        // t2 = sqrt( ditto )
-    
+
     mpfr_mul(t1, t1, t2, round_mode);                     // t1 = B * sqrt(N/(n-1)) * sinh(C * sqrt(n)/N)
 
     mpfr_add(error, error, t1, round_mode);               // error = (ERROR ESTIMATE)
-                                                         
+
     unsigned int p = mpfr_get_exp(error);                 // I am not 100% certain that this always does the right thing.
                                                           // (It should be the case that p is now the number of bits
                                                           // required to hold the integer part of the error.)
-    
+
 
     if(extra == 0) {
         p = p + (unsigned int)ceil(log(n)/log(2));        // This is a stupid case to fall back on,
@@ -529,7 +529,7 @@ int compute_extra_precision(unsigned int n, double error = .25) {
     // in absolute value, and then return the extra precision
     // that will guarantee that the accumulated error after computing
     // that number of steps will be less than .5 - error.
-    // 
+    //
     // How this works:
     // We first need to figure out how many terms of the series we are going to
     // need to compute. That is, we need to know how large k needs to be
@@ -538,7 +538,7 @@ int compute_extra_precision(unsigned int n, double error = .25) {
     // compute_current_precision() until we know that the error will be
     // small enough to call compute_remainder(). Then we just call compute_remainder()
     // until the error is small enough.
-    // 
+    //
     // Now that we know how many terms we will need to compute, k, we compute
     // the number of bits required to accurately store (.5 - error)/k. This ensures
     // that the total error introduced when we add up all k terms of the sum
@@ -559,7 +559,7 @@ int compute_extra_precision(unsigned int n, double error = .25) {
                                                           // we end up doing a bunch of arithmetic operations, and if
                                                           // we want the result of those operations to be accurate
                                                           // within (.5 - error)/k, then we need that function to use
-                                                          // a slightly higher working precision, which should be 
+                                                          // a slightly higher working precision, which should be
                                                           // independent of n.
                                                           // TODO:
                                                           // Extensive trial and error has found 3 to be the smallest value
@@ -567,9 +567,9 @@ int compute_extra_precision(unsigned int n, double error = .25) {
                                                           // be safe, we use 5 extra bits.
                                                           // (Extensive trial and error means compiling this file to get
                                                           // a.out and then running './a.out testforever' for a few hours.)
-                                                          
-                                                          
-                                                       
+
+
+
 
     return bits;
 }
@@ -650,12 +650,12 @@ void initialize_constants(unsigned int prec, unsigned int n) {
     // NOTE: Calls to this function must be paired with calls to clear_constants()
     static bool init = false;
     mp_prec_t p = prec;
-    
+
     mpfr_init2(mp_one_over_12,p); mpfr_init2(mp_one_over_24,p); mpfr_init2(mp_sqrt2,p); mpfr_init2(mp_sqrt3,p); mpfr_init2(mp_pi,p);
     mpfr_init2(mp_A,p); mpfr_init2(mp_B,p); mpfr_init2(mp_C,p); mpfr_init2(mp_D,p); mpfr_init2(fourth, p); mpfr_init2(half, p);
-    
+
     init = true;
-    
+
     mpfr_set_ui(mp_one_over_12, 1, round_mode);                             // mp_one_over_12 = 1/12
     mpfr_div_ui(mp_one_over_12, mp_one_over_12, 12, round_mode);            //
 
@@ -701,7 +701,7 @@ void initialize_constants(unsigned int prec, unsigned int n) {
     mpfr_div(mp_C, mp_C, mp_sqrt3, round_mode);                             // mp_C = sqrt(2) * pi * sqrt(n - 1/24) / sqrt3
     //------------------------------------------------------------------------
 
-    
+
     //mp_D = 2.0 * (n - 1.0/24.0) * sqrt(n - 1.0/24.0);-----------------------
     mpfr_set_ui(mp_D, 2, round_mode);                                       // mp_D = 2
     mpfr_mul(mp_D, mp_D, n_minus, round_mode);                              // mp_D = 2 * (n - 1/24)
@@ -732,7 +732,7 @@ void clear_constants() {
 }
 
 void initialize_mpz_and_mpq_variables() {
-    /* 
+    /*
      * We use a few mpz_t and mpq_t variables which need to be initialized
      * before they can be used. Initialization and clearing take some
      * time, so we initialize just once in this function, and clear in another.
@@ -758,12 +758,12 @@ void mp_f(mpfr_t result, unsigned int k) {
     // notice that this doesn't use n - the "constants"
     // A, B, C, and D depend on n, but they are precomputed
     // once before this function is called.
-    
+
     //result =  pi * sqrt(2) * cosh(A/(sqrt(3)*k))/(B*k) - sinh(C/k)/D;
 
                                                                     //
     mpfr_set(result, mp_pi, round_mode);                            // result = pi
-    
+
     mpfr_mul(result, result, mp_sqrt2, round_mode);                 // result = sqrt(2) * pi
                                                                     //
     mpfr_div(tempf1, mp_A, mp_sqrt3, round_mode);                   // temp1 = mp_A/sqrt(3)
@@ -793,7 +793,7 @@ void mp_f(mpfr_t result, unsigned int k) {
 //       part of s(h,k)/2. It may be possible to make use of this somehow.
 //
 void q_s(mpq_t result, unsigned int h, unsigned int k) {
-    
+
     if(k < 3) {
         mpq_set_ui(result, 0, 1);
         return;
@@ -829,7 +829,7 @@ void q_s(mpq_t result, unsigned int h, unsigned int k) {
     //    return;
     //}
 
-/*    
+/*
 
     // if k % h == 1, then
     //
@@ -858,10 +858,10 @@ void q_s(mpq_t result, unsigned int h, unsigned int k) {
     //if(k % h == 2) {
     //}
 */
-    
 
 
-    
+
+
     mpq_set_ui(result, 0, 1);                             // result = 0
 
     int r1 = k;
@@ -878,7 +878,7 @@ void q_s(mpq_t result, unsigned int h, unsigned int k) {
             mpq_set_ui(qtemps, r1 * r1 + r2 * r2 + 1, r1 * r2);
         }
         //mpq_canonicalize(qtemps);
-        
+
         if(n % 2 == 0){                                             //
             mpq_add(result, result, qtemps);                        // result += temp1;
         }                                                           //
@@ -893,8 +893,8 @@ void q_s(mpq_t result, unsigned int h, unsigned int k) {
 
     mpq_set_ui(qtemps, 1, 12);
     mpq_mul(result, result, qtemps);                                // result = result * 1.0/12.0;
-    
-    
+
+
     if(n % 2 == 1) {
         mpq_set_ui(qtemps, 1, 4);
         mpq_sub(result, result, qtemps);                            // result = result - .25;
@@ -910,13 +910,13 @@ void mp_a(mpfr_t result, unsigned int n, unsigned int k) {
         mpfr_set_ui(result, 1, round_mode);                         //result = 1
         return;
     }
-    
+
     mpfr_set_ui(result, 0, round_mode);
 
     unsigned int h = 0;
     for(h = 1; h < k+1; h++) {
         if(GCD(h,k) == 1) {
-            
+
             // Note that we compute each term of the summand as
             //      result += cos(pi * ( s(h,k) - (2.0 * h * n)/k) );
             //
@@ -924,14 +924,14 @@ void mp_a(mpfr_t result, unsigned int n, unsigned int k) {
             // down in the introduction, and we don't need to compute
             // the imaginary part because we know that, in the end, the
             // imaginary part will be 0, as we are computing an integer.
-            
+
             q_s(qtempa, h, k);
-              
+
             //mpfr_mul_q(tempa1, mp_pi, qtempa, round_mode);
             //mpfr_mul_ui(tempa1, tempa1, k * k, round_mode);
 
             //mpfr_set_q(tempa1, qtempa, round_mode);
-            unsigned int r = n % k;                                     // here we make use of the fact that the 
+            unsigned int r = n % k;                                     // here we make use of the fact that the
             unsigned int d = GCD(r,k);                                  // cos() term written above only depends
             unsigned int K;                                             // on {hn/k}.
             if(d > 1) {
@@ -949,24 +949,24 @@ void mp_a(mpfr_t result, unsigned int n, unsigned int k) {
             }
             mpq_set_ui(qtempa2, h*r, K);
             mpq_sub(qtempa, qtempa, qtempa2);
-            
+
             //mpfr_set_q(tempa2, qtempa, round_mode);                   // This might be faster, according to
             //cospi(tempa1, tempa2);                                    // the comments in Ralf Stephan's part.c, but
                                                                         // I haven't noticed a significant speed up.
                                                                         // (Perhaps a different version that takes an mpq_t
                                                                         // as an input might be faster.)
-            
+
             mpfr_mul_q(tempa1, mp_pi, qtempa, round_mode);
             mpfr_cos(tempa1, tempa1, round_mode);
             mpfr_add(result, result, tempa1, round_mode);
-  
+
         }
-        
+
     }
 
 }
 
-template <class T> 
+template <class T>
 inline T partial_sum_of_t(unsigned int n, unsigned int &k, unsigned int exit_precision, unsigned int extra_precision, double error = 0) {
     unsigned int current_precision = compute_current_precision(n, k - 1, extra_precision);
     T result = 0;
@@ -996,9 +996,9 @@ void mp_t(mpfr_t result, unsigned int n) {
     // we can find p(n) by rounding.
     //
     //
-    // NOTE: result should NOT have been initialized when this is called, 
+    // NOTE: result should NOT have been initialized when this is called,
     // as we initialize it to the proper precision in this function.
-    
+
     double error = .25;
     int extra = compute_extra_precision(n, error);
 
@@ -1010,7 +1010,7 @@ void mp_t(mpfr_t result, unsigned int n) {
     mpfr_init2(t2, initial_precision);                              //
     mpfr_init2(result, initial_precision);                          //
     mpfr_set_ui(result, 0, round_mode);                             //
-                                                                    
+
     initialize_mpz_and_mpq_variables();
     initialize_constants(initial_precision, n);                     // Now that we have the precision information, we initialize some constants
                                                                     // that will be used throughout, and also
@@ -1019,7 +1019,7 @@ void mp_t(mpfr_t result, unsigned int n) {
 
     unsigned int current_precision = initial_precision;
     unsigned int new_precision;
-    
+
     // We start by computing with high precision arithmetic, until
     // we are sure enough that we don't need that much precision
     // anymore. Once current_precision == min_precision, we drop
@@ -1030,17 +1030,17 @@ void mp_t(mpfr_t result, unsigned int n) {
 
     unsigned int k = 1;                                             // (k holds the index of the summand that we are computing.)
     for(k = 1; current_precision > level_two_precision; k++) {      //
-        
+
         mpfr_sqrt_ui(t1, k, round_mode);                            // t1 = sqrt(k)
                                                                     //
         mp_a(t2, n, k);                                             // t2 = A_k(n)
-        
+
         if(debuga) {
             cout << "a(" << k <<  ") = ";
             mpfr_out_str(stdout, 10, 10, t2, round_mode);
             cout << endl;
         }
-        
+
         mpfr_mul(t1, t1, t2, round_mode);                           // t1 = sqrt(k)*A_k(n)
                                                                     //
         mp_f(t2, k);                                                // t2 = f_k(n)
@@ -1089,7 +1089,7 @@ void mp_t(mpfr_t result, unsigned int n) {
     long double ld_partial_sum = partial_sum_of_t<long double>(n,k,level_five_precision, extra, 0);
     mpfr_set_ld(t1, ld_partial_sum, round_mode);
     mpfr_add(result, result, t1, round_mode);
-    
+
     double d_partial_sum = partial_sum_of_t<double>(n,k,0,extra,error);
 
 
@@ -1104,7 +1104,7 @@ void mp_t(mpfr_t result, unsigned int n) {
     clear_mpz_and_mpq_variables();
     clear_mpfr_variables();
     mpfr_clear(t1);
-    mpfr_clear(t2);                        
+    mpfr_clear(t2);
 }
 
 template <class T>
@@ -1118,7 +1118,7 @@ T a(unsigned int n, unsigned int k) {
         return 1;
     }
     T result = 0;
- 
+
     unsigned int h = 0;
     for(h = 1; h < k+1; h++) {
         if(GCD(h,k) == 1) {
@@ -1134,11 +1134,11 @@ template <class T>
 T s(unsigned int h, unsigned int k) {
     //mpq_set_ui(result, 1, 1);
     //return;
-    
+
     //return T(0);  // Uncommenting this line saves 25% or more time in the computation of p(10^9) in the current version (.51)
                     // but, of course, gives wrong results. (This is just to give an idea of how much time could
                     // possibly be saved by optimizing this function.
-    
+
     if(k < 3) {
         return T(0);
     }
@@ -1186,7 +1186,7 @@ T s(unsigned int h, unsigned int k) {
 
     //if(k % h == 2) {
     //}
-    
+
     int r1 = k;
     int r2 = h;
 
@@ -1199,17 +1199,17 @@ T s(unsigned int h, unsigned int k) {
                     // we only need to make sure that r2 > 0
     {
         temp = T(int(r1 * r1 + r2 * r2 + 1))/(n * r1 * r2);
-        temp3 = r1 % r2;                                            
-        r1 = r2;                                                    
-        r2 = temp3;                                                 
-        
+        temp3 = r1 % r2;
+        r1 = r2;
+        r2 = temp3;
+
         result += temp;                        // result += temp1;
 
         n = -n;
     }
 
     result *= one_over_12<T>();
-    
+
     if(n < 0) {
         result -= T(.25);
     }
@@ -1237,7 +1237,7 @@ long GCD(long a, long b)
       v = b;
       do {
          t = u % v;
-         u = v; 
+         u = v;
          v = t;
       } while (v != 0);
 
@@ -1252,77 +1252,77 @@ long GCD(long a, long b)
 // The following function was copied from Ralf Stephan's code,
 // mentioned in the introduction, and then some variable names
 // were changed. The function is not currently used, however.
-void cospi (mpfr_t res, 
-		mpfr_t x)
+void cospi (mpfr_t res,
+        mpfr_t x)
 {
-//	mpfr_t t, tt, half, fourth;
-	
-//	mpfr_init2 (t, prec);
-//	mpfr_init2 (tt, prec);
-//	mpfr_init2 (half, prec);
-//	mpfr_init2 (fourth, prec);
+//    mpfr_t t, tt, half, fourth;
 
-//	mpfr_set_ui (half, 1, r);
-//	mpfr_div_2ui (half, half, 1, r);
-//	mpfr_div_2ui (fourth, half, 1, r);
+//    mpfr_init2 (t, prec);
+//    mpfr_init2 (tt, prec);
+//    mpfr_init2 (half, prec);
+//    mpfr_init2 (fourth, prec);
+
+//    mpfr_set_ui (half, 1, r);
+//    mpfr_div_2ui (half, half, 1, r);
+//    mpfr_div_2ui (fourth, half, 1, r);
 
         // NOTE: switched t to tempc2
         //       and tt to tempc1
 
 
         mp_rnd_t r = round_mode;
-        
 
-	mpfr_div_2ui (tempc1, x, 1, r);
-	mpfr_floor (tempc1, tempc1);
-	mpfr_mul_2ui (tempc1, tempc1, 1, r);
-	mpfr_sub (tempc2, x, tempc1, r);
-	if (mpfr_cmp_ui (tempc2, 1) > 0)
-		mpfr_sub_ui (tempc2, tempc2, 2, r);
-	mpfr_abs (tempc1, tempc2, r);
-	if (mpfr_cmp (tempc1, half) > 0)
-	{
-		mpfr_ui_sub (tempc2, 1, tempc1, r);
-		mpfr_abs (tempc1, tempc2, r);
-		if (mpfr_cmp (tempc1, fourth) > 0)
-		{
-			if (mpfr_sgn (tempc2) > 0)
-				mpfr_sub (tempc2, half, tempc2, r);
-			else
-				mpfr_add (tempc2, tempc2, half, r);
-			mpfr_mul (tempc2, tempc2, mp_pi, r);
-			mpfr_sin (tempc2, tempc2, r);
-		}
-		else
-		{
-			mpfr_mul (tempc2, tempc2, mp_pi, r);
-			mpfr_cos (tempc2, tempc2, r);	
-		}
-		mpfr_neg (res, tempc2, r);
-	}
-	else
-	{
-		mpfr_abs (tempc1, tempc2, r);
-		if (mpfr_cmp (tempc1, fourth) > 0)
-		{
-			if (mpfr_sgn (tempc2) > 0)
-				mpfr_sub (tempc2, half, tempc2, r);
-			else
-				mpfr_add (tempc2, tempc2, half, r);
-			mpfr_mul (tempc2, tempc2, mp_pi, r);
-			mpfr_sin (res, tempc2, r);
-		}
-		else
-		{
-			mpfr_mul (tempc2, tempc2, mp_pi, r);
-			mpfr_cos (res, tempc2, r);
-		}
-	}
 
-//	mpfr_clear (half);
-//	mpfr_clear (fourth);
-//	mpfr_clear (t);
-//	mpfr_clear (tt);
+    mpfr_div_2ui (tempc1, x, 1, r);
+    mpfr_floor (tempc1, tempc1);
+    mpfr_mul_2ui (tempc1, tempc1, 1, r);
+    mpfr_sub (tempc2, x, tempc1, r);
+    if (mpfr_cmp_ui (tempc2, 1) > 0)
+        mpfr_sub_ui (tempc2, tempc2, 2, r);
+    mpfr_abs (tempc1, tempc2, r);
+    if (mpfr_cmp (tempc1, half) > 0)
+    {
+        mpfr_ui_sub (tempc2, 1, tempc1, r);
+        mpfr_abs (tempc1, tempc2, r);
+        if (mpfr_cmp (tempc1, fourth) > 0)
+        {
+            if (mpfr_sgn (tempc2) > 0)
+                mpfr_sub (tempc2, half, tempc2, r);
+            else
+                mpfr_add (tempc2, tempc2, half, r);
+            mpfr_mul (tempc2, tempc2, mp_pi, r);
+            mpfr_sin (tempc2, tempc2, r);
+        }
+        else
+        {
+            mpfr_mul (tempc2, tempc2, mp_pi, r);
+            mpfr_cos (tempc2, tempc2, r);
+        }
+        mpfr_neg (res, tempc2, r);
+    }
+    else
+    {
+        mpfr_abs (tempc1, tempc2, r);
+        if (mpfr_cmp (tempc1, fourth) > 0)
+        {
+            if (mpfr_sgn (tempc2) > 0)
+                mpfr_sub (tempc2, half, tempc2, r);
+            else
+                mpfr_add (tempc2, tempc2, half, r);
+            mpfr_mul (tempc2, tempc2, mp_pi, r);
+            mpfr_sin (res, tempc2, r);
+        }
+        else
+        {
+            mpfr_mul (tempc2, tempc2, mp_pi, r);
+            mpfr_cos (res, tempc2, r);
+        }
+    }
+
+//    mpfr_clear (half);
+//    mpfr_clear (fourth);
+//    mpfr_clear (t);
+//    mpfr_clear (tt);
 }
 
 /* answer must have already been mpz_init'd. */
@@ -1332,9 +1332,9 @@ int part(mpz_t answer, unsigned int n){
         return 0;
     }
     mpfr_t result;
-    
+
     mp_t(result, n);
-    
+
     mpfr_get_z(answer, result, round_mode);
 
     mpfr_clear(result);
@@ -1344,7 +1344,7 @@ int part(mpz_t answer, unsigned int n){
 
 int main(int argc, char *argv[]){
     //init();
-    
+
     unsigned int n = 10;
 
     if(argc > 1)
@@ -1383,9 +1383,9 @@ int main(int argc, char *argv[]){
         return 0;
     }
     //mpfr_t result;
-    
+
     //mp_t(result, n);
-    
+
     mpz_t answer;
     mpz_init(answer);
     part(answer, n);
@@ -1393,7 +1393,7 @@ int main(int argc, char *argv[]){
     //mpfr_get_z(answer, result, round_mode);
 
     mpz_out_str (stdout, 10, answer);
-    
+
     cout << endl;
 
     return 0;
@@ -1412,7 +1412,7 @@ int test(bool longtest, bool forever) {
 
     mpz_t expected_value;
     mpz_t actual_value;
-    
+
     mpz_init(expected_value);
     mpz_init(actual_value);
 
@@ -1435,7 +1435,7 @@ int test(bool longtest, bool forever) {
 
     if(mpz_cmp(expected_value, actual_value) != 0)
         return n;
-    
+
     cout << " OK." << endl;
 
     n = 100;
@@ -1479,7 +1479,7 @@ int test(bool longtest, bool forever) {
 
     if(mpz_cmp(expected_value, actual_value) != 0)
         return n;
-    
+
     cout << " OK." << endl;
 
     n = 1000000;
@@ -1490,12 +1490,12 @@ int test(bool longtest, bool forever) {
 
     if(mpz_cmp(expected_value, actual_value) != 0)
         return n;
-    
+
     cout << " OK." << endl;
 
 
     // We now run some tests based on the fact that if n = 369 (mod 385) then p(n) = 0 (mod 385).
-    
+
     n = 369 + 10*385;
     cout << "Computing p(" << n << ")...";
     cout.flush();
@@ -1553,7 +1553,7 @@ int test(bool longtest, bool forever) {
     // Randomized testing
 
     srand( time(NULL) );
-    
+
     for(int i = 0; i < 100; i++) {
         n = int(100000 * double(rand())/double(RAND_MAX) + 1);
         n = n - (n % 385) + 369;
@@ -1649,7 +1649,7 @@ int test(bool longtest, bool forever) {
         part(actual_value, n);
         if(mpz_divisible_ui_p(actual_value, 385) == 0)
             return n;
-        
+
         cout << " OK." << endl;
 
         for(int i = 0; i < 10; i++) {
@@ -1663,14 +1663,14 @@ int test(bool longtest, bool forever) {
             }
             cout << " OK." << endl;
         }
-        
+
         n = 1000000000 + 139;
         cout << "Computing p(" << n << ")...";
         cout.flush();
         part(actual_value, n);
         if(mpz_divisible_ui_p(actual_value, 385) == 0)
             return n;
-        
+
         cout << " OK." << endl;
 
 

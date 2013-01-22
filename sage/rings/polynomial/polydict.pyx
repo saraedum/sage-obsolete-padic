@@ -81,6 +81,9 @@ cdef class PolyDict:
 
             sage: PolyDict({(2,3):0, (1,2):3, (2,1):4}, remove_zero=True)
             PolyDict with representation {(1, 2): 3, (2, 1): 4}
+
+            sage: PolyDict({(0,0):RIF(-1,1)}, remove_zero=True)
+            PolyDict with representation {(0, 0): 0.?}
         """
         if not isinstance(pdict, dict):
             if isinstance(pdict, list):
@@ -104,7 +107,7 @@ cdef class PolyDict:
             new_pdict = {}
             if remove_zero:
                 for k, c in pdict.iteritems():
-                    if c != zero:
+                    if not c == zero:
                         new_pdict[ETuple(map(int,k))] = c
             else:
                 for k, c in pdict.iteritems():
@@ -440,7 +443,7 @@ cdef class PolyDict:
             neg_one = -1
         for e in E:
             c = self.__repn[e]
-            if c != self.__zero:
+            if not c == self.__zero:
                 sign_switch = False
                 # First determine the multinomial:
                 multi = " ".join([vars[j] +
@@ -507,6 +510,12 @@ cdef class PolyDict:
 
             sage: Integers(2)['x,y'].gens()
             (x, y)
+
+        We make sure that intervals are correctly represented. ::
+
+            sage: f = PolyDict({(2,3):RIF(1/2,3/2), (1,2):RIF(-1,1)})
+            sage: f.poly_repr(['x','y'])
+            '1.?*x^2*y^3 + 0.?*x*y^2'
         """
         n = len(vars)
         poly = ""
@@ -527,7 +536,7 @@ cdef class PolyDict:
         
         for e in E:
             c = self.__repn[e]
-            if c != self.__zero:
+            if not c == self.__zero:
                 sign_switch = False
                 # First determine the multinomial:
                 multi = ""
@@ -549,7 +558,7 @@ cdef class PolyDict:
                         sign_switch = True
                     else:
                         multi = "-%s"%(multi)
-                elif c != pos_one:
+                elif not c == pos_one:
                     if not atomic_coefficients:
                         c = str(c)
                         if c.find("+") != -1 or c.find("-") != -1 or c.find(" ") != -1:
@@ -660,10 +669,12 @@ cdef class PolyDict:
             sage: f = PolyDict({(2,3):2, (1,2):3, (2,1):4})
             sage: f.scalar_rmult(-2)
             PolyDict with representation {(1, 2): -6, (2, 3): -4, (2, 1): -8}
+            sage: f.scalar_rmult(RIF(-1,1))
+            PolyDict with representation {(1, 2): 0.?e1, (2, 3): 0.?e1, (2, 1): 0.?e1}
         """
         v = {}
         # if s is 0, then all the products will be zero
-        if s != self.__zero:
+        if not s == self.__zero:
             for e, c in self.__repn.iteritems():
                 v[e] = c*s
         return PolyDict(v, self.__zero, force_int_exponents=False, force_etuples=False)
@@ -682,10 +693,12 @@ cdef class PolyDict:
             sage: f = PolyDict({(2,3):2, (1,2):3, (2,1):4})
             sage: f.scalar_lmult(-2)
             PolyDict with representation {(1, 2): -6, (2, 3): -4, (2, 1): -8}
+            sage: f.scalar_lmult(RIF(-1,1))
+            PolyDict with representation {(1, 2): 0.?e1, (2, 3): 0.?e1, (2, 1): 0.?e1}
         """
         v = {}
         # if s is 0, then all the products will be zero
-        if s != self.__zero:
+        if not s == self.__zero:
             for e, c in self.__repn.iteritems():
                 v[e] = s*c
         return PolyDict(v, self.__zero, force_int_exponents=False, force_etuples=False)

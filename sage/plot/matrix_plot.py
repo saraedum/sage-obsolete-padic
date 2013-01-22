@@ -230,13 +230,13 @@ class MatrixPlot(GraphicPrimitive):
 
 @suboptions('colorbar', orientation='vertical', format=None)
 @suboptions('subdivision',boundaries=None, style=None)
-@options(cmap='gray',marker='.',frame=True, axes=False, norm=None, 
+@options(cmap='gray',marker='.',frame=True, axes=False, norm=None,
          vmin=None, vmax=None, origin='upper',ticks_integer=True,
          subdivisions=False, colorbar=False)
 def matrix_plot(mat, **options):
     r"""
     A plot of a given matrix or 2D array.
-    
+
     If the matrix is dense, each matrix element is given a different
     color value depending on its relative size compared to the other
     elements in the matrix.  If the matrix is sparse, colors only
@@ -418,6 +418,15 @@ def matrix_plot(mat, **options):
         sage: import numpy
         sage: matrix_plot(numpy.random.rand(10, 10))
 
+    A plot title can be added to the matrix plot.::
+
+        sage: matrix_plot(identity_matrix(50), origin='lower', title='not identity')
+
+    The title position is adjusted upwards if the ``origin`` keyword is set
+    to ``"upper"`` (this is the default).::
+
+        sage: matrix_plot(identity_matrix(50), title='identity')
+
     TESTS::
 
         sage: P.<t> = RR[]
@@ -487,6 +496,10 @@ def matrix_plot(mat, **options):
 
     if options['subdivisions'] and options['subdivision_options']['boundaries'] is None:
         options['subdivision_options']['boundaries']=orig_mat.get_subdivisions()
+
+    # Custom position the title. Otherwise it overlaps with tick labels
+    if options['origin'] == 'upper' and 'title_pos' not in options:
+        options['title_pos'] = (0.5, 1.05)
 
     g = Graphics()
     g._set_extra_kwds(Graphics._extract_kwds_for_show(options))

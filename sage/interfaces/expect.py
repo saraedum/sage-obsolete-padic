@@ -437,14 +437,17 @@ If this all works, you can then make calls like:
                 c = 'sage-native-execute  ssh %s "nohup sage -cleaner"  &'%self._server
                 os.system(c)
 
-            # Unset $TERM for the children to reduce the chances they do
-            # something complicated breaking the terminal interface.
-            # See Trac #12221.
+            # Unset some environment variables for the children to
+            # reduce the chances they do something complicated breaking
+            # the terminal interface.
+            # See Trac #12221 and #13859.
             pexpect_env = dict(os.environ)
-            try:
-                del pexpect_env["TERM"]
-            except KeyError:
-                pass
+            pexpect_del_vars = ['TERM', 'COLUMNS']
+            for i in pexpect_del_vars:
+                try:
+                    del pexpect_env[i]
+                except KeyError:
+                    pass
             self._expect = pexpect.spawn(cmd, logfile=self.__logfile, env=pexpect_env)
             if self._do_cleaner():
                 cleaner.cleaner(self._expect.pid, cmd)
@@ -1029,11 +1032,6 @@ If this all works, you can then make calls like:
             Control-C pressed.  Interrupting PARI/GP interpreter. Please wait a few seconds...
             ...
             KeyboardInterrupt: computation timed out because alarm was set for 1 seconds
-
-        Here is a doc test related with trac ticket #10296::
-
-            sage: gap._synchronize()
-
         """
         if expr is None:
             # the following works around gap._prompt_wait not being defined

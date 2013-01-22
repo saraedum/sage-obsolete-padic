@@ -375,12 +375,15 @@ def arrow2d(tailpoint=None, headpoint=None, path=None, **options):
 
     - ``headpoint`` - where the arrow is pointing to
 
-    - ``path`` - the list of points and control points (see bezier_path for detail) that 
+    - ``path`` - the list of points and control points (see bezier_path for detail) that
       the arrow will follow from source to destination
 
     - ``head`` - 0, 1 or 2, whether to draw the head at the start (0), end (1) or both (2)
       of the path (using 0 will swap headpoint and tailpoint).  This is ignored
       in 3D plotting.
+
+    - ``linestyle`` - The style of the line, which is one of 'dashed',
+      'dotted', 'solid', 'dashdot', or '--', ':', '-', '-.', respectively.
 
     - ``width`` - (default: 2) the width of the arrow shaft, in points
 
@@ -393,7 +396,7 @@ def arrow2d(tailpoint=None, headpoint=None, path=None, **options):
     - ``arrowshorten`` - the length in points to shorten the arrow (ignored if using path
       parameter)
 
-    - ``legend_label`` - the label for this item in the legend 
+    - ``legend_label`` - the label for this item in the legend
 
     - ``zorder`` - the layer level to draw the arrow-- note that this is ignored in 3D
       plotting.
@@ -403,7 +406,7 @@ def arrow2d(tailpoint=None, headpoint=None, path=None, **options):
     A straight, blue arrow::
 
        sage: arrow2d((1, 1), (3, 3))
-    
+
     Make a red arrow::
 
        sage: arrow2d((-1, -1), (2, 3), color=(1,0,0))
@@ -412,6 +415,11 @@ def arrow2d(tailpoint=None, headpoint=None, path=None, **options):
     You can change the width of an arrow::
 
         sage: arrow2d((1, 1), (3, 3), width=5, arrowsize=15)
+
+    Use a dashed line instead of a solid one for the arrow::
+
+        sage: arrow2d((1, 1), (3, 3), linestyle='dashed')
+        sage: arrow2d((1, 1), (3, 3), linestyle='--')
 
     A pretty circle of arrows::
 
@@ -424,22 +432,28 @@ def arrow2d(tailpoint=None, headpoint=None, path=None, **options):
         sage: line([(0,0),(1,0)],thickness=10)+line([(0,1),(1,1)], thickness=10)+arrow2d((0.5,0),(0.5,1), arrowshorten=10,rgbcolor=(1,0,0))
 
     If BOTH headpoint and tailpoint are None, then an empty plot is returned::
-    
+
         sage: arrow2d(headpoint=None, tailpoint=None)
-        
-    
+
+
     We can also draw an arrow with a legend::
 
         sage: arrow((0,0), (0,2), legend_label='up')
 
     Extra options will get passed on to show(), as long as they are valid::
- 
+
         sage: arrow2d((-2, 2), (7,1), frame=True)
         sage: arrow2d((-2, 2), (7,1)).show(frame=True)
     """
+    # Allow the usual linestyles used in the plot() command
+    dict_line = {':': 'dotted', '-': 'solid', '--': 'dashed', '-.': 'dashdot'}
+    if options['linestyle'] in dict_line:
+        options['linestyle'] = dict_line[options['linestyle']]
+
     from sage.plot.all import Graphics
     g = Graphics()
     g._set_extra_kwds(Graphics._extract_kwds_for_show(options))
+
     if headpoint is not None and tailpoint is not None:
         xtail, ytail = tailpoint
         xhead, yhead = headpoint

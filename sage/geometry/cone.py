@@ -148,7 +148,7 @@ If you need to know inclusion relations between faces, you can use ::
     sage: map(len, L.level_sets())
     [1, 4, 4, 1]
     sage: face = L.level_sets()[2][0]
-    sage: face.element.rays()
+    sage: face.rays()
     N(1,  1, 1),
     N(1, -1, 1)
     in 3-d lattice N
@@ -171,7 +171,7 @@ corresponding to cones::
     sage: four_rays.lattice_polytope()
     A lattice polytope: 3-dimensional, 5 vertices.
     sage: four_rays.polyhedron()
-    A 3-dimensional polyhedron in QQ^3 defined as
+    A 3-dimensional polyhedron in ZZ^3 defined as
     the convex hull of 1 vertex and 4 rays
 
 And of course you are always welcome to suggest new features that should be
@@ -568,7 +568,10 @@ def normalize_rays(rays, lattice):
         V = lattice.base_extend(QQ)
         for n, ray in enumerate(rays):
             try:
-                ray = V(ray)
+                if isinstance(ray, (list, tuple, V._element_class)):
+                    ray = V(ray)
+                else:
+                    ray = V(list(ray))
             except TypeError:
                 raise TypeError("cannot convert %s to %s!" % (ray, V))
             if ray.is_zero():
@@ -1802,7 +1805,7 @@ class ConvexRationalPolyhedralCone(IntegralRayCollection,
                     adjacent.update(L.open_interval(facet,  superface))
             if adjacent:
                 adjacent.remove(L(self))
-            return self._sort_faces(face.element for face in adjacent)
+            return self._sort_faces(adjacent)
         elif self.dim() == self._ambient.dim():
             # Special treatment relevant for fans
             for facet in facets:
@@ -2103,30 +2106,15 @@ class ConvexRationalPolyhedralCone(IntegralRayCollection,
              1-d face of 2-d cone in 2-d lattice N]
             [2-d cone in 2-d lattice N]
 
-        To work with a particular face of a particular dimension it is not
-        enough to do just ::
+        For a particular face you can look at its actual rays... ::
 
             sage: face = L.level_sets()[1][0]
-            sage: face
-            1-d face of 2-d cone in 2-d lattice N
-            sage: face.rays()
-            Traceback (most recent call last):
-            ...
-            AttributeError: 'FinitePoset_with_category.element_class' object
-            has no attribute 'rays'
-
-        To get the actual face you need one more step::
-
-            sage: face = face.element
-
-        Now you can look at the actual rays of this face... ::
-
             sage: face.rays()
             N(1, 0)
             in 2-d lattice N
 
-        ... or you can see indices of the rays of the orginal cone that
-        correspond to the above ray::
+        ... or you can see the index of the ray of the original cone that
+        corresponds to the above one::
 
             sage: face.ambient_ray_indices()
             (0,)
@@ -2145,8 +2133,8 @@ class ConvexRationalPolyhedralCone(IntegralRayCollection,
             sage: face = L.level_sets()[1][0]
             sage: D = L.hasse_diagram()
             sage: D.neighbors(face)
-            [0-d face of 2-d cone in 2-d lattice N,
-             2-d cone in 2-d lattice N]
+            [2-d cone in 2-d lattice N,
+             0-d face of 2-d cone in 2-d lattice N]
 
         However, you can achieve some of this functionality using
         :meth:`facets`, :meth:`facet_of`, and :meth:`adjacent` methods::
@@ -2185,7 +2173,7 @@ class ConvexRationalPolyhedralCone(IntegralRayCollection,
             0-d face of 4-d cone in 4-d lattice N
             sage: cone.face_lattice().top()
             3-d face of 4-d cone in 4-d lattice N
-            sage: cone.face_lattice().top().element == cone
+            sage: cone.face_lattice().top() == cone
             True
 
         TESTS::
@@ -2262,7 +2250,7 @@ class ConvexRationalPolyhedralCone(IntegralRayCollection,
                 allowed_indices = frozenset(self._ambient_ray_indices)
                 L = DiGraph()
                 origin = \
-                    self._ambient._face_lattice_function().bottom().element
+                    self._ambient._face_lattice_function().bottom()
                 L.add_vertex(0) # In case it is the only one
                 dfaces = [origin]
                 faces = [origin]
@@ -2417,8 +2405,8 @@ class ConvexRationalPolyhedralCone(IntegralRayCollection,
                     "dimension and codimension cannot be specified together!")
         dim = self.dim() - codim if codim is not None else dim
         if "_faces" not in self.__dict__:
-            self._faces = tuple(self._sort_faces(e.element for e in level)
-                                for level in self.face_lattice().level_sets())
+            self._faces = tuple(map(self._sort_faces,
+                                    self.face_lattice().level_sets()))
             # To avoid duplication and ensure order consistency
             if len(self._faces) > 1:
                 self._facets = self._faces[-2]
@@ -2562,8 +2550,8 @@ class ConvexRationalPolyhedralCone(IntegralRayCollection,
         if "_facet_of" not in self.__dict__:
             L = self._ambient._face_lattice_function()
             H = L.hasse_diagram()
-            self._facet_of = self._sort_faces(f.element
-                    for f in H.neighbors_out(L(self)) if is_Cone(f.element))
+            self._facet_of = self._sort_faces(f
+                    for f in H.neighbors_out(L(self)) if is_Cone(f))
         return self._facet_of
 
     def facets(self):
@@ -2584,8 +2572,7 @@ class ConvexRationalPolyhedralCone(IntegralRayCollection,
         if "_facets" not in self.__dict__:
             L = self._ambient._face_lattice_function()
             H = L.hasse_diagram()
-            self._facets = self._sort_faces(tuple(
-                                f.element for f in H.neighbors_in(L(self))))
+            self._facets = self._sort_faces(H.neighbors_in(L(self)))
         return self._facets
 
     def intersection(self, other):
@@ -3106,18 +3093,18 @@ class ConvexRationalPolyhedralCone(IntegralRayCollection,
 
             sage: quadrant = Cone([(1,0), (0,1)])
             sage: quadrant.polyhedron()
-            A 2-dimensional polyhedron in QQ^2 defined as the convex hull
+            A 2-dimensional polyhedron in ZZ^2 defined as the convex hull
             of 1 vertex and 2 rays
             sage: line = Cone([(1,0), (-1,0)])
             sage: line.polyhedron()
-            A 1-dimensional polyhedron in QQ^2 defined as the convex hull
+            A 1-dimensional polyhedron in ZZ^2 defined as the convex hull
             of 1 vertex and 1 line
             
         Here is an example of a trivial cone (see Trac #10237)::
         
             sage: origin = Cone([], lattice=ZZ^2)
             sage: origin.polyhedron()
-            A 0-dimensional polyhedron in QQ^2 defined as the convex hull
+            A 0-dimensional polyhedron in ZZ^2 defined as the convex hull
             of 1 vertex
         """
         if "_polyhedron" not in self.__dict__:
@@ -3604,7 +3591,7 @@ class ConvexRationalPolyhedralCone(IntegralRayCollection,
             sage: rho = Cone([(1,1,1,3),(1,-1,1,3),(-1,-1,1,3),(-1,1,1,3)])
             sage: rho.orthogonal_sublattice()
             Sublattice <M(0, 0, 3, -1)>
-            sage: sigma = rho.facets()[1]
+            sage: sigma = rho.facets()[2]
             sage: sigma.orthogonal_sublattice()
             Sublattice <M(0, 1, 1, 0), M(0, 3, 0, 1)>
             sage: sigma.is_face_of(rho)

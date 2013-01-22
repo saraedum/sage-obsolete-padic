@@ -2533,7 +2533,7 @@ cdef class Expression(CommutativeRingElement):
             sage: x*oo
             Traceback (most recent call last):
             ...
-            ArithmeticError: indeterminate expression: infinity * f(x) encountered.
+            RuntimeError: indeterminate expression: infinity * f(x) encountered.
             sage: x*unsigned_infinity
             Traceback (most recent call last):
             ...
@@ -2547,6 +2547,31 @@ cdef class Expression(CommutativeRingElement):
             -Infinity
             sage: SR(unsigned_infinity)*SR(oo)
             Infinity
+
+        Check if we are returning informative error messages in case of
+        nonsensical arithmetic :trac:`13739`::
+
+            sage: t = GF(5)(3)
+            sage: u = GF(7)(4)
+            sage: var('y')
+            y
+            sage: e = t*x + u*y
+            sage: t*e
+            Traceback (most recent call last):
+            ...
+            TypeError: unsupported operand parent(s) for '*': 'Finite Field
+            of size 7' and 'Finite Field of size 5'
+
+        The same issue (with a different test case) was reported in
+        :trac:`10960`::
+
+            sage: K.<b> = FiniteField(9)
+            sage: i*b
+            Traceback (most recent call last):
+            ...
+            TypeError: unsupported operand parent(s) for '*': 'Number Field
+            in I with defining polynomial x^2 + 1' and 'Finite Field in b of
+            size 3^2'
 
         """
         cdef GEx x
@@ -5114,25 +5139,75 @@ cdef class Expression(CommutativeRingElement):
         
     def collect(Expression self, s):
         """
+        Collect the coefficients of ``s`` into a group.
+
         INPUT:
 
-        - ``s`` -- a symbol
+        - ``s`` -- the symbol whose coefficients will be collected.
 
         OUTPUT:
 
-        A symbolic expression.
-            
-        EXAMPLES::
-        
-            sage: var('x,y,z')
-            (x, y, z)
+        A new expression, equivalent to the original one, with the
+        coefficients of ``s`` grouped.
+
+        .. note::
+
+            The expression is not expanded or factored before the
+            grouping takes place. For best results, call :meth:`expand`
+            on the expression before :meth:`collect`.
+
+        EXAMPLES:
+
+        In the first term of `f`, `x` has a coefficient of `4y`. In
+        the second term, `x` has a coefficient of `z`. Therefore, if
+        we collect those coefficients, `x` will have a coefficient of
+        `4y+z`::
+
+            sage: x,y,z = var('x,y,z')
             sage: f = 4*x*y + x*z + 20*y^2 + 21*y*z + 4*z^2 + x^2*y^2*z^2
             sage: f.collect(x)
             x^2*y^2*z^2 + (4*y + z)*x + 20*y^2 + 21*y*z + 4*z^2
+
+        Here we do the same thing for `y` and `z`; however, note that
+        we don't factor the `y^{2}` and `z^{2}` terms before
+        collecting coefficients::
+
             sage: f.collect(y)
             (x^2*z^2 + 20)*y^2 + (4*x + 21*z)*y + x*z + 4*z^2
             sage: f.collect(z)
             (x^2*y^2 + 4)*z^2 + (x + 21*y)*z + 4*x*y + 20*y^2
+
+        Sometimes, we do have to call :meth:`expand()` on the
+        expression first to achieve the desired result::
+
+            sage: f = (x + y)*(x - z)
+            sage: f.collect(x)
+            x^2 + x*y - x*z - y*z
+            sage: f.expand().collect(x)
+            (y - z)*x + x^2 - y*z
+
+        TESTS:
+
+        The output should be equivalent to the input::
+
+            sage: polynomials = QQ['x']
+            sage: f = SR(polynomials.random_element())
+            sage: g = f.collect(x)
+            sage: bool(f == g)
+            True
+
+        If ``s`` is not present in the given expression, the
+        expression should not be modified. The variable `z` will not
+        be present in `f` below since `f` is a random polynomial of
+        maximum degree 10 in `x` and `y`::
+
+            sage: z = var('z')
+            sage: polynomials = QQ['x,y']
+            sage: f = SR(polynomials.random_element(10))
+            sage: g = f.collect(z)
+            sage: bool(str(f) == str(g))
+            True
+
         """
         cdef Expression s0 = self.coerce_in(s)
         cdef GEx x
@@ -7581,9 +7656,7 @@ cdef class Expression(CommutativeRingElement):
             0
         """
         from sage.calculus.calculus import maxima
-        maxima.eval('domain: real$')
         res = self.parent()(self._maxima_().radcan())
-        maxima.eval('domain: complex$')
         return res
 
     radical_simplify = simplify_radical
@@ -7706,13 +7779,27 @@ cdef class Expression(CommutativeRingElement):
             0
             sage: log_expr.simplify_full()   # applies both simplify_log and simplify_rational
             0
-            
+
+        We should use the current simplification domain rather than
+        set it to 'real' explicitly (:trac:`12780`)::
+
+            sage: f = sqrt(x^2)
+            sage: f.simplify_log()
+            sqrt(x^2)
+            sage: from sage.calculus.calculus import maxima
+            sage: maxima('domain: real;')
+            real
+            sage: f.simplify_log()
+            abs(x)
+            sage: maxima('domain: complex;')
+            complex
+
         AUTHORS:
         
         - Robert Marik (11-2009) 
         """
         from sage.calculus.calculus import maxima
-        maxima.eval('domain: real$ savelogexpand:logexpand$ logexpand:false$')
+        maxima.eval('savelogexpand:logexpand$ logexpand:false$')
         if algorithm is not None:
             maxima.eval('logconcoeffp:\'logconfun$')
         if algorithm == 'ratios':
@@ -7726,7 +7813,6 @@ cdef class Expression(CommutativeRingElement):
         elif algorithm is not None:
             raise NotImplementedError, "unknown algorithm, see the help for available algorithms"
         res = self.parent()(self._maxima_().logcontract())
-        maxima.eval('domain: complex$')
         if algorithm is not None:
             maxima.eval('logconcoeffp:false$')
         maxima.eval('logexpand:savelogexpand$')              
@@ -7810,12 +7896,31 @@ cdef class Expression(CommutativeRingElement):
 
             sage: (log(3/4*x^pi)).log_expand()
             pi*log(x) + log(3/4)
-                
+
+        TESTS:
+
+        Most of these log expansions only make sense over the
+        reals. So, we should set the Maxima ``domain`` variable to
+        'real' before we call out to Maxima. When we return, however, we
+        should set the ``domain`` back to what it was, rather than
+        assuming that it was 'complex'. See :trac:`12780`::
+
+            sage: from sage.calculus.calculus import maxima
+            sage: maxima('domain: real;')
+            real
+            sage: x.expand_log()
+            x
+            sage: maxima('domain;')
+            real
+            sage: maxima('domain: complex;')
+            complex
+
         AUTHORS:
         
         - Robert Marik (11-2009) 
         """
         from sage.calculus.calculus import maxima
+        original_domain = maxima.eval('domain')
         maxima.eval('domain: real$ savelogexpand:logexpand$')
         if algorithm == 'nothing':
             maxima_method='false'
@@ -7830,7 +7935,8 @@ cdef class Expression(CommutativeRingElement):
         maxima.eval('logexpand:%s'%maxima_method)
         res = self._maxima_()
         res = res.sage()
-        maxima.eval('domain: complex$ logexpand:savelogexpand$')              
+        # Set the domain back to what it was before expand_log() was called.
+        maxima.eval('domain: %s$ logexpand:savelogexpand$' % original_domain)
         return res    
 
     log_expand = expand_log 

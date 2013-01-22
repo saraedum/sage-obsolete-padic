@@ -216,10 +216,10 @@ contains the implementation for :math:`\ZZ`.
         sage: 'sage'*Integer(3)
         'sagesagesage'
 
-    COERCIONS: Returns version of this integer in the multi-precision
-    floating real field R.
+    COERCIONS:
 
-    ::
+    Return a version of this integer in the multi-precision floating
+    real field R::
 
         sage: n = 9390823
         sage: RR = RealField(200)
@@ -265,8 +265,10 @@ information. Source files in the Sage library contain numerous
 examples on how to format your documentation, so you could use them as
 a guide.
 
--  A one-sentence description of the function, followed by a blank
-   line.
+-  A one-sentence description of the function, followed by a blank line
+   and ending in a period. It prescribes the function or method's
+   effect as a command ("Do this", "Return that"), not as a
+   description; e.g. don't write "Returns the pathname ..."
 
 -  An INPUT and an OUTPUT block for input and output arguments (see
    below for format). The type names should be descriptive, but do not
@@ -310,15 +312,15 @@ a guide.
    functions without these doctests will not be accepted for inclusion
    with Sage.
 
-- A SEEALSO block (optional) with links to related things in Sage. A SEEALSO
-  block should start with ``.. SEEALSO::``. It can also be the lower-case form
-  ``.. seealso::``. However, you are encouraged to use the upper-case form
-  ``.. SEEALSO::``. See :ref:`chapter-sage_manuals_links` for details on how
-  to setup link in Sage.  Here's an example of a SEEALSO block::
+-  A SEEALSO block (optional) with links to related things in Sage. A SEEALSO
+   block should start with ``.. SEEALSO::``. It can also be the lower-case form
+   ``.. seealso::``. However, you are encouraged to use the upper-case form
+   ``.. SEEALSO::``. See :ref:`chapter-sage_manuals_links` for details on how
+   to setup link in Sage.  Here's an example of a SEEALSO block::
 
-      .. SEEALSO::
+       .. SEEALSO::
 
-          :ref:`chapter-sage_manuals_links`
+           :ref:`chapter-sage_manuals_links`
 
 -  An ALGORITHM block (optional) which indicates what software
    and/or what algorithm is used. For example
@@ -345,7 +347,7 @@ a guide.
        REFERENCES:
 
        .. [Nat2000] M.B. Nathanson. Elementary Methods in Number Theory.
-         Springer, 2000.
+          Springer, 2000.
 
    You can also number the steps in your algorithm using the hash-dot
    symbol. This way, the actual numbering of the steps are
@@ -374,13 +376,13 @@ a guide.
 
         #. The plaintext is `m = m_1 m_2 \cdots m_t`.
 
--  A NOTES block for special notes (optional). Include information
-   such as purpose etc. A NOTES block should start with
+-  A NOTE block for special notes (optional). Include information
+   such as purpose etc. A NOTE block should start with
    ``.. NOTE::``. You can also use the lower-case version
    ``.. note::``, but do not mix lower-case with upper-case. However,
    you are encouraged to use the upper-case version ``.. NOTE::``. If
    you want to put anything within the NOTES block, you should
-   indent it at least 4 spaces (no tabs). Here's an example of a NOTES
+   indent it at least 4 spaces (no tabs). Here's an example of a NOTE
    block::
 
        .. NOTE::
@@ -416,10 +418,10 @@ a guide.
       .. TODO::
 
           Improve further function ``have_fresh_beers`` using algorithm
-	  ``buy_a_better_fridge``::
+          ``buy_a_better_fridge``::
 
-	      sage: have_fresh_beers('Bière de l'Yvette') # todo: not implemented
-	      Enjoy !
+              sage: have_fresh_beers('Bière de l'Yvette') # todo: not implemented
+              Enjoy !
 
 - A REFERENCES block to list books or papers (optional). This block serves
   a similar purpose to a list of references in a research paper, or a
@@ -429,7 +431,18 @@ a guide.
   citations is described at
   http://sphinx.pocoo.org/rest.html#citations. See below for an example.
   Sage also add specific markup for links to sage trac tickets and
-  Wikipedia. See :ref:`chapter-sage_manuals_links`.
+  Wikipedia. See :ref:`chapter-sage_manuals_links`. Here's an example of a
+  REFERENCES block::
+
+    This docstring is referencing [SC]_. Just remember that references
+    are global, so we can also reference to [Nat2000]_ in the ALGORITHM
+    block, even if it is in a separate file. However we would not
+    include the reference here since it would cause a conflict.
+
+    REFERENCES:
+
+    .. [SC] Conventions for coding in sage.
+       http://www.sagemath.org/doc/developer/conventions.html.
 
 -  An AUTHORS block (optional, but encouraged for important
    functions, so users can see from the docstring who wrote it and
@@ -440,21 +453,24 @@ indentation::
 
     def point(self, x=1, y=2):
         r"""
-        This function returns the point `(x^5,y)`.
+        Return the point `(x^5,y)`.
 
         INPUT:
 
-         - ``x`` - integer (default: 1) the description of the
-	   argument x goes here.  If it contains multiple lines, all
-	   the lines after the first need to be indented.
+        - ``x`` -- integer (default: 1) the description of the
+          argument ``x`` goes here.  If it contains multiple lines, all
+          the lines after the first need to begin at the same indentation
+          as the backtick.
 
-         - ``y`` - integer (default: 2) the ...
+        - ``y`` -- integer (default: 2) the ...
 
         OUTPUT:
 
-        integer -- the ...
+        The point as a tuple.
 
-	.. SEEALSO:: :func:`line`
+        .. SEEALSO::
+
+            :func:`line`
 
         EXAMPLES:
 
@@ -480,16 +496,17 @@ indentation::
             ...
             TypeError: unable to convert x (=r) to an integer
 
-        NOTES:
+        .. NOTE::
 
-        This function uses the algorithm of [BCDT]_ to determine
-        whether an elliptic curve E over Q is modular.
+            This function uses the algorithm of [BCDT]_ to determine
+            whether an elliptic curve `E` over `Q` is modular.
 
         ...
 
         REFERENCES:
 
-        .. [BCDT] Breuil, Conrad, Diamond, Taylor, "Modularity ...."
+        .. [BCDT] Breuil, Conrad, Diamond, Taylor,
+           "Modularity ...."
 
         AUTHORS:
 
@@ -504,21 +521,21 @@ docstring would look like this::
 
     def point(self, x=1, y=2):
         r"""
-        This function returns the point `(x^5,y)`.
+        Return the point `(x^5,y)`.
 
         :param x: the description of the argument x goes here.
-	   If it contains multiple lines, all the lines after the
-	   first need to be indented.
+        If it contains multiple lines, all the lines after the
+        first need to be indented.
 
-	:type x: integer; default 1
+        :type x: integer; default 1
 
-	:param y: the ...
+        :param y: the ...
 
-	:type y: integer; default 2
+        :type y: integer; default 2
 
-	:returns: the ...
+        :returns: the ...
 
-	:rtype: integer, the return type
+        :rtype: integer, the return type
 
 You are strongly encouraged to:
 
@@ -530,12 +547,12 @@ You are strongly encouraged to:
 
        def cos(x):
            """
-           Returns `\\cos(x)`.
+           Return `\\cos(x)`.
            """
 
        def sin(x):
            r"""
-           Returns `\sin(x)`.
+           Return `\sin(x)`.
            """
 
    You can also use the MATH block to format complicated mathematical
@@ -547,7 +564,7 @@ You are strongly encouraged to:
            \leq
            e \sum_{i=1}^{\infty} a_i
 
-   .. note::
+   .. NOTE::
 
       In ReST documentation, you use backticks \` to mark LaTeX code
       to be typeset.  In Sage docstrings, unofficially you may use
@@ -605,58 +622,57 @@ You are strongly encouraged to:
    someone uses the system, which is unacceptable. Note that new
    functions without doctests will not be accepted for inclusion in Sage.
 
-.. warning::
+.. WARNING::
 
-   Functions whose names start with an underscore do not currently
-   appear in the reference manual, so avoid putting crucial
-   documentation in their docstrings. In particular, if you are
-   defining a class, you might put a long informative docstring after
-   the class definition, not for the ``__init__`` method. For example,
-   from the file ``SAGE_ROOT/devel/sage/sage/crypto/classical.py``:
+    Functions whose names start with an underscore do not currently
+    appear in the reference manual, so avoid putting crucial
+    documentation in their docstrings. In particular, if you are
+    defining a class, you might put a long informative docstring after
+    the class definition, not for the ``__init__`` method. For example,
+    from the file ``SAGE_ROOT/devel/sage/sage/crypto/classical.py``::
 
-   ::
+        class HillCryptosystem(SymmetricKeyCryptosystem):
+            """
+            Create a Hill cryptosystem defined by the `m` x `m` matrix space
+            over `\mathbf{Z} / N \mathbf{Z}`, where `N` is the alphabet size of
+            the string monoid ``S``.
 
-    class HillCryptosystem(SymmetricKeyCryptosystem):
+            INPUT:
+
+            - ``S`` -- a string monoid over some alphabet
+
+            - ``m`` -- a positive integer; the block length of matrices that
+              specify block permutations
+
+            OUTPUT:
+
+            - A Hill cryptosystem of block length ``m`` over the alphabet ``S``.
+
+            EXAMPLES::
+
+                sage: S = AlphabeticStrings()
+                sage: E = HillCryptosystem(S,3)
+                sage: E
+                Hill cryptosystem on Free alphabetic string monoid on A-Z of block length 3
         """
-        Create a Hill cryptosystem defined by the `m` x `m` matrix space
-        over `\mathbf{Z} / N \mathbf{Z}`, where `N` is the alphabet size of
-        the string monoid ``S``.
 
-        INPUT:
-
-        - ``S`` - a string monoid over some alphabet
-
-        - ``m`` - integer `> 0`; the block length of matrices that specify
-          block permutations
-
-        OUTPUT:
-
-        - A Hill cryptosystem of block length ``m`` over the alphabet ``S``.
-
-        EXAMPLES::
-
-            sage: S = AlphabeticStrings()
-            sage: E = HillCryptosystem(S,3)
-            sage: E
-            Hill cryptosystem on Free alphabetic string monoid on A-Z of block length 3
-	"""
-
-   and so on, while the ``__init__`` method starts like this::
+    and so on, while the ``__init__`` method starts like this::
 
         def __init__(self, S, m):
             """
             See ``HillCryptosystem`` for full documentation.
 
-	    EXAMPLES::
-	    ...
-	    """
+            EXAMPLES::
 
-   Note also that the first docstring is printed if users type
-   "HillCryptosystem?" at the "sage:" prompt.
+                ...
+            """
 
-   (Before Sage 3.4, the reference manual used to include methods
-   starting with underscores, so you will probably find many examples
-   in the code which don't follow this advice...)
+    Note also that the first docstring is printed if users type
+    "HillCryptosystem?" at the "sage:" prompt.
+
+    (Before Sage 3.4, the reference manual used to include methods
+    starting with underscores, so you will probably find many examples
+    in the code which don't follow this advice...)
 
 
 Automatic testing
@@ -670,17 +686,17 @@ environment, as described in :ref:`section-preparsing`. **Important:**
 The file ``f.py`` is not imported when running tests unless you have
 arranged that it be imported into your Sage environment, i.e. unless
 its functions are available when you start Sage using the ``sage``
-command. For example, the function ``cdd_convert`` in the file
-``SAGE_ROOT/devel/sage/sage/geometry/polyhedra.py`` includes
-an EXAMPLES block containing the following:
+command. For example, the function ``AA()`` in the file
+``SAGE_ROOT/devel/sage/sage/algebras/steenrod/steenrod_algebra.py``
+includes an EXAMPLES block containing the following:
 
 ::
 
-        sage: from sage.geometry.polyhedra import cdd_convert
-        sage: cdd_convert(' 1 1 0 0')
-        [1, 1, 0, 0]
+    sage: from sage.algebras.steenrod.steenrod_algebra import AA as A
+    sage: A()
+    mod 2 Steenrod algebra, milnor basis
 
-Sage does not know about the function ``cdd_convert`` by default, so
+Sage does not know about the function ``AA()`` by default, so
 it needs to be imported before it is tested. Hence the first line in
 the example.
 
@@ -700,20 +716,13 @@ mind:
    ``2/3`` as a rational instead of the Python int ``0``. For more
    information on preparsing, see :ref:`section-preparsing`.
 
--  If a test outputs to a file, the file should be in a temporary
-   directory.  For example (taken from the file
-   ``SAGE_ROOT/devel/sage/sage/plot/plot.py``)::
+-  If a test outputs to a file, the file should be a temporary file.
+   Use :func:`tmp_filename` to get a temporary filename,
+   or :func:`tmp_dir` to get a temporary directory.
+   For example (taken from the file
+   ``SAGE_ROOT/devel/sage/sage/plot/graphics.py``)::
 
-        sage: fig.savefig(os.path.join(SAGE_TMP, 'test.png'))
-
-   Here ``fig.savefig`` is the function doing the saving, ``SAGE_TMP``
-   is a temporary directory---this variable will always be defined
-   properly during automated testing---and ``os.path.join`` is the
-   preferred way to construct a path from a directory and a file. It
-   works more generally than a Unix-flavored construction like
-   ``SAGE_TMP + '/test.png'``.  If you want to use ``SAGE_TMP`` in
-   Sage code, not just in a doctest, then you need to import
-   it. Search the Sage code for examples.
+       sage: plot(x^2 - 5, (x, 0, 5), ymin=0).save(tmp_filename(ext='.png'))
 
 -  If a test line contains the text ``random``, it is executed by
    ``sage-doctest`` but ``sage-doctest`` does not check that the
@@ -782,7 +791,7 @@ mind:
 
        sage: A = matrix(RDF, 8, range(64))
        sage: U, S, V = A.SVD()
-       sage: (U.transpose()*U-identity_matrix(8)).norm()    # abs tol 1e-10
+       sage: (U.transpose()*U-identity_matrix(8)).norm(p=2)    # abs tol 1e-10
        0.0
        
    The 8-th cyclotomic field is generated by the complex number
@@ -797,9 +806,7 @@ mind:
    
    ::
        
-       sage: K = CyclotomicField(8)                     
-       sage: g = K.gen(0); g
-       zeta8
+       sage: K.<zeta8> = CyclotomicField(8)
        sage: N(zeta8)                             # absolute tolerance 1e-15
        0.707106781186548 + 0.707106781186547*I
 
@@ -807,15 +814,15 @@ mind:
    the root should normally print as ``1e+16``, or something similar.
    However, the tolerance testing causes the doctest framework to
    use the output in a *computation*, so any valid text representation 
-   of the predicted value may be used. 
+   of the predicted value may be used. **This is actually broken**, see
+   :trac:`12815`.
     
    ::
 
        sage: y = polygen(RDF, 'y')
-       sage: p = (y - 10^16)*(y-10^(-13))*(y-2); p
-       y^3 + (-1e+16)*y^2 + (2e+16)*y - 2000.0
+       sage: p = (y - 10^16) * (y - 10^-13) * (y - 2)
        sage: p.roots(multiplicities=False)[2]     # relative tol 1e-10
-       10^16
+       1e16
 
 -  If a line contains ``todo: not implemented``, it is never
    tested. It is good to include lines like this to make clear what we
@@ -857,7 +864,7 @@ mind:
   ``optional - pkg1 pkg2`` and executed by ``sage -t
   --only-optional=pkg1,pkg2 f.py``.
 
-  .. note::
+  .. NOTE::
 
       Any text after ``optional`` is interpreted as a list of package
       names, separated by spaces, although the words "needs" and
@@ -872,10 +879,10 @@ mind:
 - If you are documenting a known bug in Sage, mark it as ``known bug``
   or ``optional: bug``.  For example::
 
-     The following should yield 4.  See trac ticket #2::
+     The following should yield 4.  See :trac:`2`. ::
 
         sage: 2+2 # optional: bug
-	5
+        5
 
   Then the doctest will be skipped by default, but could be revealed
   by running ``sage -t --only-optional=bug ...``.  (A doctest marked

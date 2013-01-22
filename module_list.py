@@ -123,20 +123,23 @@ ext_modules = [
 
     Extension('sage.algebras.letterplace.free_algebra_letterplace',
               sources = ['sage/algebras/letterplace/free_algebra_letterplace.pyx'],
+              libraries = singular_libs,
               language="c++",
-              include_dirs = [SAGE_INC +'singular/'],
+              include_dirs = [SAGE_INC + 'singular', SAGE_INC + 'factory'],
               depends = singular_depends),
 
     Extension('sage.algebras.letterplace.free_algebra_element_letterplace',
               sources = ['sage/algebras/letterplace/free_algebra_element_letterplace.pyx'],
+              libraries = singular_libs,
               language="c++",
-              include_dirs = [SAGE_INC +'singular/'],
+              include_dirs = [SAGE_INC + 'singular', SAGE_INC + 'factory'],
               depends = singular_depends),
 
     Extension('sage.algebras.letterplace.letterplace_ideal',
               sources = ['sage/algebras/letterplace/letterplace_ideal.pyx'],
+              libraries = singular_libs,
               language="c++",
-              include_dirs = [SAGE_INC +'singular/'],
+              include_dirs = [SAGE_INC + 'singular', SAGE_INC + 'factory'],
               depends = singular_depends),
 
     Extension('sage.algebras.quatalg.quaternion_algebra_cython',
@@ -461,6 +464,9 @@ ext_modules = [
     Extension('sage.graphs.genus',
               sources = ['sage/graphs/genus.pyx']),
 
+    Extension('sage.graphs.hyperbolicity',
+              sources = ['sage/graphs/hyperbolicity.pyx']),
+
         ################################
         ##
         ## sage.graphs.base
@@ -668,11 +674,8 @@ ext_modules = [
                           ["curve.h","egr.h","descent.h","points.h","isogs.h",
                             "marith.h","htconst.h","interface.h"]
                         ],
-              libraries = ["jc",
-                           "ntl", "gmp", "gmpxx", "stdc++", "m", "pari"]),
-                         # IMHO "pari" could be removed here, but some people
-                         # claim it is needed on Cygwin (see #9896, #9914).
-                         # If so, we should use uname_specific(). -leif
+              libraries = ["ec",
+                           "ntl", "pari", "gmp", "gmpxx", "stdc++", "m"]),
     
     Extension('sage.libs.pari.gen',
               sources = ["sage/libs/pari/gen.pyx"],
@@ -767,11 +770,8 @@ ext_modules = [
         
     Extension('sage.libs.cremona.homspace',
               sources = ["sage/libs/cremona/homspace.pyx"],
-              libraries = ['jc', 'gmpxx', 'ntl', 'gmp',
-                           'm', 'stdc++', 'pari'],
-                         # IMHO "pari" could be removed here, but some people
-                         # claim it is needed on Cygwin (see #9896, #9914).
-                         # If so, we should use uname_specific(). -leif
+              libraries = ['ec', 'ntl', 'pari',
+                           'gmpxx', 'gmp', 'm', 'stdc++'],
               language='c++',
               define_macros = [("NTL_ALL",None)],
               depends = [ SAGE_INC + "eclib/" + h for h in
@@ -781,8 +781,8 @@ ext_modules = [
 
     Extension('sage.libs.cremona.mat',
               sources = ["sage/libs/cremona/mat.pyx"],
-              libraries = ['jc', 'gmpxx', 'ntl',
-                           'gmp', 'm', 'stdc++', ],
+              libraries = ['ec', 'ntl', 'pari',
+                           'gmpxx', 'gmp', 'm', 'stdc++'],
               language='c++',
               define_macros = [("NTL_ALL",None)],
               depends = [ SAGE_INC + "eclib/" + h for h in
@@ -792,11 +792,8 @@ ext_modules = [
 
     Extension('sage.libs.cremona.newforms',
               sources = ["sage/libs/cremona/newforms.pyx"],
-              libraries = ['jc', 'gmpxx', 'ntl', 'gmp',
-                           'm', 'stdc++', 'pari'],
-                         # IMHO "pari" could be removed here, but some people
-                         # claim it is needed on Cygwin (see #9896, #9914).
-                         # If so, we should use uname_specific(). -leif
+              libraries = ['ec', 'ntl', 'pari',
+                           'gmpxx', 'gmp', 'm', 'stdc++'],
               language='c++',
               define_macros = [("NTL_ALL",None)],
               depends = [ SAGE_INC + "eclib/" + h for h in
@@ -1119,6 +1116,9 @@ ext_modules = [
     Extension('sage.misc.lazy_import',
               sources = ['sage/misc/lazy_import.pyx']),
 
+    Extension('sage.misc.lazy_list',
+              sources = ['sage/misc/lazy_list.pyx']),
+
     Extension('sage.misc.misc_c',
               sources = ['sage/misc/misc_c.pyx']),
 
@@ -1212,6 +1212,9 @@ ext_modules = [
     ## sage.modules
     ##
     ################################
+
+    Extension('sage.modules.finite_submodule_iter',
+              sources = ['sage/modules/finite_submodule_iter.pyx']),
 
     Extension('sage.modules.free_module_element',
               sources = ['sage/modules/free_module_element.pyx'],
@@ -1368,9 +1371,7 @@ ext_modules = [
     Extension('sage.rings.complex_double',
               sources = ['sage/rings/complex_double.pyx'],
               extra_compile_args=["-std=c99",  "-D_XPG6"],
-              libraries = (['gsl', BLAS, BLAS2, 'pari', 'gmp'] + 
-                           uname_specific('CYGWIN', ['mc', 'md'], []) +
-                           ['m'])),
+              libraries = (['gsl', BLAS, BLAS2, 'pari', 'gmp', 'm'])),
 
     Extension('sage.rings.complex_interval',
               sources = ['sage/rings/complex_interval.pyx'],

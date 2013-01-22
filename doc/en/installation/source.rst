@@ -660,10 +660,34 @@ process:
   Setting ``SAGE_INSTALL_GCC=no`` will prevent Sage from installing
   GCC.
 
-- :envvar:`SAGE_DEBUG` - about half a dozen Sage packages use this
-  variable.  If it is unset (the default) or set to "yes", then
-  debugging is turned on.  If it is set to anything else, then
-  debugging is turned off.
+- :envvar:`SAGE_INSTALL_CCACHE` - by default Sage doesn't install
+  ccache, however by setting ``SAGE_INSTALL_CCACHE=yes`` Sage will
+  install ccache. Because the Sage distribution is quite large, the
+  maximum cache is set to 4G. This can be changed by running
+  ``sage -sh -c "ccache --max-size=SIZE"``, where ``SIZE`` is specified
+  in gigabytes, megabytes, or kilobytes by appending a G, M, or K.
+
+  Sage does not include the sources for ccache since it is an optional
+  package. Because of this, it is necessary to have an internet
+  connection while building Sage with ccache, so that Sage can pull
+  down the necessary sources.
+
+- :envvar:`SAGE_DEBUG` - enable debugging support. There are three
+  different values:
+
+  * Not set (or set to anything else than "yes" or "no"): Build
+    binaries with debugging symbols, but no special debug builds. This
+    is the default. There is no performance impact, only additional
+    disk space is used.
+
+  * ``SAGE_DEBUG=no``: no means no debugging symbols (that is, no
+    ``gcc -g``), which saves some disk space.
+
+  * ``SAGE_DEBUG=yes``: build debug versions if possible (in
+    particular, Python is built with additional debugging turned on
+    and Singular is built with a different memory manager). These will
+    be notably slower but, for example, make it much easier to
+    pinpoint memory allocation problems.
 
 - :envvar:`SAGE_SPKG_LIST_FILES` - Set this to "yes" to enable
   verbose extraction of tar files, i.e. Sage's spkg files. Since

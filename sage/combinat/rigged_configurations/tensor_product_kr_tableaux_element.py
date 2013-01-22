@@ -1,17 +1,16 @@
 r"""
-A specific tensor product of Kirillov-Reshetikhin tableaux
+An element of a tensor product of Kirillov-Reshetikhin tableaux
 
-A tensor product of :class:`KirillovReshetikhinTableauxElement`.
+A tensor product of
+:class:`~sage.combinat.rigged_configurations.kr_tableaux.KirillovReshetikhinTableauxElement`.
 
 AUTHORS:
 
 - Travis Scrimshaw (2010-09-26): Initial version 
 
-.. TODO:: A proper is_highest_weight() function without needing to change the index set.
-
 EXAMPLES:
 
-Type `A_n` examples::
+Type `A_n^{(1)}` examples::
 
     sage: KRT = TensorProductOfKirillovReshetikhinTableaux(['A', 3, 1], [[1,1], [2,1], [1,1], [2,1], [2,1], [2,1]])
     sage: T = KRT(pathlist=[[2], [4,1], [3], [4,2], [3,1], [2,1]])
@@ -41,7 +40,7 @@ Type `A_n` examples::
     0[ ]0
     <BLANKLINE>
 
-Type `D_n` examples::
+Type `D_n^{(1)}` examples::
 
     sage: KRT = TensorProductOfKirillovReshetikhinTableaux(['D', 4, 1], [[1,1], [1,1], [1,1], [1,1]])
     sage: T = KRT(pathlist=[[-1], [-1], [1], [1]])
@@ -77,7 +76,7 @@ Type `D_n` examples::
     <BLANKLINE>
     1[ ]0
     <BLANKLINE>
-    sage: T.to_rigged_configuration().to_Kirillov_Reshetikhin_tableaux()
+    sage: T.to_rigged_configuration().to_tensor_product_of_Kirillov_Reshetikhin_tableaux()
     [[2], [3]] (X) [[1]] (X) [[-1]] (X) [[1]]
 """
 
@@ -107,9 +106,6 @@ class TensorProductOfKirillovReshetikhinTableauxElement(TensorProductOfCrystalsE
     For more on tensor product of Kirillov-Reshetikhin tableaux, see
     :class:`TensorProductOfKirillovReshetikhinTableaux`.
     """
-
-    # Functions
-
     def __init__(self, parent, *path, **options):
         r"""
         Construct a TensorProductOfKirillovReshetikhinTableauxElement.
@@ -147,7 +143,7 @@ class TensorProductOfKirillovReshetikhinTableauxElement(TensorProductOfCrystalsE
 
     def _repr_(self):
         """
-        Return the string representation for self.
+        Return the string representation for ``self``.
 
         EXAMPLES::
 
@@ -163,7 +159,7 @@ class TensorProductOfKirillovReshetikhinTableauxElement(TensorProductOfCrystalsE
 
     def e(self, i):
         r"""
-        Return the action of `e_i` on self.
+        Return the action of `e_i` on ``self``.
 
         EXAMPLES::
 
@@ -173,7 +169,6 @@ class TensorProductOfKirillovReshetikhinTableauxElement(TensorProductOfCrystalsE
             sage: T.e(2)
             [[2], [4]]
         """
-
         if i != 0:
             return TensorProductOfCrystalsElement.e(self, i)
 
@@ -181,7 +176,7 @@ class TensorProductOfKirillovReshetikhinTableauxElement(TensorProductOfCrystalsE
 
     def f(self, i):
         r"""
-        Return the action of `f_i` on self.
+        Return the action of `f_i` on ``self``.
 
         EXAMPLES::
 
@@ -198,19 +193,23 @@ class TensorProductOfKirillovReshetikhinTableauxElement(TensorProductOfCrystalsE
 
     def to_rigged_configuration(self, display_steps=False):
         r"""
-        Perform the bijection from this to a
-        :class:`RiggedConfiguration` which is described
-        in [RigConBijection]_, [BijectionLRT]_, and [BijectionDn]_.
+        Perform the bijection from ``self`` to a
+        :class:`rigged configuration<sage.combinat.rigged_configurations.rigged_configuration_element.RiggedConfigurationElement>`
+        which is described in [RigConBijection]_, [BijectionLRT]_, and
+        [BijectionDn]_.
 
         INPUT:
 
-        - ``display_steps`` -- (default: False) Boolean which indicates if we want to output each step in the algorithm.
+        - ``display_steps`` -- (default: ``False``) Boolean which indicates
+          if we want to output each step in the algorithm.
 
         OUTPUT:
 
-        The rigged configuration corresponding to self.
+        The rigged configuration corresponding to ``self``.
 
-        EXAMPLES::
+        EXAMPLES:
+
+        Type `A_n^{(1)}` example::
 
             sage: KRT = HighestWeightTensorProductOfKirillovReshetikhinTableaux(['A', 3, 1], [[2,1], [2,1], [2,1]])
             sage: T = KRT(pathlist=[[4, 2], [3, 1], [2, 1]])
@@ -225,6 +224,9 @@ class TensorProductOfKirillovReshetikhinTableauxElement(TensorProductOfCrystalsE
             <BLANKLINE>
             0[ ]0
             <BLANKLINE>
+
+        Type `D_n^{(1)}` example::
+
             sage: KRT = TensorProductOfKirillovReshetikhinTableaux(['D', 4, 1], [[2,2]])
             sage: T = KRT(pathlist=[[2,1,4,3]])
             sage: T
@@ -239,19 +241,68 @@ class TensorProductOfKirillovReshetikhinTableauxElement(TensorProductOfCrystalsE
             0[ ]0
             <BLANKLINE>
             (/)
+
+        Type `D_n^{(1)}` spinor example::
+
+            sage: CP = TensorProductOfKirillovReshetikhinTableaux(['D', 5, 1], [[5,1],[2,1],[1,1],[1,1],[1,1]])
+            sage: elt = CP(pathlist=[[-2,-5,4,3,1],[-1,2],[1],[1],[1]])
+            sage: elt
+            [[1], [3], [4], [-5], [-2]] (X) [[2], [-1]] (X) [[1]] (X) [[1]] (X) [[1]]
+            sage: elt.to_rigged_configuration()
+            <BLANKLINE>
+            2[ ][ ]1
+            <BLANKLINE>
+            0[ ][ ]0
+            0[ ]0
+            <BLANKLINE>
+            0[ ][ ]0
+            0[ ]0
+            <BLANKLINE>
+            0[ ]0
+            <BLANKLINE>
+            0[ ][ ]0
+            <BLANKLINE>
+
+        This is invertible by calling
+        :meth:`~sage.combinat.rigged_configurations.rigged_configuration_element.RiggedConfigurationElement.to_tensor_product_of_Kirillov_Reshetikhin_tableaux()`::
+
+            sage: KRT = TensorProductOfKirillovReshetikhinTableaux(['D', 4, 1], [[2,2]])
+            sage: T = KRT(pathlist=[[2,1,4,3]])
+            sage: rc = T.to_rigged_configuration()
+            sage: ret = rc.to_tensor_product_of_Kirillov_Reshetikhin_tableaux(); ret
+            [[1, 3], [2, 4]]
+            sage: ret == T
+            True
         """
 
         bijection = KRTToRCBijection(self)
+        type = self.parent().cartan_type().letter
+        n = self.parent().cartan_type().n
 
         for cur_crystal in reversed(self):
+            r = cur_crystal.parent().r()
             # Iterate through the columns
             for col_number, cur_column in enumerate(reversed(cur_crystal.to_array(False))):
                 bijection.cur_path.insert(0, []) # Prepend an empty list
 
+                # Check to see if we are a spinor column
+                if type == 'D' and r >= n-1:
+                    if display_steps:
+                        print "===================="
+                        print repr(TensorProductOfKirillovReshetikhinTableauxElement(self.parent(), *bijection.cur_path))
+                        print "--------------------"
+                        print repr(bijection.ret_rig_con)
+                        print "--------------------\n"
+                        print "Applied doubling map"
+                    bijection.doubling_map()
+
+                bijection.cur_dims.insert(0, [0, 1])
+
                 # Note that we do not need to worry about iterating over columns
                 #   (see previous note about the data structure).
-                # height is the height of the current tableau
-                for height, letter in enumerate(reversed(cur_column)):
+                for letter in reversed(cur_column):
+                    if bijection.cur_dims[0][0] < r:
+                        bijection.cur_dims[0][0] += 1
                     val = letter.value # Convert from a CrystalOfLetter to an Integer
 
                     if display_steps:
@@ -262,23 +313,62 @@ class TensorProductOfKirillovReshetikhinTableauxElement(TensorProductOfCrystalsE
                         print "--------------------\n"
 
                     # Build the next state
-                    # FIXME: Remove the single object list around letter
                     bijection.cur_path[0].insert(0, [letter]) # Prepend the value
-                    bijection.next_state(val, height)
+                    bijection.next_state(val)
+
+                # Check to see if we are a spinor column
+                if type == 'D' and r >= n-1:
+                    if display_steps:
+                        print "===================="
+                        print repr(TensorProductOfKirillovReshetikhinTableauxElement(self.parent(), *bijection.cur_path))
+                        print "--------------------"
+                        print repr(bijection.ret_rig_con)
+                        print "--------------------\n"
+                        print "Applied halving map"
+                    bijection.halving_map()
 
                 # If we've split off a column, we need to merge the current column
                 #   to the current crystal tableau
                 if col_number > 0:
                     for i, letter_singleton in enumerate(bijection.cur_path[0]):
                         bijection.cur_path[1][i].insert(0, letter_singleton[0])
-                    bijection.cur_path.pop(0)
+                    bijection.cur_dims.pop(0)
+                    bijection.cur_dims[0][1] += 1
 
                     # And perform the inverse column splitting map on the RC
-                    for a in range(self.parent().cartan_type().n):
+                    for a in range(n):
                         bijection._update_vacancy_nums(a)
 
         bijection.ret_rig_con.set_immutable() # Return it to immutable
         return(bijection.ret_rig_con)
+
+    def to_tensor_product_of_Kirillov_Reshetikhin_crystals(self):
+        """
+        Return a tensor product of Kirillov-Reshetikhin crystals corresponding
+        to ``self``.
+
+        This works by performing the filling map on each individual factor.
+        For more on the filling map, see :class:`KirillovReshetikhinTableaux`.
+
+        EXAMPLES::
+
+            sage: KRT = TensorProductOfKirillovReshetikhinTableaux(['D',4,1], [[1,1],[2,2]])
+            sage: elt = KRT(pathlist=[[-1],[-1,2,-1,1]]); elt
+            [[-1]] (X) [[2, 1], [-1, -1]]
+            sage: tp_krc = elt.to_tensor_product_of_Kirillov_Reshetikhin_crystals(); tp_krc
+            [[[-1]], [[2], [-1]]]
+
+        We can recover the original tensor product of KR tableaux::
+
+            sage: KRT(tp_krc)
+            [[-1]] (X) [[2, 1], [-1, -1]]
+            sage: ret = KRT(*tp_krc); ret
+            [[-1]] (X) [[2, 1], [-1, -1]]
+            sage: ret == elt
+            True
+        """
+        TP = self.parent().tensor_product_of_Kirillov_Reshetikhin_crystals()
+        return TP(*[x.to_Kirillov_Reshetikhin_crystal() for x in self])
 
 #    FIXME
 #    def is_highest_weight(self, **options):

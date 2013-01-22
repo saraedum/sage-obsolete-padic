@@ -1123,6 +1123,12 @@ cdef class BooleanPolynomialRing(MPolynomialRing_generic):
             Traceback (most recent call last):
             ...
             ValueError: Cannot generate random polynomial with 5 terms using 2 variables
+
+        We test that :trac:`13845` is fixed::
+
+            sage: n = 10
+            sage: B = BooleanPolynomialRing(n, 'x')
+            sage: r = B.random_element(terms=(n/2)**2)
         """
         from sage.rings.integer import Integer
         from sage.rings.arith import binomial
@@ -1138,12 +1144,16 @@ cdef class BooleanPolynomialRing(MPolynomialRing_generic):
                 terms = 2
             elif nvars == 1:
                 terms = 1
+        else:
+            terms = Integer(terms)
 
         if degree is None:
             if nvars > 1:
                 degree = 2
             else:
                 degree = 1
+        else:
+            degree = Integer(degree)
 
         if degree > nvars:
             raise ValueError, "Given degree should be less than or equal to number of variables (%s)"%(nvars)
@@ -1604,57 +1614,6 @@ cdef class BooleanPolynomialRing(MPolynomialRing_generic):
 
         for elt in blocks:
             self._pbring.ordering().appendBlock(elt)
-
-    def _change_ordering(self, int order):
-        r"""
-        Change the ordering of this boolean polynomial ring. Do NOT call
-        this method, unless you know very well what you are doing.
-        
-        INPUT:
-        
-        
-        -  ``order`` - an integer (0 = order = 4)
-        
-        
-        EXAMPLE::
-        
-            sage: B.<x,y,z> = BooleanPolynomialRing(3,order='deglex')
-            sage: y*z > x
-            True
-        
-        Now we call the internal method and change the ordering to 'lex'::
-        
-            sage: B._change_ordering(0)
-            sage: y*z > x
-            False
-        
-        However, this change is not - and should not be - picked up by the
-        public interface.
-        
-        ::
-        
-            sage: B.term_order()
-            Degree lexicographic term order
-
-       Resetting ordering
-        
-        ::
-
-            sage: B._change_ordering(1)
-            sage: y*z > x
-            True
-               
-        .. warning::
-
-           Do not use this method. It is provided for compatibility
-           reasons with PolyBoRi but parents are supposed to be
-           immutable in Sage.
-        """
-        if order < 0 or order > 4:
-            raise ValueError, "order value %s is not supported"%(order)
-        self._pbring.changeOrdering(<ordercodes>order)
-
-
 
     def one(self):
         """
@@ -5028,12 +4987,26 @@ class BooleanPolynomialIdeal(MPolynomialIdeal):
              b211*b212 + b211 + b212 + 1, c111 + 1, c112 + 1]
 
 
-        The following example shows whether boolean constants are handled correctly.
+        The following example shows whether boolean constants are handled correctly::
 
             sage: P.<x,y,z> = BooleanPolynomialRing(3)
             sage: I = Ideal([x*z + y*z + z, x*y + x*z + x + y*z + y + z])
             sage: I.groebner_basis()
             [x, y, z]
+
+        Check that this no longer crash (:trac:`12792`)::
+
+            sage: names = [ "s{0}s{1}".format(i,j) for i in range(4) for j in range(8)]
+            sage: R = BooleanPolynomialRing( 32, names)
+            sage: R.inject_variables()
+            Defining s0s0, ...
+            sage: problem = [s1s0*s1s1, s0s0*s0s1 + s0s0 + s0s1 + s2s0 + s3s0*s3s1 + s3s0 + s3s1,
+            ...              s1s1 + s2s0 + s3s0 + s3s1 + 1, s0s0*s0s1 + s1s1 + s3s0*s3s1 + s3s0,
+            ...              s0s1 + s1s0 + s1s1 + s3s0, s0s0*s0s1 + s0s0 + s0s1 + s1s1 + s2s0 + s3s1,
+            ...              s0s1 + s1s0, s0s0*s0s1 + s0s0 + s0s1 + s1s0 + s2s0 + s3s1,
+            ...              s0s0 + s2s0 + s3s0*s3s1 + s3s0 + 1, s0s0 + s1s1]
+            sage: ideal(problem).groebner_basis()
+            [1]
 
         """
         try:
@@ -6246,6 +6219,7 @@ cdef class ReductionStrategy:
             sage: red = ReductionStrategy(B)
         """
         self._strat = PBRedStrategy_new((<BooleanPolynomialRing>ring)._pbring)
+        self._borrowed = False
         self._parent = ring
 
     def __dealloc__(self):
@@ -6257,7 +6231,7 @@ cdef class ReductionStrategy:
             sage: red = ReductionStrategy(B)
             sage: del(red)
         """
-        if self._strat:
+        if self._strat and not self._borrowed:
             PBRedStrategy_delete(self._strat)
 
     def add_generator(self, BooleanPolynomial p):
@@ -6536,15 +6510,23 @@ cdef class FGLMStrategy:
             sage: x > y > z                                               
             True                                                          
             sage: old_ring  = B
-            sage: B._change_ordering(dp_asc)                                 
-            sage: x > y > z                           
-            False                                           
-            sage: z > y > x
-            True
             sage: new_ring = B.clone(ordering=lp) 
+            sage: new_ring.gen(0) > new_ring.gen(1) > new_ring.gen(2)
+            True
+            sage: new_ring.gen(2) > new_ring.gen(1) > new_ring.gen(0)
+            False
             sage: ideal = BooleanPolynomialVector([x+z, y+z])
             sage: FGLMStrategy(old_ring, new_ring, ideal)
             <sage.rings.polynomial.pbori.FGLMStrategy object at 0x...>
+
+        Check that :trac:`13883` is fixed:
+
+            sage: nonreduced = BooleanPolynomialVector([x+z, x+y])
+            sage: FGLMStrategy(old_ring, new_ring, nonreduced) # optional - debug
+            Traceback (most recent call last):
+            ...
+            RuntimeError...
+
         """
         cdef BooleanPolynomialRing _from_ring, _to_ring
 
@@ -6561,9 +6543,10 @@ cdef class FGLMStrategy:
             _to_ring = <BooleanPolynomialRing>to_ring.ring
         else:
             raise TypeError("to_ring has wrong type %s"%(type(to_ring),))
-
+        sig_on()
         self._strat = PBFglmStrategy_Constructor(_from_ring._pbring, _to_ring._pbring, vec._vec)
         self._parent = to_ring
+        sig_off()
 
     def __dealloc__(self):
         pass # destruction by c++ destructor
@@ -6626,6 +6609,7 @@ cdef class GroebnerStrategy:
         self.reduction_strategy = ReductionStrategy(self._parent)
         PBRedStrategy_delete(self.reduction_strategy._strat)
         self.reduction_strategy._strat =  &self._strat.generators
+        self.reduction_strategy._borrowed = True
 
     def __dealloc__(self):
         """
@@ -6638,7 +6622,10 @@ cdef class GroebnerStrategy:
             sage: del G
             sage: del H
         """
-        self.reduction_strategy._strat = NULL
+        # See trac #12313 and #13746:
+        # self.reduction_strategy will be deleted by Python,
+        # and thus self.reduction_strategy._strat will be freed there.
+        #self.reduction_strategy._strat = NULL
         if self._count.released():
             del self._strat
 

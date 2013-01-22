@@ -437,6 +437,12 @@ def milnor_multiplication_odd(m1,m2,p):
         sage: A.P(36,6)*A.P(27,9,81)
         2 P(13,21,83) + P(14,24,82) + P(17,20,83) + P(25,18,83) + P(26,21,82) + P(36,15,80,1) + P(49,12,83) + 2 P(50,15,82) + 2 P(53,11,83) + 2 P(63,15,81)
 
+    Associativity once failed because of a sign error::
+
+        sage: a,b,c = A.Q_exp(0,1), A.P(3), A.Q_exp(1,1)
+        sage: (a*b)*c == a*(b*c)
+        True
+
     This uses the same algorithm Monks does in his Maple package to
     iterate through the possible matrices: see
     http://mathweb.scranton.edu/monks/software/Steenrod/steen.html.
@@ -473,7 +479,7 @@ def milnor_multiplication_odd(m1,m2,p):
                         ind = len(q_mono.intersection(range(k+i,1+max(q_mono))))
                     else:
                         ind = 0
-                    coeff = (-1)**ind
+                    coeff = (-1)**ind * old_answer[mono]
                     lst = list(mono[0])
                     if ind == 0:
                         lst.append(k+i)
@@ -894,8 +900,14 @@ def make_mono_admissible(mono, p=2):
         {(5, 1): 1}
         sage: make_mono_admissible((0, 2, 0, 1, 0), p=7)
         {(0, 3, 0): 3}
+
+    Test the fix from :trac:`13796`::
+
+        sage: SteenrodAlgebra(p=2, basis='adem').Q(2) * (Sq(6) * Sq(2)) # indirect doctest
+        Sq^10 Sq^4 Sq^1 + Sq^10 Sq^5 + Sq^12 Sq^3 + Sq^13 Sq^2
     """
     from sage.rings.all import GF
+    F = GF(p)
     if len(mono) == 1:
         return {mono: 1}
     if p==2 and len(mono) == 2:

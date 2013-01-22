@@ -127,3 +127,7 @@ from crystals import Crystals
 from highest_weight_crystals import HighestWeightCrystals
 from finite_crystals import FiniteCrystals
 from classical_crystals import ClassicalCrystals
+
+# polyhedra
+from sage.misc.lazy_import import lazy_import
+lazy_import('sage.categories.polyhedra', 'PolyhedralSets')
