@@ -9543,3 +9543,7 @@ sage/algebras/letterplace/free_algebra_letterplace.cpp
 sage/algebras/letterplace/letterplace_ideal.cpp
 sage/numerical/backends/ppl_backend.c
 sage/numerical/linear_functions.c
+cython_debug/
+sage/graphs/hyperbolicity.c
+sage/misc/lazy_list.c
+sage/modules/finite_submodule_iter.c
