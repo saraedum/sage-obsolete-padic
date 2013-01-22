@@ -147,7 +147,7 @@ class CoxeterGroups(Category_singleton):
             EXAMPLES::
 
                 sage: W=WeylGroup(['A',3])
-                sage: W.some_elements()   
+                sage: W.some_elements()
                 [[0 1 0 0]
                 [1 0 0 0]
                 [0 0 1 0]
@@ -168,7 +168,7 @@ class CoxeterGroups(Category_singleton):
                 [1 0 0 0]
                 [0 1 0 0]
                 [0 0 1 0]]
-                sage: W.order()    
+                sage: W.order()
                 24
             """
             return list(self.simple_reflections()) + [ self.one(), self.an_element() ]
@@ -326,7 +326,7 @@ class CoxeterGroups(Category_singleton):
             INPUT:
 
             - ``word`` - a list (or iterable) of elements of ``self.index_set()``
-  
+
             Returns the group element corresponding to the given
             word. Namely, if ``word`` is `[i_1,i_2,\ldots,i_k]`, then
             this returns the corresponding product of simple
@@ -338,7 +338,7 @@ class CoxeterGroups(Category_singleton):
 
             EXAMPLES::
 
-                sage: W = CoxeterGroups().example()                     
+                sage: W = CoxeterGroups().example()
                 sage: W
                 The symmetric group on {0, ..., 3}
                 sage: s = W.simple_reflections()
@@ -391,13 +391,13 @@ class CoxeterGroups(Category_singleton):
             """
             INPUT:
 
-            - ``i`` - an element from the index set. 
-  
+            - ``i`` - an element from the index set.
+
             Returns the simple reflection `s_i`
 
             EXAMPLES::
 
-                sage: W = CoxeterGroups().example()                     
+                sage: W = CoxeterGroups().example()
                 sage: W
                 The symmetric group on {0, ..., 3}
                 sage: W.simple_reflection(1)
@@ -417,7 +417,7 @@ class CoxeterGroups(Category_singleton):
 
             EXAMPLES::
 
-                sage: W = CoxeterGroups().example()                     
+                sage: W = CoxeterGroups().example()
                 sage: W
                 The symmetric group on {0, ..., 3}
                 sage: s = W.simple_reflections()
@@ -475,13 +475,13 @@ class CoxeterGroups(Category_singleton):
             - ``i`` - an element of the index set of self
 
             Returns the simple projection `\pi_i` (or `\overline\pi_i` if toward_max is False).
-             
+
             See :meth:`.simple_projections` for the options. and for
             the definition of the simple projections.
- 
+
             EXAMPLES::
 
-                sage: W = CoxeterGroups().example()                     
+                sage: W = CoxeterGroups().example()
                 sage: W
                 The symmetric group on {0, ..., 3}
                 sage: s = W.simple_reflections()
@@ -497,7 +497,7 @@ class CoxeterGroups(Category_singleton):
                 4
                 sage: u0(sigma)
                 (2, 1, 3, 0)
-                sage: pi    
+                sage: pi
                 (2, 1, 3, 0)
                 sage: u0(pi)
                 (2, 1, 3, 0)
@@ -547,7 +547,7 @@ class CoxeterGroups(Category_singleton):
 
             EXAMPLES::
 
-                sage: W = CoxeterGroups().example()                     
+                sage: W = CoxeterGroups().example()
                 sage: W
                 The symmetric group on {0, ..., 3}
                 sage: s = W.simple_reflections()
@@ -568,9 +568,9 @@ class CoxeterGroups(Category_singleton):
         def bruhat_interval(self, x, y):
             """
             Returns the list of t such that x <= t <= y.
-    
+
             EXAMPLES::
-    
+
                 sage: W = WeylGroup("A3", prefix="s")
                 sage: [s1,s2,s3]=W.simple_reflections()
                 sage: W.bruhat_interval(s2,s1*s3*s2*s1*s3)
@@ -629,7 +629,7 @@ class CoxeterGroups(Category_singleton):
                         tester.assert_(not opi[i](w).has_descent(i, side = side))
                         tester.assertEquals(set([pi[i](w), opi[i](w)]),
                                             set([w, w.apply_simple_reflection(i, side = side)]))
-                        
+
 
         def _test_has_descent(self, **options):
             """
@@ -698,7 +698,7 @@ class CoxeterGroups(Category_singleton):
                 assert side == 'left'
                 return self.has_left_descent(i)  != positive
 
-        @abstract_method(optional = True)
+#        @abstract_method(optional = True)
         def has_right_descent(self, i):
             """
             Returns whether ``i`` is a right descent of self.
@@ -716,6 +716,7 @@ class CoxeterGroups(Category_singleton):
                 sage: w.has_right_descent(2)
                 True
             """
+            return (~self).has_left_descent(i)
 
         def has_left_descent(self, i):
             """
@@ -1270,7 +1271,7 @@ class CoxeterGroups(Category_singleton):
 
             EXAMPLES::
 
-                sage: W=WeylGroup(['B',7])          
+                sage: W=WeylGroup(['B',7])
                 sage: w=W.an_element()
                 sage: u=w.inverse()
                 sage: u==~w
@@ -1347,7 +1348,7 @@ class CoxeterGroups(Category_singleton):
             The algorithm works recursively, using the 'inverse' of the method described for
             lower covers :meth:`bruhat_lower_covers`. Namely, it runs through all `i` in the
             index set: if `w`=``self`` has no right descent `i`, then `w s_i` is a cover;
-            if `w` has a decent at `i`, then `u_j s_i` is a cover of `w` where `u_j` is a cover 
+            if `w` has a decent at `i`, then `u_j s_i` is a cover of `w` where `u_j` is a cover
             of `w s_i`.
 
             EXAMPLES::
@@ -1372,7 +1373,7 @@ class CoxeterGroups(Category_singleton):
             Covers = []
             for i in self.parent().index_set():
                 if i in self.descents():
-                    Covers += [ x.apply_simple_reflection(i) for x in self.apply_simple_reflection(i).bruhat_upper_covers() 
+                    Covers += [ x.apply_simple_reflection(i) for x in self.apply_simple_reflection(i).bruhat_upper_covers()
                                 if i not in x.descents() ]
                 else:
                     Covers += [ self.apply_simple_reflection(i) ]
