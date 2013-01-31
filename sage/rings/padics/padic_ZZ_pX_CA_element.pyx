@@ -255,28 +255,26 @@ cdef class pAdicZZpXCAElement(pAdicZZpXElement):
         cdef ZZ_c tmp_z
         cdef Py_ssize_t i
         cdef Integer tmp_Int
+        cdef Integer xlift
         if PY_TYPE_CHECK(x, pAdicGenericElement):
-            if parent.prime() != x.parent().prime():
-                raise TypeError, "Cannot coerce between p-adic parents with different primes."
             if x.valuation() < 0:
                 raise ValueError, "element has negative valuation"
-        if PY_TYPE_CHECK(x, pAdicBaseGenericElement):
-            mpz_init(tmp)
-            (<pAdicBaseGenericElement>x)._set_mpz_into(tmp)
-            if mpz_sgn(tmp) == 0:
-                if (<pAdicBaseGenericElement>x)._is_exact_zero():
-                    self._set_inexact_zero(aprec)
-                    mpz_clear(tmp)
-                    return
-            ltmp = mpz_get_si((<Integer>x.precision_absolute()).value) * self.prime_pow.e
-            if ltmp < aprec:
-                aprec = ltmp
-            if relprec is infinity:
-                self._set_from_mpz_abs(tmp, aprec)
-            else:
-                self._set_from_mpz_both(tmp, aprec, rprec)
-            mpz_clear(tmp)
-            return
+            if x._is_base_elt(self.prime_pow.prime):
+                xlift = <Integer>x.lift()
+                if mpz_sgn(xlift.value) == 0:
+                    if (<pAdicGenericElement>x)._is_exact_zero():
+                        self._set_inexact_zero(aprec)
+                        return
+                ltmp = mpz_get_si((<Integer>x.precision_absolute()).value) * self.prime_pow.e
+                if ltmp < aprec:
+                    aprec = ltmp
+                if relprec is infinity:
+                    self._set_from_mpz_abs(xlift.value, aprec)
+                else:
+                    self._set_from_mpz_both(xlift.value, aprec, rprec)
+                return
+            if parent.prime() != x.parent().prime():
+                raise TypeError, "Cannot coerce between p-adic parents with different primes."
         if isinstance(x, pari_gen):
             if x.type() == "t_PADIC":
                 if x.variable() != self.prime_pow.prime:

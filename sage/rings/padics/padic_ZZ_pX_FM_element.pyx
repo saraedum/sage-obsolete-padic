@@ -184,14 +184,12 @@ cdef class pAdicZZpXFMElement(pAdicZZpXElement):
         if PY_TYPE_CHECK(x, pAdicGenericElement):
             if x.valuation() < 0:
                 raise ValueError, "element has negative valuation"
+            if x._is_base_elt(self.prime_pow.prime):
+                xlift = <Integer>x.lift()
+                self._set_from_mpz(xlift.value)
+                return
             if parent.prime() != x.parent().prime():
                 raise TypeError, "Cannot coerce between p-adic parents with different primes."
-        if PY_TYPE_CHECK(x, pAdicBaseGenericElement):
-            mpz_init(tmp)
-            (<pAdicBaseGenericElement>x)._set_mpz_into(tmp)
-            self._set_from_mpz(tmp)
-            mpz_clear(tmp)
-            return
         if isinstance(x, pari_gen):
             if x.type() == "t_PADIC":
                 if x.variable() != self.prime_pow.prime:

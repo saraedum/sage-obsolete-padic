@@ -279,32 +279,29 @@ cdef class pAdicZZpXCRElement(pAdicZZpXElement):
             else:
                 aprec = mpz_get_si((<Integer>absprec).value)
         cdef mpz_t tmp
-        cdef mpq_t tmp_q
         cdef ZZ_c tmp_z
         cdef Py_ssize_t i
         cdef Integer tmp_Int
+        cdef Rational xlift
         if PY_TYPE_CHECK(x, pAdicGenericElement):
             if self.prime_pow.in_field == 0 and x.valuation() < 0:
                 raise ValueError, "element has negative valuation"
+            if x._is_base_elt(self.prime_pow.prime):
+                xlift = Rational(x.lift())
+                if mpq_sgn(xlift.value) == 0:
+                    if (<pAdicGenericElement>x)._is_exact_zero():
+                        if absprec is infinity:
+                            self._set_exact_zero()
+                        else:
+                            self._set_inexact_zero(aprec)
+                        return
+                ltmp = mpz_get_si((<Integer>x.precision_absolute()).value) * self.prime_pow.e
+                if absprec is infinity or ltmp < aprec:
+                    aprec = ltmp
+                self._set_from_mpq_both(xlift.value, aprec, rprec)
+                return
             if parent.prime() != x.parent().prime():
                 raise TypeError, "Cannot coerce between p-adic parents with different primes."
-        if PY_TYPE_CHECK(x, pAdicBaseGenericElement):
-            mpq_init(tmp_q)
-            (<pAdicBaseGenericElement>x)._set_mpq_into(tmp_q)
-            if mpq_sgn(tmp_q) == 0:
-                if (<pAdicBaseGenericElement>x)._is_exact_zero():
-                    if absprec is infinity:
-                        self._set_exact_zero()
-                    else:
-                        self._set_inexact_zero(aprec)
-                    mpq_clear(tmp_q)
-                    return
-            ltmp = mpz_get_si((<Integer>x.precision_absolute()).value) * self.prime_pow.e
-            if absprec is infinity or ltmp < aprec:
-                aprec = ltmp
-            self._set_from_mpq_both(tmp_q, aprec, rprec)
-            mpq_clear(tmp_q)
-            return
         if isinstance(x, pari_gen):
             if x.type() == "t_PADIC":
                 if x.variable() != self.prime_pow.prime:
