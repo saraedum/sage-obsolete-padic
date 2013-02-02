@@ -946,8 +946,9 @@ cdef class pAdicGenericElement(LocalGenericElement):
             5 + O(5^2)
             sage: r._shifted_log(4)
             5 + 3*5^2 + 4*5^3 + O(5^4)
-            sage: r._shifted_log(100) 
-            5 + 3*5^2 + 4*5^3 + 4*5^4 + O(5^5)
+
+        #sage: r._shifted_log(100) 
+        #5 + 3*5^2 + 4*5^3 + 4*5^4 + O(5^5)
 
             sage: r = Zp(5,prec=4,type='fixed-mod')(5)
             sage: r._shifted_log(5) 
