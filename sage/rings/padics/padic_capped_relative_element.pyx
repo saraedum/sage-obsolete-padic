@@ -202,18 +202,18 @@ cdef class pAdicCappedRelativeElement(CRElement):
         return self._to_gen()
 
     cdef pari_gen _to_gen(self):
-         """
+        """
         Converts this element to an equivalent pari element.
- 
-         EXAMPLES::
-         
-            sage: R = Zp(5, 10); a = R(17); pari(a) #indirect doctest
-            2 + 3*5 + O(5^10)
-            sage: pari(R(0))
-            0
-            sage: pari(R(0,5))
-            O(5^5)
-         """
+
+        EXAMPLES::
+
+           sage: R = Zp(5, 10); a = R(17); pari(a) #indirect doctest
+           2 + 3*5 + O(5^10)
+           sage: pari(R(0))
+           0
+           sage: pari(R(0,5))
+           O(5^5)
+        """
         if exactzero(self.ordp):
             return P.new_gen_from_int(0)
         else:
