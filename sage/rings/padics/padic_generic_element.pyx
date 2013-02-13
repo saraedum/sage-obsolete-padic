@@ -483,11 +483,6 @@ cdef class pAdicGenericElement(LocalGenericElement):
         
         - ``name`` -- string: the name of the variable
 
-        OUTPUT:
-        
-        - ``polynomial`` -- a minimal polynomial of this `p`-adic element,
-          i.e., ``x - self``
-
         EXAMPLES::
 
             sage: Zp(5,5)(1/3).minimal_polynomial('x')
@@ -500,21 +495,16 @@ cdef class pAdicGenericElement(LocalGenericElement):
         """
         Returns the norm of this `p`-adic element over the ground ring.
 
-        NOTE!  This is not the `p`-adic absolute value.  This is a field
-        theoretic norm down to a ground ring.  If you want the `p`-adic
-        absolute value, use the ``abs()`` function instead.
+        .. WARNING::
+
+            This is not the `p`-adic absolute value.  This is a field
+            theoretic norm down to a ground ring.  If you want the
+            `p`-adic absolute value, use the ``abs()`` function
+            instead.
 
         INPUT:
-        
-        - ``self`` -- a `p`-adic element
-        
-        - ``ground`` -- a subring of the ground ring (default: base
-          ring)
 
-        OUTPUT:
-        
-        - element -- the norm of this `p`-adic element over the ground
-          ring
+        - ``ground`` -- a subring of the parent (default: base ring)
 
         EXAMPLES::
 
@@ -522,7 +512,7 @@ cdef class pAdicGenericElement(LocalGenericElement):
             5 + O(5^21)
         """
         if (ground is not None) and (ground != self.parent()):
-            raise ValueError, "Ground Field not a subfield"
+            raise ValueError("Ground Ring not a subfield")
         else:
             return self
 
@@ -531,19 +521,17 @@ cdef class pAdicGenericElement(LocalGenericElement):
         Returns the trace of this `p`-adic element over the ground ring
 
         INPUT:
-        
-        - ``self`` -- a `p`-adic element
 
         - ``ground`` -- a subring of the ground ring (default: base
           ring)
 
         OUTPUT:
-        
+
         - ``element`` -- the trace of this `p`-adic element over the
           ground ring
 
         EXAMPLES::
-        
+
             sage: Zp(5,5)(5).trace()
             5 + O(5^6)
         """
