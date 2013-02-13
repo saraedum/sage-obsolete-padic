@@ -51,6 +51,16 @@ AUTHORS:
 - David Roe (2012-3-1) -- initial version
 """
 
+#*****************************************************************************
+#       Copyright (C) 2012 David Roe <roed@math.harvard.edu>
+#                          William Stein <wstein@gmail.com>
+#
+#  Distributed under the terms of the GNU General Public License (GPL)
+#
+#                  http://www.gnu.org/licenses/
+#*****************************************************************************
+
+
 cdef inline int cconstruct(celement value, PowComputer_class prime_pow) except -1:
     """
     Construct a new element.
@@ -82,14 +92,16 @@ cdef inline int ccmp(celement a, celement b, long prec, bint reduce_a, bint redu
     - ``a`` -- an ``celement``
     - ``b`` -- an ``celement``
     - ``prec`` -- a long, the precision of the comparison
-    - ``reduce_a`` -- a bint, whether a needs to be reduced
-    - ``reduce_b`` -- a bint, whether b needs to be reduced
+    - ``reduce_a`` -- a bint, whether ``a`` needs to be reduced
+    - ``reduce_b`` -- a bint, whether ``b`` needs to be reduced
     - ``prime_pow`` -- the PowComputer for the ring
 
     OUPUT:
 
-    - If neither a nor be needs to be reduced, returns -1 (a < b), 0 (a == b) or 1 (a > b)
-    - If at least one needs to be reduced, returns 0 (a == b mod p^prec) or 1 (otherwise)
+    - If neither ``a`` nor ``b`` needs to be reduced, returns
+      -1 (if `a < b`), 0 (if `a == b`) or 1 (if `a > b`)
+
+    - If at least one needs to be reduced, returns 0 (if a == b mod p^prec) or 1 (otherwise)
     """
     pass
 
@@ -145,8 +157,9 @@ cdef inline bint creduce_small(celement out, celement a, long prec, PowComputer_
     """
     Reduce modulo a power of the maximal ideal
 
-    This function assumes that the input satisfies `-p <= a < 2p`, 
-    so that it doesn't need any divisions.
+    This function assumes that at most one addition/subtraction has
+    happened on reduced inputs.  For integral inputs this translates
+    to the assumption that `-p^prec < a < 2p^prec`.
 
     INPUT:
 
@@ -174,7 +187,8 @@ cdef inline long cremove(celement out, celement a, long prec, PowComputer_class 
 
     OUTPUT:
 
-    - if `a = 0`, returns prec.  Otherwise, returns the number of times p divides a
+    - if `a = 0`, returns prec (the value of ``out`` is undefined).
+      Otherwise, returns the number of times `p` divides `a`.
     """
     pass
 
@@ -218,7 +232,7 @@ cdef inline int cshift(celement out, celement a, long n, long prec, PowComputer_
     INPUT:
 
     - ``out`` -- an ``celement`` to store the result.  If `n >= 0` then out will be set to `a * p^n`.
-                 If `n < 0`, out will be set to `a // p^n`.
+                 If `n < 0`, out will be set to `a // p^-n`.
     - ``a`` -- the element to shift
     - ``n`` -- long, the amount to shift by
     - ``prec`` -- long, a precision modulo which to reduce
@@ -234,7 +248,7 @@ cdef inline int cshift0(celement out, celement a, long n, long prec, PowComputer
     INPUT:
 
     - ``out`` -- an ``celement`` to store the result.  If `n >= 0` then out will be set to `a * p^n`.
-                 If `n < 0`, out will be set to `a // p^n`.
+                 If `n < 0`, out will be set to `a // p^-n`.
     - ``a`` -- the element to shift.  Assumes that the valuation of a is at least -n
     - ``n`` -- long, the amount to shift by
     - ``prec`` -- long, a precision modulo which to reduce
@@ -394,7 +408,7 @@ cdef inline cpickle(celement a, PowComputer_class prime_pow):
 
     OUTPUT:
 
-    - an Integer storing ``a``.
+    - a serializable object storing ``a``.
     """
     pass
 
@@ -427,7 +441,9 @@ cdef clist(celement a, long prec, bint pos, PowComputer_class prime_pow):
     """
     Returns a list of digits in the series expansion
 
-    This function is used in printing, and expresses ``a`` as a series in the standard uniformizer ``p``.
+    This function is used in printing, and expresses ``a`` as a series
+    in the standard uniformizer ``p``.  Note that for extension
+    elements, "digits" could be lists themselves.
 
     INPUT:
 
@@ -514,7 +530,7 @@ cdef inline long cconv_mpqt(celement out, mpq_t x, long prec, bint absolute, Pow
     INPUT:
 
     - ``out`` -- an ``celement`` to store the output
-    - ``x`` -- an ``mpq_t`` giving the integer to be converted
+    - ``x`` -- an ``mpq_t`` giving the rational to be converted
     - ``prec`` -- a long, giving the precision desired: absolute or relative depending on the ``absolute`` input
     - ``absolute`` -- if False then extracts the valuation and returns it, storing the unit in ``out``;
                       if True then just reduces ``x`` modulo the precision.
