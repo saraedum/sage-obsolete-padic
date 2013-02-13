@@ -55,24 +55,35 @@ cdef inline int check_ordp(long ordp) except -1:
 cdef class pAdicTemplateElement(pAdicGenericElement):
     """
     A class for common functionality among the p-adic template classes.
+
+    INPUT:
+
+    - ``parent`` -- a local ring or field
+
+    - ``x`` -- data defining this element.  Various types are supported,
+      including ints, Integers, Rationals, PARI p-adics, integers mod `p^k`
+      and other Sage p-adics.
+
+    - ``absprec`` -- a cap on the absolute precision of this element
+
+    - ``relprec`` -- a cap on the relative precision of this element
+
+    EXAMPLES::
+
+        sage: Zp(17)(17^3, 8, 4)
+        17^3 + O(17^7)
     """
     def __init__(self, parent, x, absprec=infinity, relprec=infinity):
         """
         Initialization.
 
-        INPUT:
-
-        - ``parent`` -- a local ring or field
-        - ``x`` -- data defining this element.  Various types are supported, 
-          including ints, Integers, Rationals, PARI p-adics, integers mod `p^k` 
-          and other Sage p-adics.
-        - ``absprec`` -- a cap on the absolute precision of this element
-        - ``relprec`` -- a cap on the relative precision of this element
-
         EXAMPLES::
 
-            sage: Zp(5)(1/2,3)
+            sage: a = Zp(5)(1/2,3); a
             3 + 2*5 + 2*5^2 + O(5^3)
+            sage: type(a)
+            
+            sage: TestSuite(a).run()
         """
         self.prime_pow = <PowComputer_class?>parent.prime_pow
         pAdicGenericElement.__init__(self, parent)
@@ -101,7 +112,7 @@ cdef class pAdicTemplateElement(pAdicGenericElement):
 
     cdef int _set(self, x, long val, long xprec, absprec, relprec) except -1:
         """
-        Sets this element from given data computed in :meth:`__init__
+        Sets this element from given data computed in :meth:`__init__`
 
         INPUT:
 
@@ -115,7 +126,7 @@ cdef class pAdicTemplateElement(pAdicGenericElement):
 
     def __lshift__(pAdicTemplateElement self, shift):
         """
-        Multiplies ``self`` by ``p^shift``.
+        Multiplies ``self`` by ``pi^shift``.
 
         If ``shift`` is negative and this element does not lie in a field,
         digits may be truncated.  See ``__rshift__`` for details.
@@ -224,9 +235,15 @@ cdef class pAdicTemplateElement(pAdicGenericElement):
         return self._rshift_c(s)
 
     cdef pAdicTemplateElement _rshift_c(self, long shift):
+        """
+        Divides by ``p^shift`` and truncates (if the parent is not a field).
+        """
         raise NotImplementedError
 
     cdef int check_preccap(self) except -1:
+        """
+        Checks that this element doesn't have precision higher than allowed by the precision cap.
+        """
         raise NotImplementedError
 
     def lift_to_precision(self, absprec):
@@ -269,33 +286,35 @@ cdef class pAdicTemplateElement(pAdicGenericElement):
         return ans
 
     cdef pAdicTemplateElement lift_to_precision_c(self, long absprec):
+        """
+        Lifts this element to another with precision at least absprec.
+        """
         raise NotImplementedError
 
     def padded_list(self, n, lift_mode = 'simple'):
         """
-        Returns a list of coefficients of `p` starting with `p^0` up
-        to `p^n` exclusive (padded with zeros if needed).
+        Returns a list of coefficients of the uniformizer `\pi`
+        starting with `\pi^0` up to `\pi^n` exclusive (padded with
+        zeros if needed).
 
-        If a field element, starts at p^val instead.
+        For a field element of valuation `v`, starts at `\pi^v`
+        instead.
 
         INPUT:
-        
-        - ``self`` -- a `p`-adic element
-        
+
         - ``n`` - an integer
 
         - ``lift_mode`` - 'simple', 'smallest' or 'teichmuller'
-            
-        OUTPUT:
-        
-        - ``list`` -- the list of coefficients of ``self``
 
         EXAMPLES::
-        
+
             sage: R = Zp(7,4,'capped-abs'); a = R(2*7+7**2); a.padded_list(5)
             [0, 2, 1, 0, 0]
             sage: R = Zp(7,4,'fixed-mod'); a = R(2*7+7**2); a.padded_list(5)
             [0, 2, 1, 0, 0]
+
+        For elements with positive valuation, this function will
+        return a list with leading 0s if the parent is not a field::
 
             sage: R = Zp(7,3,'capped-rel'); a = R(2*7+7**2); a.padded_list(5)
             [0, 2, 1, 0, 0]
@@ -303,20 +322,14 @@ cdef class pAdicTemplateElement(pAdicGenericElement):
             [2, 1, 0, 0]
             sage: a.padded_list(3)
             [2, 1]
-
-        NOTE:
-
-        - For elements with positive valuation, this function will
-          return a list with leading 0s if the parent is not a field.
-
-        - The slice operators throw an error if asked for a slice
-          above the precision, while this function works
         """
         if lift_mode == 'simple' or lift_mode == 'smallest':
             # needs to be defined in the linkage file.
             zero = _list_zero
-        else:
+        elif lift_mode == 'teichmuller':
             zero = self.parent()(0,0)
+        else:
+            raise ValueError("%s not a recognized lift mode"%lift_mode)
         L = self.list(lift_mode)
         if self.prime_pow.in_field == 1:
             if self._is_exact_zero():
@@ -325,7 +338,14 @@ cdef class pAdicTemplateElement(pAdicGenericElement):
                 n -= self.valuation()
         return L[:n] + [zero] * (n - len(L))
 
-    cdef pAdicTemplateElement unit_part(self):
+    cpdef pAdicTemplateElement unit_part(self):
+        """
+        Returns the unit part of this element.
+
+        This is the `p`-adic element `u` in the same ring so that this
+        element is `\pi^v u`, where `\pi` is a uniformizer and `v` is
+        the valuation of this element.
+        """
         raise NotImplementedError
 
     cpdef bint _is_base_elt(self, p) except -1:
