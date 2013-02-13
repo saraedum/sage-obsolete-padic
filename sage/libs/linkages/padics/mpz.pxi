@@ -288,9 +288,7 @@ cdef inline int cinvert(mpz_t out, mpz_t a, long prec, PowComputer_class prime_p
     - ``prime_pow`` -- the PowComputer for the ring
     """
     cdef bint success
-    sig_on()
     success = mpz_invert(out, a, prime_pow.pow_mpz_t_tmp(prec)[0])
-    sig_off()
     if not success:
         raise ZeroDivisionError
     
@@ -325,12 +323,10 @@ cdef inline int cdivunit(mpz_t out, mpz_t a, mpz_t b, long prec, PowComputer_cla
     - ``prime_pow`` -- the PowComputer for the ring
     """
     cdef bint success
-    sig_on()
     success = mpz_invert(out, b, prime_pow.pow_mpz_t_tmp(prec)[0])
-    mpz_mul(out, a, out)
-    sig_off()
     if not success:
         raise ZeroDivisionError
+    mpz_mul(out, a, out)
 
 cdef inline int csetone(mpz_t out, PowComputer_class prime_pow) except -1:
     """
@@ -583,10 +579,15 @@ cdef int cconv(mpz_t out, x, long prec, long valshift, PowComputer_class prime_p
     INPUT:
 
     - ``out`` -- an ``mpz_t`` to store the output
+
     - ``x`` -- a Sage element that can be converted to a `p`-adic element
-    - ``prec`` -- a long, giving the precision desired: absolute if `valshift = 0`, 
-                  relative if `valshift > 0`
-    - ``valshift`` -- the power of the uniformizer to divide by before storing the result in ``out``
+
+    - ``prec`` -- a long, giving the precision desired: absolute if
+                  `valshift = 0`, relative if `valshift != 0`
+
+    - ``valshift`` -- the power of the uniformizer to divide by before
+      storing the result in ``out``.
+
     - ``prime_pow`` -- a PowComputer for the ring
     """
     cdef mpz_t tmpm
@@ -598,6 +599,8 @@ cdef int cconv(mpz_t out, x, long prec, long valshift, PowComputer_class prime_p
         if valshift > 0:
             mpz_divexact(out, (<Integer>x).value, prime_pow.pow_mpz_t_tmp(valshift)[0])
             mpz_mod(out, out, prime_pow.pow_mpz_t_tmp(prec)[0])
+        elif valshift < 0:
+            raise RuntimeError("Integer should not have negative valuation")
         else:
             mpz_mod(out, (<Integer>x).value, prime_pow.pow_mpz_t_tmp(prec)[0])
     elif PY_TYPE_CHECK(x, Rational):
@@ -614,7 +617,7 @@ cdef int cconv(mpz_t out, x, long prec, long valshift, PowComputer_class prime_p
             mpz_mul(out, out, holder.value)
         mpz_mod(out, out, prime_pow.pow_mpz_t_tmp(prec)[0])
     else:
-        raise NotImplementedError
+        raise NotImplementedError("No conversion defined")
 
 cdef inline long cconv_mpzt(mpz_t out, mpz_t x, long prec, bint absolute, PowComputer_class prime_pow) except -2:
     """
@@ -715,6 +718,10 @@ cdef inline int cconv_mpqt_out(mpq_t out, mpz_t x, long valshift, long prec, Pow
     - ``prime_pow`` -- a PowComputer for the ring
     """
     mpq_rational_reconstruction(out, x, prime_pow.pow_mpz_t_tmp(prec)[0])
+
+    # if valshift is nonzero then we starte with x as a p-adic unit,
+    # so there will be no powers of p in the numerator or denominator
+    # and the following operations yield reduced rationals.
     if valshift > 0:
         mpz_mul(mpq_numref(out), mpq_numref(out), prime_pow.pow_mpz_t_tmp(valshift)[0])
     elif valshift < 0:
