@@ -31,6 +31,7 @@ from sage.libs.pari.gen cimport gen as pari_gen
 from sage.rings.infinity import infinity
 
 cdef long maxordp = (1L << (sizeof(long) * 8 - 2)) - 1
+# The following Integer is used so that the functions here don't need to initialize an mpz_t.
 cdef Integer tmp = PY_NEW(Integer)
 
 include "../../libs/pari/decl.pxi"
