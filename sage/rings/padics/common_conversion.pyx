@@ -1,3 +1,27 @@
+r"""
+The functions in this file are used in creating new p-adic elements.
+
+When creating a new element, the user can specify a maximum absolute
+precision and/or a maximum relative precision in addition to the data
+defining the element.  Rather than creating a new element to larger
+precision than necessary (or possibly larger than is well defined, the
+functions in this file determine the appropriate valuation and
+precision of the result from the specified maxima and the data
+defining the new element.
+
+AUTHORS:
+
+- David Roe (2012-3-1)
+"""
+
+#*****************************************************************************
+#       Copyright (C) 2007-2012 David Roe <roed.math@gmail.com>
+#                               William Stein <wstein@gmail.com>
+#
+#  Distributed under the terms of the GNU General Public License (GPL)
+#
+#                  http://www.gnu.org/licenses/
+#*****************************************************************************
 
 from sage.rings.integer cimport Integer
 from sage.rings.rational cimport Rational
@@ -13,6 +37,18 @@ include "../../libs/pari/decl.pxi"
 include "../../ext/stdsage.pxi"
 
 cdef long get_ordp(x, PowComputer_class prime_pow) except? -10000:
+    """
+    This function determines the valuation of the `p`-adic element
+    that will result from the given data ``x``.
+
+    INPUT:
+
+    - ``x`` -- an Integer, Rational, element of \ZZ_p or \QQ_p, pari
+      `p`-adic element, or IntegerMod element of modulus `p^k`.
+
+    - a PowComputer associated to a `p`-adic ring, which determines
+      the ramification degree.
+    """
     cdef long k
     cdef Integer value
     cdef GEN pari_tmp
@@ -45,6 +81,20 @@ cdef long get_ordp(x, PowComputer_class prime_pow) except? -10000:
     return k * prime_pow.e
 
 cdef long get_preccap(x, PowComputer_class prime_pow) except? -10000:
+    """
+    This function determines the maximum absolute precision possible
+    for an element created from the given data ``x``.
+
+    If the element given is exact, this function will return ``maxordp``.
+
+    INPUT:
+
+    - ``x`` -- an Integer, Rational, element of \ZZ_p or \QQ_p, pari
+      `p`-adic element, or IntegerMod element of modulus `p^k`.
+
+    - a PowComputer associated to a `p`-adic ring, which determines
+      the ramification degree.
+    """
     cdef long k
     cdef Integer prec
     cdef GEN pari_tmp
@@ -68,6 +118,16 @@ cdef long get_preccap(x, PowComputer_class prime_pow) except? -10000:
     return k * prime_pow.e
 
 cdef long comb_prec(iprec, long prec) except? -10000:
+    """
+    This function returns the minimum of iprec and prec.
+
+    INPUT:
+
+    - ``iprec`` -- either infinity, an Integer, a Python int or
+      something that can be converted to an Integer.
+
+    - ``prec`` -- a long.
+    """
     if iprec is infinity: return prec
     cdef Integer intprec
     if PY_TYPE_CHECK(iprec, Integer):
@@ -83,7 +143,31 @@ cdef long comb_prec(iprec, long prec) except? -10000:
 
 cdef int _process_args_and_kwds(long *aprec, long *rprec, args, kwds, bint absolute, PowComputer_class prime_pow) except -1:
     """
-    This function obtains values for absprec and relprec from a combination of positional and keyword arguments.
+    This function obtains values for absprec and relprec from a
+    combination of positional and keyword arguments.
+
+    INPUT:
+
+    - ``args`` -- a tuple of positional arguments (at most two)
+
+    - ``kwds`` -- a dictionary of keyword arguments (only
+      ``'relprec'`` and ``'absprec'`` are used)
+
+    - ``absolute`` -- (boolean) whether the precision handling is relative or absolute
+
+    - ``prime_pow`` -- a
+      :class:`sage.rings.padics.pow_computer.PowComputer_class`
+      instance
+
+    OUTPUT:
+
+    - ``aprec`` -- (first argument) the maximum absolute precision of
+      the resulting element.
+
+    - ``rprec`` -- (second argument) the maximum relative precision of
+      the resulting element.
+
+    - error status
     """
     if kwds.has_key("empty"):
         # For backward compatibility
@@ -96,22 +180,14 @@ cdef int _process_args_and_kwds(long *aprec, long *rprec, args, kwds, bint absol
         if kwds.has_key("relprec"):
             raise TypeError, "_call_with_args() got multiple values for keyword argument 'relprec'"
         relprec = args[1]
-    elif kwds.has_key("relprec"):
-        relprec = kwds["relprec"]
     else:
-        relprec = infinity
-    if relprec is not infinity and not PY_TYPE_CHECK(relprec, Integer):
-        relprec = Integer(relprec)
+        relprec = kwds.get("relprec",infinity)
     if len(args) >= 1:
         if kwds.has_key("absprec"):
             raise TypeError, "_call_with_args() got multiple values for keyword argument 'absprec'"
         absprec = args[0]
-    elif kwds.has_key("absprec"):
-        absprec = kwds["absprec"]
     else:
-        absprec = infinity
-    if absprec is not infinity and not PY_TYPE_CHECK(absprec, Integer):
-        absprec = Integer(absprec)
+        absprec = kwds.get("absprec",infinity)
     if absolute:
         aprec[0] = comb_prec(absprec, prime_pow.prec_cap)
         rprec[0] = comb_prec(relprec, maxordp)
