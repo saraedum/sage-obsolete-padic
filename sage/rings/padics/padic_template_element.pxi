@@ -374,17 +374,17 @@ cdef Integer pow_helper(long *ansrelprec, long *exp_prec, long ordp, long relpre
 
     INPUT:
 
-    - ansrelprec -- (return value) the relative precision of the answer
+    - ``ansrelprec`` -- (return value) the relative precision of the answer
 
-    - exp_prec -- (return value) a nonnegative integer, or -1 to indicate infinite precision exponent
+    - ``exp_prec`` -- (return value) a nonnegative integer, or -1 to indicate infinite precision exponent
 
-    - ordp -- an integer: just used to check that the base is a unit for p-adic exponents
+    - ``ordp`` -- an integer: just used to check that the base is a unit for p-adic exponents
 
-    - relprec -- a positive integer: the relative precision of the base
+    - ``relprec`` -- a positive integer: the relative precision of the base
 
-    - _right -- the exponent, nonzero
+    - ``_right`` -- the exponent, nonzero
 
-    - prime_pow -- the Powcomputer for the ring.
+    - ``prime_pow`` -- the Powcomputer for the ring.
 
     OUTPUT:
 
