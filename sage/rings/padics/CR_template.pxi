@@ -469,34 +469,37 @@ cdef class CRElement(pAdicTemplateElement):
         When right is divisible by `p` then one can get more
         precision than expected. 
 
-        Lemma 2.1 (Constructing Class Fields over Local Fields, Sebastian Pauli):
-        [modified from original for Qp.  See padic_ZZ_pX_CR_element for original]
-        Let $\alpha$ be in $\ZZ_p$. The $p$-th power of $1 + \alpha p^{\lambda}$ satisfies
+        Lemma 2.1 (Constructing Class Fields over Local Fields,
+        Sebastian Pauli): [modified from original for Qp.  See
+        padic_ZZ_pX_CR_element for original] Let `\alpha` be in
+        `\ZZ_p`. The `p`-th power of `1 + \alpha p^{\lambda}`
+        satisfies
 
             (1 + \alpha p^{\lambda})^p \equiv 1 + \alpha p^{\lambda + 1} mod p^{\lambda + 2}
 
-        unless $\lambda = 1$ and $p = 2$, in which case
+        unless `\lambda = 1` and `p = 2`, in which case
 
             (1 + 2 \alpha)^2 \equiv 1 + 4(\alpha^2 + \alpha) mod 8
 
-        So for $p \ne 2$, if right is divisible by $p^k$ then we add $k$
+        So for `p \ne 2`, if right is divisible by `p^k` then we add `k`
         to the relative precision of the answer.
 
-        For $p = 2$, if we start with something of relative precision 1 (ie $2^m + O(2^{m+1})$),
-        $\alpha^2 + \alpha \equiv 0 \mod 2$, so the precision of the result is $k + 2$:
-        $(2^m + O(2^{m+1}))^{2^k} = 2^{m 2^k} + O(2^{m 2^k + k + 2})
+        For `p = 2`, if we start with something of relative precision
+        1 (ie `2^m + O(2^{m+1})`), `\alpha^2 + \alpha \equiv 0 \mod
+        2`, so the precision of the result is `k + 2`: `(2^m +
+        O(2^{m+1}))^{2^k} = 2^{m 2^k} + O(2^{m 2^k + k + 2})`
 
-        There is also the issue of $p$-adic exponents, and determining
+        There is also the issue of `p`-adic exponents, and determining
         how the precision of the exponent affects the precision of the
-        result.  In computing $(a + O(p^k))^{b + O(p^m)}$, we can
+        result.  In computing `(a + O(p^k))^{b + O(p^m)}`, we can
         factor out the Teichmuller part and use the above lemma to
-        find the first spot where $(1 + \alpha p^{\lambda})^(p^m)$
-        differs from 1.  This a relative precision of $\lambda + m$
-        except in the case $p = 2$ and $\lambda = 1$, where it gives
-        $m + 2$.  We compare this with the precision bound given by
-        computing $(a + O(p^k))^b$ (ie $k + b.valuation(p)$ or $2 +
-        b.valuation(2)$ if $p = 2$ and $k = 1$) and take the lesser of
-        the two.
+        find the first spot where `(1 + \alpha p^{\lambda})^(p^m)`
+        differs from 1.  This a relative precision of `\lambda + m`
+        except in the case `p = 2` and `\lambda = 1`, where it gives
+        `m + 2`.  We compare this with the precision bound given by
+        computing `(a + O(p^k))^b` (ie `k + v`, or `2 + v` if `p = 2`
+        and `k = 1`; here `v` is the valuation of `b`) and take the
+        lesser of the two.
 
         In order to do this we need to compute the valuation of (self
         / self.parent().teichmuller(self)) - 1.  This takes a
@@ -570,17 +573,28 @@ cdef class CRElement(pAdicTemplateElement):
                 raise TypeError, "exponent must be an integer, rational or base p-adic with the same prime"
         ans = self._new_c()
         # pow_helper is defined in padic_template_element.pxi
-        right = pow_helper(&ans.relprec, &exp_prec, self.ordp, self.relprec, _right, self.prime_pow.prime)
+        right = pow_helper(&ans.relprec, &exp_prec, self.ordp, self.relprec, _right, self.prime_pow)
         if exp_prec == 0:
             # a p-adic exponent with no relative precision
             ans._set_inexact_zero(0)
             return ans
-        elif exp_prec > 0:
-            # p-adic exponent
-            # compute the "level".  It would be nice to eventually cache this on self.
-            teich_part = self.parent().teichmuller(self)
-            base_level = (<pAdicGenericElement?>(self / teich_part - 1)).valuation_c()
-            ans.relprec = padic_exp_helper(ans.relprec, exp_prec, base_level, self.prime_pow.prime)
+        elif exp_prec > 0 and exp_prec < ans.relprec - 1:
+            # p-adic exponent that potentially imposes a lower precision
+            # Exponentiation by a p-adic exponent only makes sense if the
+            # base reduces to an element of F_p modulo the uniformizer.
+
+            # We want to compute the "level," namely the valuation k
+            # of `u/T - 1`, where u is the unit part of this element
+            # and T is the Teichmuller representative of u.  I claim
+            # that k is the valuation of u - u^p.  Let M be a unit
+            # such that u/T = 1 + pi^k*M.  Then
+            # u^p/T = (1 + pi^k*M)^p = 1 (mod pi^(k+1)).
+            # Thus u - u^p = T*M*p^k (mod p^(k+1)).
+
+            # We use ans.value as a temporary variable.
+            cpow(ans.unit, self.unit, self.prime_pow.prime.value, self.relprec, self.prime_pow)
+            csub(ans.unit, ans.unit, self.unit, self.relprec, self.prime_pow)
+            ans.relprec = padic_exp_helper(ans.relprec, exp_prec, cvaluation(ans.unit, self.relprec, self.prime_pow), self.prime_pow)
         if ans.relprec > self.prime_pow.prec_cap:
             ans.relprec = self.prime_pow.prec_cap
         if right < 0:

@@ -291,7 +291,7 @@ cdef class CAElement(pAdicTemplateElement):
         cdef long base_level, exp_prec, relprec, val
         cdef mpz_t tmp
         cdef Integer right
-        cdef CAElement base, ans = self._new_c()
+        cdef CAElement u, base, ans = self._new_c()
         if isinstance(_right, (int, long, Integer)) and _right == 0:
             # return 1 to maximum precision
             ans.absprec = self.prime_pow.prec_cap
@@ -314,14 +314,31 @@ cdef class CAElement(pAdicTemplateElement):
                 raise TypeError, "exponent must be an integer, rational or base p-adic with the same prime"
         else:
             val = self.valuation_c()
-            relprec = self.absprec - self.valuation_c()
             # pow_helper is defined in padic_template_element.pxi
-            right = pow_helper(&relprec, &exp_prec, val, self.absprec - val, _right, self.prime_pow.prime)
+            right = pow_helper(&relprec, &exp_prec, val, self.absprec - val, _right, self.prime_pow)
             if exp_prec == 0:
                 # a p-adic exponent with no relative precision
                 ans.absprec = 0
                 csetzero(ans.value, ans.prime_pow)
                 return ans
+            elif exp_prec > 0 and exp_prec < relprec - 1:
+                # p-adic exponent that potentially imposes a lower precision
+                u = self.unit_part()
+                # Exponentiation by a p-adic exponent only makes sense if the
+                # base reduces to an element of F_p modulo the uniformizer.
+
+                # We want to compute the "level," namely the valuation
+                # k of `u/T - 1`, where T is the Teichmuller
+                # representative of u.  I claim that k is the
+                # valuation of u - u^p.  Let M be a unit such that
+                # u/T = 1 + pi^k*M.  Then
+                # u^p/T = (1 + pi^k*M)^p = 1 (mod pi^(k+1)).
+                # Thus u - u^p = T*M*p^k (mod p^(k+1))
+
+                # We use ans.value as a temporary variable.
+                cpow(ans.value, u.value, self.prime_pow.prime.value, u.absprec, self.prime_pow)
+                csub(ans.value, ans.value, u.value, u.absprec, self.prime_pow)
+                relprec = padic_exp_helper(relprec, exp_prec, cvaluation(ans.value, u.absprec, self.prime_pow), self.prime_pow)
             mpz_init_set_si(tmp, val)
             mpz_mul(tmp, right.value, tmp)
             if mpz_cmp_si(tmp, self.prime_pow.prec_cap) >= 0:

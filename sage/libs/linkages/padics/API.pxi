@@ -471,9 +471,9 @@ cdef int cteichmuller(celement out, celement value, long prec, PowComputer_class
 
     INPUT:
 
-    - ``out`` -- an ``celement`` which is set to a `p-1` root of unity congruent to `value` mod `p`;
-                 or 0 if `a \equiv 0 \pmod{p}`
-    - ``value`` -- an ``celement``, the element mod `p` to lift
+    - ``out`` -- an ``celement`` which is set to a `q-1` root of unity congruent to `value` mod `\pi`;
+                 or 0 if `a \equiv 0 \pmod{\pi}`
+    - ``value`` -- an ``celement``, the element mod `\pi` to lift
     - ``prec`` -- a long, the precision to which to lift
     - ``prime_pow`` -- the Powcomputer of the ring
     """

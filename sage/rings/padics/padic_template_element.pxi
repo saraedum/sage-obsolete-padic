@@ -365,53 +365,92 @@ cdef class pAdicTemplateElement(pAdicGenericElement):
         """
         return self.prime_pow.prime == p and self.prime_pow.deg == 1
 
-cdef Integer pow_helper(long *ansrelprec, long *exp_prec, long ordp, long relprec, _right, Integer p):
+cdef Integer pow_helper(long *ansrelprec, long *exp_prec, long ordp, long relprec, _right, PowComputer_class prime_pow):
     """
+    This function is used by exponentiation in both CR_template.pxi
+    and CA_template.pxi to determine the extra precision gained from
+    an exponent of positive valuation.  See __pow__ there and in
+    padic_ZZ_pX_CR_element.pyx for more details on this phenomenon.
+
     INPUT:
 
-    - ansrelprec -- the relative precision of the answer
-    - exp_prec -- a nonnegative integer, or -1 to indicate infinite precision exponent
+    - ansrelprec -- (return value) the relative precision of the answer
+
+    - exp_prec -- (return value) a nonnegative integer, or -1 to indicate infinite precision exponent
+
     - ordp -- an integer: just used to check that the base is a unit for p-adic exponents
+
     - relprec -- a positive integer: the relative precision of the base
+
     - _right -- the exponent, nonzero
-    - p -- an Integer, the prime
+
+    - prime_pow -- the Powcomputer for the ring.
 
     OUTPUT:
 
+    - an Integer congruent to the given exponent
     """
-    cdef Integer right
+    ####### NOTE:  this function needs to be updated for extension elements. #######
+    cdef Integer right, p = prime_pow.prime
     cdef long exp_val
+    cdef bint isbase
     if isinstance(_right, (int, long)):
         _right = Integer(_right)
     if PY_TYPE_CHECK(_right, Integer):
         right = <Integer> _right
         exp_val = mpz_get_si((<Integer>right.valuation(p)).value)
         exp_prec[0] = -1
-    elif _right._is_base_elt(p):
+    elif PY_TYPE_CHECK(_right, Rational):
+        raise NotImplementedError
+    else:
+        try:
+            isbase = _right._is_base_elt(p)
+        except AttributeError:
+            isbase = False
+        if not isbase:
+            raise TypeError("exponent must be an integer, rational or base p-adic with the same prime")
         if ordp != 0:
-            raise ValueError, "in order to raise to a p-adic exponent, base must be a unit"
+            raise ValueError("in order to raise to a p-adic exponent, base must be a unit")
         right = Integer(_right)
         exp_prec[0] = mpz_get_si((<Integer>_right.precision_absolute()).value)
         exp_val = (<pAdicGenericElement>_right).valuation_c()
         if exp_val < 0:
-            raise NotImplementedError, "negative valuation exponents not yet supported"
+            raise NotImplementedError("negative valuation exponents not yet supported")
         if exp_prec[0] == 0:
             # The calling code should set an inexact zero with no precision
             return right
-    elif PY_TYPE_CHECK(_right, Rational):
-        raise NotImplementedError
-    else:
-        raise TypeError, "exponent must be an integer, rational or base p-adic with the same prime"
     ansrelprec[0] = relprec + exp_val
     if exp_val > 0 and mpz_cmp_ui(p.value, 2) == 0 and relprec == 1:
         ansrelprec[0] += 1
     
     return right
 
-cdef inline long padic_exp_helper(long relprec, long exp_prec, long base_level, Integer p) except -1:
+cdef inline long padic_exp_helper(long relprec, long exp_prec, long base_level, PowComputer_class prime_pow) except -1:
     """
-    Used in computing the precision gain in exponentiation.
+    Used by CR_template.pxi and CA_template.pxi in computing the
+    precision of exponentiation when the exponent is itself a `p`-adic
+    number.
+
+    INPUT:
+
+    - ``relprec`` -- (positive integer) the relative precision bound
+      produced by ``pow_helper``
+
+    - ``exp_prec`` -- (positive integer) the precision of the `p`-adic
+      exponent.
+
+    - ``base_level`` -- (positive integer) the valuation of
+      `u/teich(u) - 1`, where `u` is the unit part of the base.
+
+    - ``prime_pow`` -- the Powcomputer for the ring.
+
+    OUTPUT:
+
+    - an updated relative precision for the result.
     """
+    if base_level == 0:
+        raise ValueError("in order to raise to a p-adic exponent, base must reduce to an element of F_p mod the uniformizer")
+    cdef Integer p = prime_pow.prime
     if mpz_cmp_ui(p.value, 2) == 0 and base_level == 1:
         base_level = 2
     return min(relprec, base_level + exp_prec)
