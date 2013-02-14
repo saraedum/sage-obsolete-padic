@@ -45,6 +45,24 @@ from sage.categories.homset import Hom
 cdef class CAElement(pAdicTemplateElement):
     cdef int _set(self, x, long val, long xprec, absprec, relprec) except -1:
         """
+        Sets the value of this element from given defining data.
+
+        This function is intended for use in conversion, and should
+        not be called on an element created with :meth:`_new_c`.
+
+        INPUT:
+
+        - ``x`` -- data defining a `p`-adic element: int, long,
+          Integer, Rational, other `p`-adic element...
+
+        - ``val`` -- the valuation of the resulting element
+
+        - ``xprec -- an inherent precision of ``x``
+
+        - ``absprec`` -- an absolute precision cap for this element
+
+        - ``relprec`` -- a relative precision cap for this element
+
         TESTS::
 
             sage: R = ZpCA(5)

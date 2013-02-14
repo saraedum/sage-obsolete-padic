@@ -44,13 +44,13 @@ cdef class pAdicFixedModElement(FMElement):
     - Integers
     - Rationals -- denominator must be relatively prime to p
     - FixedMod p-adics
+    - Elements of IntegerModRing(p^k) for k less than or equal to the modulus
 
     The following types should be supported eventually:
 
     - Finite precision p-adics
     - Lazy p-adics
     - Elements of local extensions of THIS p-adic ring that actually lie in Zp
-    - Elements of IntegerModRing(p^k) for k less than or equal to the modulus
 
     EXAMPLES::
 
@@ -131,7 +131,14 @@ cdef class pAdicFixedModElement(FMElement):
 
     cdef lift_c(self):
         """
-        Returns an integer congruent to self modulo self's precision.
+        Returns an integer congruent to this element modulo the precision.
+
+        .. WARNING::
+
+            Since fixed modulus elements don't track their precision,
+            the result may not be correct modulo
+            `i^{\mbox{prec_cap}}` if the element was defined by
+            constructions that lost precision.
 
         EXAMPLES::
 
@@ -176,8 +183,14 @@ cdef class pAdicFixedModElement(FMElement):
 
     def _integer_(self, Z=None):
         """
-        Returns an integer congruent to this element modulo
-        ``p^self.absolute_precision()``.
+        Returns an integer congruent to this element modulo the precision.
+
+        .. WARNING::
+
+            Since fixed modulus elements don't track their precision,
+            the result may not be correct modulo
+            `p^{\mbox{prec_cap}}` if the element was defined by
+            constructions that lost precision.
 
         EXAMPLES::
 
@@ -191,12 +204,11 @@ cdef class pAdicFixedModElement(FMElement):
         Reduces this mod $p^{\mbox{prec}}$
 
         INPUT::
-        
-            - self -- a p-adic element
+
             - absprec - an integer (default 1)
 
         OUTPUT::
-        
+
             - element of Z/(p^prec Z) -- self reduced mod p^prec
 
         EXAMPLES::
@@ -220,12 +232,8 @@ cdef class pAdicFixedModElement(FMElement):
         r"""
         Returns the minimum possible multiplicative order of self.
 
-        INPUT::
-        
-            - self -- a p-adic element
-
         OUTPUT::
-        
+
             - integer -- the multiplicative order of self.  This is
               the minimum multiplicative order of all elements of Z_p
               lifting self to infinite precision.

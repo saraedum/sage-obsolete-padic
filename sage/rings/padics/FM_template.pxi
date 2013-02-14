@@ -1,4 +1,24 @@
+"""
+Fixed modulus template for complete discrete valuation rings.
 
+In order to use this template you need to write a linkage file and gluing file.
+For an example see mpz_linkage.pxi (linkage file) and padic_fixed_modulus_element.pyx (gluing file).
+
+The linkage file implements a common API that is then used in the class FMElement defined here.
+See the documentation of mpz_linkage.pxi for the functions needed.
+
+The gluing file does the following:
+
+- includes "../../ext/cdefs.pxi"
+- ctypedef's celement to be the appropriate type (e.g. mpz_t)
+- includes the linkage file
+- includes this template
+- defines a concrete class inheriting from CRElement, and implements any desired extra methods
+
+AUTHORS:
+
+- David Roe (2012-3-1) -- initial version
+"""
 
 #*****************************************************************************
 #       Copyright (C) 2007-2012 David Roe <roed.math@gmail.com>
@@ -26,6 +46,30 @@ from sage.categories.homset import Hom
 cdef class FMElement(pAdicTemplateElement):
     cdef int _set(self, x, long val, long xprec, absprec, relprec) except -1:
         """
+        Sets the value of this element from given defining data.
+
+        This function is intended for use in conversion, and should
+        not be called on an element created with :meth:`_new_c`.
+
+        INPUT:
+
+        - ``x`` -- data defining a `p`-adic element: int, long,
+          Integer, Rational, other `p`-adic element...
+
+        - ``val`` -- the valuation of the resulting element (unused;
+          for compatibility with other `p`-adic precision modes)
+
+        - ``xprec -- an inherent precision of ``x`` (unused; for
+          compatibility with other `p`-adic precision modes)
+
+        - ``absprec`` -- an absolute precision cap for this element
+          (unused; for compatibility with other `p`-adic precision
+          modes)
+
+        - ``relprec`` -- a relative precision cap for this element
+          (unused; for compatibility with other `p`-adic precision
+          modes)
+
         TESTS::
 
             sage: R = ZpFM(5)
@@ -55,11 +99,12 @@ cdef class FMElement(pAdicTemplateElement):
 
     cdef int check_preccap(self) except -1:
         """
-        For consistency with other precision types.
+        Check that the precision of this element does not exceed the
+        precision cap. Does nothing for fixed mod elements.
 
         TESTS::
 
-            sage: ZpFM(5)(1).lift_to_precision(30)
+            sage: ZpFM(5)(1).lift_to_precision(30) # indirect doctest
             1 + O(5^20)
         """
         pass
@@ -249,7 +294,7 @@ cdef class FMElement(pAdicTemplateElement):
 
     def __pow__(FMElement self, _right, dummy): # NOTE: dummy ignored, always use self.prime_pow.prec_cap
         """
-        Exponentiation.
+        Exponentiation by an integer
         
         EXAMPLES::
 
@@ -270,9 +315,9 @@ cdef class FMElement(pAdicTemplateElement):
         
     cdef pAdicTemplateElement _lshift_c(self, long shift):
         """
-        Multiplies self by p^shift.
+        Multiplies self by `\pi^{shift}`.
 
-        If shift < -self.ordp(), digits will be truncated.  See __rshift__ for details.
+        If shift < -self.valuation(), digits will be truncated.  See __rshift__ for details.
         
         EXAMPLES:
 
@@ -282,12 +327,12 @@ cdef class FMElement(pAdicTemplateElement):
             3*5^3 + 5^4 + O(5^20)
 
         Shifting to the right is the same as dividing by a power of
-        the uniformizer $p$ of the $p$-adic ring.::
+        the uniformizer `\pi` of the `p`-adic ring.::
 
             sage: a >> 1
             3*5^2 + 5^3 + O(5^20)
 
-        Shifting to the left is the same as multiplying by a power of $p$::
+        Shifting to the left is the same as multiplying by a power of `\pi`::
 
             sage: a << 2
             3*5^5 + 5^6 + O(5^20)
@@ -315,7 +360,7 @@ cdef class FMElement(pAdicTemplateElement):
 
     cdef pAdicTemplateElement _rshift_c(self, long shift):
         """
-        Divides by p^shift, and truncates.
+        Divides by `\pi^{shift}`, and truncates.
 
         Note that this operation will insert arbitrary digits (in practice, currently all zero)
         in the least significant digits.
@@ -325,13 +370,13 @@ cdef class FMElement(pAdicTemplateElement):
             sage: R = ZpFM(997, 7); a = R(123456878908); a
             964*997 + 572*997^2 + 124*997^3 + O(997^7)
 
-        Shifting to the right divides by a power of p, but dropping terms with
+        Shifting to the right divides by a power of `\pi`, but dropping terms with
         negative valuation::
 
             sage: a >> 3
             124 + O(997^7)
 
-        A negative shift multiplies by that power of p::
+        A negative shift multiplies by that power of `\pi`::
 
             sage: a >> -3
             964*997^4 + 572*997^5 + 124*997^6 + O(997^7)
@@ -349,19 +394,18 @@ cdef class FMElement(pAdicTemplateElement):
 
     def add_bigoh(self, absprec):
         """
-        Returns a new element truncated modulo p^absprec.
-        
+        Returns a new element truncated modulo `\pi^{\mbox{absprec}}`.
+
         INPUT::
-        
-            - self -- a p-adic element
-            - absprec -- an integer
+
+            - ``absprec`` -- an integer
 
         OUTPUT::
-        
-            - element -- a new element truncated modulo p^absprec.
-        
+
+            - a new element truncated modulo `\pi^{\mbox{absprec}}`.
+
         EXAMPLES::
-        
+
             sage: R = Zp(7,4,'fixed-mod','series'); a = R(8); a.add_bigoh(1)
             1 + O(7^4)
         """
@@ -379,6 +423,16 @@ cdef class FMElement(pAdicTemplateElement):
         return ans
 
     cpdef bint _is_exact_zero(self) except -1:
+        """
+        Returns true if this element is exactly zero.
+
+        This will always return false for fixed modulus elements.
+
+        EXAMPLES::
+
+            sage: R = Zp(7,4,'fixed-mod','series'); a = R(8); a._is_exact_zero()
+            False
+        """
         return False
 
     cpdef bint _is_inexact_zero(self) except -1:
@@ -397,17 +451,12 @@ cdef class FMElement(pAdicTemplateElement):
 
     def is_zero(self, absprec = None):
         r"""
-        Returns whether self is zero modulo $p^{\mbox{absprec}}$.
+        Returns whether self is zero modulo `\pi^{\mbox{absprec}}`.
 
         INPUT::
-        
-        - ``self`` -- a p-adic element
+
         - ``absprec`` -- an integer
 
-        OUTPUT::
-        
-        - ``boolean`` -- whether self is zero
-            
         EXAMPLES::
 
             sage: R = ZpFM(17, 6)
@@ -438,7 +487,7 @@ cdef class FMElement(pAdicTemplateElement):
         EXAMPLES::
 
             sage: R = ZpFM(5); a = R(0); b = R(75)
-            sage: bool(a), bool(b)
+            sage: bool(a), bool(b) # indirect doctest
             (False, True)
         """
         return not ciszero(self.value, self.prime_pow)
@@ -450,14 +499,9 @@ cdef class FMElement(pAdicTemplateElement):
         If absprec is None, returns if self == 0.
 
         INPUT::
-        
-            - self -- a p-adic element
+
             - right -- a p-addic element with the same parent
             - absprec -- a positive integer (or None)
-            
-        OUTPUT::
-        
-            boolean -- whether self is equal to right
 
         EXAMPLES::
 
@@ -488,38 +532,68 @@ cdef class FMElement(pAdicTemplateElement):
                 else:
                     return ccmp(self.value, right.value, aprec, False, False, self.prime_pow) == 0
             aprec = mpz_get_si((<Integer>absprec).value)
-        return ccmp(self.value, right.value, aprec, aprec < self.prime_pow.prec_cap, aprec < right.prime_pow.prec_cap, self.prime_pow) == 0
+        return ccmp(self.value,
+                    right.value,
+                    aprec,
+                    aprec < self.prime_pow.prec_cap,
+                    aprec < right.prime_pow.prec_cap,
+                    self.prime_pow) == 0
 
     cdef int _cmp_units(self, pAdicGenericElement _right):
+        """
+        Comparison of units, used in equality testing.
+
+        EXAMPLES::
+
+            sage: R = ZpFM(5)
+            sage: a = R(17); b = R(0,3); c = R(85,7); d = R(2, 1)
+            sage: any([a == b, a == c, b == c, b == d, c == d, a == d]) # indirect doctest
+            False
+            sage: all([a == a, b == b, c == c, d == d])
+            True
+        """
         cdef FMElement right = <FMElement>_right
         return ccmp(self.value, right.value, self.prime_pow.prec_cap, False, False, self.prime_pow)
 
     cdef pAdicTemplateElement lift_to_precision_c(self, long absprec):
+        """
+        Lifts this element to another with precision at least absprec.
+
+        Since fixed modulus elements don't track precision, this
+        function just returns the same element.
+
+        EXAMPLES::
+
+            sage: R = ZpFM(5);
+            sage: a = R(77, 2); a
+            2 + 3*5^2 + O(5^20)
+            sage: a.lift_to_precision(17) # indirect doctest
+            2 + 3*5^2 + O(5^20)
+        """
         return self
 
     def list(self, lift_mode = 'simple'):
         r"""
-        Returns a list of coefficients of p starting with $p^0$.
-        
+        Returns a list of coefficients of `\pi^i` starting with `\pi^0`.
+
         INPUT::
-        
-            - self -- a p-adic element
-            - lift_mode -- 'simple', 'smallest' or 'teichmuller' (default 'simple')
+
+        - ``lift_mode`` -- 'simple', 'smallest' or 'teichmuller' (default 'simple')
 
         OUTPUT::
-        
-            - list -- the list of coefficients of self
 
-        NOTES::
-        
+        - the list of coefficients of self
+
+        .. NOTES::
+
             Returns a list [a_0, a_1, \ldots, a_n] so that each a_i is an integer
             and \sum_{i = 0}^n a_i * p^i = self, modulo the precision cap.
             If lift_mode = 'simple', 0 <= a_i < p.
             If lift_mode = 'smallest', -p/2 < a_i <= p/2.
             If lift_mode = 'teichmuller', a_i^p = a_i, modulo the precision cap.
-            
+
         EXAMPLES::
-        
+
             sage: R = ZpFM(7,6); a = R(12837162817); a
             3 + 4*7 + 4*7^2 + 4*7^4 + O(7^6)
             sage: L = a.list(); L
@@ -553,11 +627,11 @@ cdef class FMElement(pAdicTemplateElement):
 
     def teichmuller_list(self):
         r"""
-        Returns a list [$a_0$, $a_1$,..., $a_n$] such that
-            - $a_i^p = a_i$
-            - self.unit_part() = $\sum_{i = 0}^n a_i p^i$
+        Returns a list [`a_0`, `a_1`,..., `a_n`] such that
+            - `a_i^q = a_i`
+            - self.unit_part() = `\sum_{i = 0}^n a_i \pi^i`
 
-       EXAMPLES::
+        EXAMPLES::
 
             sage: R = ZpFM(5,5); R(14).list('teichmuller') #indirect doctest
             [4 + 4*5 + 4*5^2 + 4*5^3 + 4*5^4 + O(5^5),
@@ -612,16 +686,8 @@ cdef class FMElement(pAdicTemplateElement):
         """
         Returns the absolute precision of self.
 
-        INPUT::
-        
-            - self -- a p-adic element
-            
-        OUTPUT::
-        
-            - integer -- the absolute precision of self
-            
         EXAMPLES::
-        
+
             sage: R = Zp(7,4,'fixed-mod'); a = R(7); a.precision_absolute()
             4
         """
@@ -633,16 +699,8 @@ cdef class FMElement(pAdicTemplateElement):
         r"""
         Returns the relative precision of self
 
-        INPUT::
-        
-            - self -- a p-adic element
-            
-        OUTPUT::
-        
-            - integer -- the relative precision of self
-            
         EXAMPLES::
-        
+
             sage: R = Zp(7,4,'fixed-mod'); a = R(7); a.precision_relative()
             3
             sage: a = R(0); a.precision_relative()
@@ -659,16 +717,8 @@ cdef class FMElement(pAdicTemplateElement):
         If the valuation of self is positive, then the high digits of the
         result will be zero.
 
-        INPUT::
-        
-            - self -- a p-adic element
-
-        OUTPUT::
-        
-            - p-adic element -- the unit part of self
-
         EXAMPLES::
-        
+
             sage: R = Zp(17, 4, 'fixed-mod')
             sage: R(5).unit_part()
             5 + O(17^4)
@@ -795,6 +845,17 @@ cdef class pAdicCoercion_ZZ_FM(RingHomomorphism_coercion):
         """
         This function is used when some precision cap is passed in (relative or absolute or both).
 
+        INPUTS:
+
+        - ``x`` -- an Integer
+
+        - ``absprec``, or the first positional argument -- the maximum
+          absolute precision (unused for fixed modulus elements).
+
+        - ``relprec``, or the second positional argument -- the
+          maximum relative precision (unused for fixed modulus
+          elements)
+
         EXAMPLES::
 
             sage: R = ZpFM(5,4)
@@ -821,7 +882,8 @@ cdef class pAdicCoercion_ZZ_FM(RingHomomorphism_coercion):
 
     def section(self):
         """
-        Returns a map back to ZZ that approximates an element of Zp by an integer.
+        Returns a map back to ZZ that approximates an element of this
+        `p`-adic ring by an integer.
 
         EXAMPLES::
 
@@ -924,6 +986,17 @@ cdef class pAdicConvert_QQ_FM(Morphism):
         """
         This function is used when some precision cap is passed in (relative or absolute or both).
 
+        INPUTS:
+
+        - ``x`` -- a Rational
+
+        - ``absprec``, or the first positional argument -- the maximum
+          absolute precision (unused for fixed modulus elements).
+
+        - ``relprec``, or the second positional argument -- the
+          maximum relative precision (unused for fixed modulus
+          elements)
+
         EXAMPLES::
 
             sage: R = ZpFM(5,4)
@@ -956,7 +1029,7 @@ def unpickle_fme_v2(cls, parent, value):
 
         sage: from sage.rings.padics.padic_fixed_mod_element import make_pAdicFixedModElement
         sage: R = ZpFM(5)
-        sage: a = make_pAdicFixedModElement(R, 17*25); a
+        sage: a = make_pAdicFixedModElement(R, 17*25); a # indirect doctest
         2*5^2 + 3*5^3 + O(5^20)
     """
     cdef FMElement ans = PY_NEW(cls)
