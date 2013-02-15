@@ -586,41 +586,52 @@ cdef class CAElement(pAdicTemplateElement):
         ans.absprec = absprec
         return ans
 
-    def list(self, lift_mode = 'simple'):
+    def list(self, lift_mode = 'simple', start_val = None):
         """
-        Returns a list of coefficients of `p` starting with `p^0`
-        
+        Returns a list of coefficients of `p` starting with `p^0`.
+
+        For each lift mode, this funciton returns a list of `a_i` so
+        that this element can be expressed as
+
+        .. MATH::
+
+            \pi^v \cdot \sum_{i=0}^\infty a_i \pi^i
+
+        where `v` is the valuation of this element when the parent is
+        a field, and `v = 0` otherwise.
+
+        Different lift modes affect the choice of `a_i`.  When
+        ``lift_mode`` is ``'simple'``, the resulting `a_i` will be
+        non-negative: if the residue field is `\mathbb{F}_p` then they
+        will be integers with `0 \le a_i < p`; otherwise they will be
+        a list of integers in the same range giving the coefficients
+        of a polynomial in the indeterminant representing the maximal
+        unramified subextension.
+
+        Choosing ``lift_mode`` as ``'smallest'`` is similar to
+        ``'simple'``, but uses a balanced representation `-p/2 < a_i
+        \le p/2`.
+
+        Finally, setting ``lift_mode = 'teichmuller'`` will yield
+        Teichmuller representatives for the `a_i`: `a_i^q = a_i`.  In
+        this case the `a_i` will also be `p`-adic elements.
+
         INPUT:
-        
-        - ``self`` -- a `p`-adic element
-        
+
         - ``lift_mode`` -- ``'simple'``, ``'smallest'`` or
           ``'teichmuller'`` (default ``'simple'``)
 
-        OUTPUT:
-        
-        - ``list`` -- the list of coefficients of ``self``
+        - ``start_val`` -- start at this valuation rather than the
+          default (`0` or the valuation of this element).  If
+          ``start_val`` is larger than the valuation of this element
+          a ``ValueError`` is raised.
 
-        NOTES:
-        
-        - Returns a list `[a_0, a_1, \ldots, a_n]` so that:
+        .. NOTE::
 
-          + If ``lift_mode = 'simple'``, `a_i` is an integer with `0
-            \le a_i < p`.
-
-          + If ``lift_mode = 'smallest'``, `a_i` is an integer with
-            `-p/2 < a_i \le p/2`.
-
-          + If ``lift_mode = 'teichmuller'``, `a_i` has the same
-            parent as `self` and `a_i^p \equiv a_i` modulo
-            ``p^(self.precision_absolute() - i)``
-
-        - `\sum_{i = 0}^n a_i \cdot p^i =` ``self``, modulo the
-          precision of ``self``.
-            
+            Use slice operators to get a particular range.
 
         EXAMPLES::
-        
+
             sage: R = ZpCA(7,6); a = R(12837162817); a
             3 + 4*7 + 4*7^2 + 4*7^4 + O(7^6)
             sage: L = a.list(); L
@@ -644,13 +655,26 @@ cdef class CAElement(pAdicTemplateElement):
         if ciszero(self.value, self.prime_pow):
             return []
         if lift_mode == 'teichmuller':
-            return self.teichmuller_list()
+            vlist = self.teichmuller_list(start_val=start_val)
         elif lift_mode == 'simple':
-            return clist(self.value, self.absprec, True, self.prime_pow)
+            vlist = clist(self.value, self.absprec, True, self.prime_pow)
         elif lift_mode == 'smallest':
-            return clist(self.value, self.absprec, False, self.prime_pow)
+            vlist = clist(self.value, self.absprec, False, self.prime_pow)
         else:
             raise ValueError, "unknown lift_mode"
+        if start_val is not None:
+            if start_val > 0:
+                if start_val > self.valuation_c():
+                    raise ValueError("starting valuation must be smaller than the element's valuation.  See slice()")
+                vlist = vlist[start_val:]
+            elif start_val < 0:
+                if lift_mode == 'teichmuller':
+                    zero = self.parent()(0)
+                else:
+                    # needs to be defined in the linkage file.
+                    zero = _list_zero
+                vlist = [zero] * (-start_val) + vlist
+        return vlist
 
     def teichmuller_list(self):
         r"""

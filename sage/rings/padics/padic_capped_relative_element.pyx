@@ -10,14 +10,6 @@ AUTHORS:
 - David Roe: initial version, rewriting to use templates (2012-3-1)
 - Genya Zaytman: documentation
 - David Harvey: doctests
-
-TESTS::
-
-    sage: M = MatrixSpace(pAdicField(3,100),2)
-    sage: (M([1,0,0,90]) - (1+O(3^100)) * M(1)).left_kernel()
-    Vector space of degree 2 and dimension 1 over 3-adic Field with capped relative precision 100
-    Basis matrix:
-    [1 + O(3^100)            0]
 """
 
 #*****************************************************************************
@@ -30,32 +22,32 @@ TESTS::
 #
 #                  http://www.gnu.org/licenses/
 #*****************************************************************************
- 
+
 include "../../libs/linkages/padics/mpz.pxi"
 include "CR_template.pxi"
- 
+
 from sage.libs.pari.gen cimport PariInstance
 cdef PariInstance P = sage.libs.pari.all.pari
 from sage.rings.finite_rings.integer_mod import Mod
- 
+
 cdef class pAdicCappedRelativeElement(CRElement):
     """
     Constructs new element with given parent and value.
 
     INPUT:
- 
-    - x -- value to coerce into a capped relative ring or field
-    - absprec -- maximum number of digits of absolute precision
-    - relprec -- maximum number of digits of relative precision
-    - construct -- boolean, default False. True is for internal use,
-    in which case x is a triple to be assigned directly.
- 
+
+    - ``x`` -- value to coerce into a capped relative ring or field
+
+    - ``absprec`` -- maximum number of digits of absolute precision
+
+    - ``relprec`` -- maximum number of digits of relative precision
+
     EXAMPLES::
- 
+
         sage: R = Zp(5, 10, 'capped-rel')
- 
+
     Construct from integers::
- 
+
         sage: R(3)
         3 + O(5^10)
         sage: R(75)
@@ -68,9 +60,9 @@ cdef class pAdicCappedRelativeElement(CRElement):
         4*5 + 4*5^2 + 4*5^3 + 4*5^4 + 4*5^5 + 4*5^6 + 4*5^7 + 4*5^8 + 4*5^9 + 4*5^10 + O(5^11)
         sage: R(-7*25)
         3*5^2 + 3*5^3 + 4*5^4 + 4*5^5 + 4*5^6 + 4*5^7 + 4*5^8 + 4*5^9 + 4*5^10 + 4*5^11 + O(5^12)
- 
+
     Construct from rationals::
- 
+
         sage: R(1/2)
         3 + 2*5 + 2*5^2 + 2*5^3 + 2*5^4 + 2*5^5 + 2*5^6 + 2*5^7 + 2*5^8 + 2*5^9 + O(5^10)
         sage: R(-7875/874)
@@ -79,9 +71,9 @@ cdef class pAdicCappedRelativeElement(CRElement):
         Traceback (most recent call last):
         ...
         ValueError: p divides the denominator
- 
+
     Construct from IntegerMod::
- 
+
         sage: R(Integers(125)(3))
         3 + O(5^3)
         sage: R(Integers(5)(3))
@@ -94,24 +86,21 @@ cdef class pAdicCappedRelativeElement(CRElement):
         Traceback (most recent call last):
         ...
         TypeError: cannot coerce from the given integer mod ring (not a power of the same prime)
- 
-    # todo: should the above TypeError be another type of error?
+
     ::
- 
+
         sage: R(Integers(48)(3))
         Traceback (most recent call last):
         ...
         TypeError: cannot coerce from the given integer mod ring (not a power of the same prime)
- 
-    # todo: the error message for the above TypeError is not quite accurate
- 
+
     Some other conversions::
- 
+
         sage: R(R(5))
         5 + O(5^11)
- 
+
     Construct from Pari objects::
- 
+
         sage: R = Zp(5)
         sage: x = pari(123123) ; R(x)
         3 + 4*5 + 4*5^2 + 4*5^3 + 5^4 + 4*5^5 + 2*5^6 + 5^7 + O(5^20)
@@ -126,7 +115,7 @@ cdef class pAdicCappedRelativeElement(CRElement):
         0
         sage: R(pari(R(0,5)))
         O(5^5)
- 
+
     # todo: doctests for converting from other types of p-adic rings
     """
     def lift(self):
@@ -135,16 +124,8 @@ cdef class pAdicCappedRelativeElement(CRElement):
         precision.  If a rational is returned, its denominator will
         eqaul p^ordp(self).
 
-        INPUT:
-        
-        - self -- a p-adic element
-            
-        OUTPUT:
-        
-        - integer -- a integer congruent to self mod $p^{\mbox{prec}}$
-
         EXAMPLES::
-        
+
             sage: R = Zp(7,4,'capped-rel'); a = R(8); a.lift()
             8
             sage: R = Qp(7,4); a = R(8); a.lift()
@@ -193,7 +174,7 @@ cdef class pAdicCappedRelativeElement(CRElement):
         Converts this element to an equivalent pari element.
 
         EXAMPLES::
-        
+
             sage: R = Zp(17, 10); a = ~R(14); pari(a) #indirect doctest
             11 + 3*17 + 17^2 + 6*17^3 + 13*17^4 + 15*17^5 + 10*17^6 + 3*17^7 + 17^8 + 6*17^9 + O(17^10)
             sage: pari(R(0))
@@ -227,31 +208,30 @@ cdef class pAdicCappedRelativeElement(CRElement):
         """
         Returns an integer congruent to this element modulo
         ``p^self.absolute_precision()``.
- 
+
          EXAMPLES::
- 
+
             sage: R = Zp(5); a = R(-1); a._integer_()
             95367431640624
          """
         if self.ordp < 0:
             raise ValueError, "Cannot form an integer out of a p-adic field element with negative valuation"
         return self.lift_c()
- 
+
     def residue(self, absprec=1):
         """
-        Reduces this element modulo $p^{\mbox{absprec}}$.
-        
+        Reduces this element modulo `p^{\mbox{absprec}}`.
+
         INPUT:
-        
-        - self -- a p-adic element
+
         - absprec - an integer (defaults to 1)
-            
+
         OUTPUT:
 
-        Element of $Z/(p^{absprec} Z)$ -- self reduced mod p^absprec
+        Element of `\ZZ/(p^{\mbox{absprec}} \ZZ)` -- the reduction modulo `p^{\mbox{absprec}}`
 
         EXAMPLES::
-        
+
             sage: R = Zp(7,4,'capped-rel'); a = R(8); a.residue(1)
             1
             sage: R = Qp(7,4,'capped-rel'); a = R(8); a.residue(1)
@@ -307,8 +287,10 @@ def base_p_list(Integer n, bint pos, PowComputer_class prime_pow):
     INPUT:
 
     - ``n`` -- a positive Integer.
-    - ``pos`` -- a boolean.  If True, then returns the standard base p expansion.
+
+    - ``pos`` -- a boolean.  If True, then returns the standard base `p` expansion.
                  Otherwise, the digits lie in the range `-p/2` to `p/2`.
+
     - ``prime_pow`` -- A PowComputer giving the prime.
 
     EXAMPLES::

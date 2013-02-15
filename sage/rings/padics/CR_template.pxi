@@ -61,7 +61,7 @@ cdef inline int check_ordp_mpz(mpz_t ordp) except -1:
 
 cdef inline int assert_nonzero(CRElement x) except -1:
     """
-    Checks that x is distinguishable from zero.
+    Checks that ``x`` is distinguishable from zero.
 
     Used in division and floor division.
     """
@@ -258,7 +258,7 @@ cdef class CRElement(pAdicTemplateElement):
         Pickling.
 
         TESTS::
-        
+
             sage: a = ZpCR(5)(-3)
             sage: type(a)
             <type 'sage.rings.padics.padic_capped_relative_element.pAdicCappedRelativeElement'>
@@ -286,7 +286,7 @@ cdef class CRElement(pAdicTemplateElement):
     cpdef ModuleElement _neg_(self):
         """
         Negation.
-        
+
         EXAMPLES::
 
             sage: R = Zp(5, 20, 'capped-rel', 'val-unit')
@@ -307,7 +307,7 @@ cdef class CRElement(pAdicTemplateElement):
     cpdef ModuleElement _add_(self, ModuleElement _right):
         """
         Adds self and right.
-        
+
         EXAMPLES::
 
             sage: R = Zp(19, 5, 'capped-rel','series')
@@ -349,7 +349,7 @@ cdef class CRElement(pAdicTemplateElement):
         Subtraction.
 
         EXAMPLES::
-        
+
             sage: R = Zp(13, 4)
             sage: R(10) - R(10) #indirect doctest
             O(13^4)
@@ -391,7 +391,12 @@ cdef class CRElement(pAdicTemplateElement):
 
     def __invert__(self):
         r"""
-        Returns the multiplicative inverse of self.  
+        Returns the multiplicative inverse of self.
+
+        .. NOTE::
+
+            The result of inversion always lives in the fraction
+            field, even if the element to be inverted is a unit.
 
         EXAMPLES::
 
@@ -415,7 +420,7 @@ cdef class CRElement(pAdicTemplateElement):
         Multiplies self by right.
 
         EXAMPLES::
-        
+
             sage: R = Zp(5)
             sage: a = R(2385,11); a
             2*5 + 4*5^3 + 3*5^4 + O(5^11)
@@ -445,6 +450,11 @@ cdef class CRElement(pAdicTemplateElement):
         """
         Divides self by right.
 
+        .. NOTE::
+
+            The result of division always lives in the fraction field,
+            even if the element to be inverted is a unit.
+
         EXAMPLES::
 
             sage: R = Zp(5,6)
@@ -462,12 +472,13 @@ cdef class CRElement(pAdicTemplateElement):
         cdef CRElement ans
         cdef CRElement right = <CRElement>_right
         assert_nonzero(right)
-        if exactzero(self.ordp):
-            return self
         ans = self._new_c()
         if ans.prime_pow.in_field == 0:
             ans._parent = self._parent.fraction_field()
             ans.prime_pow = ans._parent.prime_pow
+        if exactzero(self.ordp):
+            ans._set_exact_zero()
+            return ans
         ans.relprec = min(self.relprec, right.relprec)
         if ans.relprec == 0:
             ans._set_inexact_zero(self.ordp - right.ordp)
@@ -482,25 +493,26 @@ cdef class CRElement(pAdicTemplateElement):
         r"""
         Returns self to the power of right.
 
-        NOTE:
-            
         When right is divisible by `p` then one can get more
-        precision than expected. 
+        precision than expected.
 
-        Lemma 2.1 (Constructing Class Fields over Local Fields,
-        Sebastian Pauli): [modified from original for Qp.  See
-        padic_ZZ_pX_CR_element for original] Let `\alpha` be in
-        `\ZZ_p`. The `p`-th power of `1 + \alpha p^{\lambda}`
-        satisfies
+        Lemma 2.1 [SP]_: (modified from original for Qp.  See
+        :mod:`sage.rings.padics.padic_ZZ_pX_CR_element` for
+        original) Let `\alpha` be in `\ZZ_p`. The `p`-th power of
+        `1 + \alpha p^{\lambda}` satisfies
+
+        .. MATH::
 
             (1 + \alpha p^{\lambda})^p \equiv 1 + \alpha p^{\lambda + 1} mod p^{\lambda + 2}
 
         unless `\lambda = 1` and `p = 2`, in which case
 
+        .. MATH::
+
             (1 + 2 \alpha)^2 \equiv 1 + 4(\alpha^2 + \alpha) mod 8
 
-        So for `p \ne 2`, if right is divisible by `p^k` then we add `k`
-        to the relative precision of the answer.
+        So for `p \ne 2`, if right is divisible by `p^k` then we add
+        `k` to the relative precision of the answer.
 
         For `p = 2`, if we start with something of relative precision
         1 (ie `2^m + O(2^{m+1})`), `\alpha^2 + \alpha \equiv 0 \mod
@@ -519,10 +531,24 @@ cdef class CRElement(pAdicTemplateElement):
         and `k = 1`; here `v` is the valuation of `b`) and take the
         lesser of the two.
 
-        In order to do this we need to compute the valuation of (self
-        / self.parent().teichmuller(self)) - 1.  This takes a
-        reasonable amount of time: we cache the result as __pow_level.
-        
+        In order to do this we need to compute the valuation of
+        ``(self / self.parent().teichmuller(self)) - 1``.  This takes
+        a reasonable amount of time: we cache the result as
+        ``__pow_level.``
+
+        .. REFERENCES::
+
+        .. [SP] Constructing Class Fields over Local Fields.
+                Sebastian Pauli.
+
+        INPUT:
+
+        - ``_right`` -- currently integers and `p`-adic exponents are
+          supported.
+
+        - ``dummy`` -- not used (Python's ``__pow__`` signature
+          includes it)
+
         EXAMPLES::
 
             sage: R = Zp(19, 5, 'capped-rel','series')
@@ -530,7 +556,7 @@ cdef class CRElement(pAdicTemplateElement):
             18 + 18*19 + 18*19^2 + 18*19^3 + 18*19^4 + O(19^5)
             sage: a^2    # indirect doctest
             1 + O(19^5)
-            sage: a^3 
+            sage: a^3
             18 + 18*19 + 18*19^2 + 18*19^3 + 18*19^4 + O(19^5)
             sage: R(5)^30
             11 + 14*19 + 19^2 + 7*19^3 + O(19^5)
@@ -627,10 +653,13 @@ cdef class CRElement(pAdicTemplateElement):
         mpz_clear(tmp)
         cpow(ans.unit, base.unit, right.value, ans.relprec, ans.prime_pow)
         return ans
-        
+
     cdef pAdicTemplateElement _lshift_c(self, long shift):
         """
-        Multiplies self by p^shift.
+        Multiplies by `\pi^{\mbox{shift}}`.
+
+        Negative shifts may truncate the result if the parent is not a
+        field.
 
         TESTS::
 
@@ -654,7 +683,10 @@ cdef class CRElement(pAdicTemplateElement):
 
     cdef pAdicTemplateElement _rshift_c(self, long shift):
         """
-        Divides by ``p^shift`` and truncates (if the parent is not a field).
+        Divides by ``\pi^{\mbox{shift}}``.
+
+        Positive shifts may truncate the result if the parent is not a
+        field.
 
         TESTS::
 
@@ -699,7 +731,7 @@ cdef class CRElement(pAdicTemplateElement):
             19^-3 + 19^-2 + 17 + 5*19 + O(19^17)
             sage: a//b     # indirect doctest
             17 + 5*19 + O(19^17)
-        
+
             sage: R = Zp(19, 5, 'capped-rel','series')
             sage: a = R(-1); a
             18 + 18*19 + 18*19^2 + 18*19^3 + 18*19^4 + O(19^5)
@@ -711,10 +743,14 @@ cdef class CRElement(pAdicTemplateElement):
             sage: R = Zp(5,5)
             sage: R(28937) // R(75) # indirect doctest
             4 + 3*5 + 3*5^2 + O(5^3)
+
+            sage: R(0,12) // R(175,3)
+            O(5^10)
         """
         if exactzero(self.ordp):
             return self
         cdef CRElement right = <CRElement>_right
+        assert_nonzer(right)
         cdef CRElement ans = self._new_c()
         cdef long diff = self.ordp - right.ordp
         if self.relprec == 0:
@@ -742,18 +778,17 @@ cdef class CRElement(pAdicTemplateElement):
         """
         Returns a new element with absolute precision decreased to
         absprec.
-        
+
         INPUT:
-        
-        - self -- a p-adic element
-        - absprec -- an integer
-            
+
+        - ``absprec`` -- an integer or infinity
+
         OUTPUT:
-        
-        element -- self with precision set to the minimum of self's precision and absprec
-        
+
+        - an equal element with precision set to the minimum of self's precision and absprec
+
         EXAMPLE::
-        
+
             sage: R = Zp(7,4,'capped-rel','series'); a = R(8); a.add_bigoh(1)
             1 + O(7)
             sage: b = R(0); b.add_bigoh(3)
@@ -762,32 +797,34 @@ cdef class CRElement(pAdicTemplateElement):
             1 + O(7)
             sage: b = R(0); b.add_bigoh(3)
             O(7^3)
-            
+
             The precision never increases::
-            
+
             sage: R(4).add_bigoh(2).add_bigoh(4)
             4 + O(7^2)
 
             Another example that illustrates that the precision does
             not increase::
-        
+
             sage: k = Qp(3,5)
             sage: a = k(1234123412/3^70); a
             2*3^-70 + 3^-69 + 3^-68 + 3^-67 + O(3^-65)
             sage: a.add_bigoh(2)
             2*3^-70 + 3^-69 + 3^-68 + 3^-67 + O(3^-65)
-            
+
             sage: k = Qp(5,10)
             sage: a = k(1/5^3 + 5^2); a
             5^-3 + 5^2 + O(5^7)
             sage: a.add_bigoh(2)
             5^-3 + O(5^2)
             sage: a.add_bigoh(-1)
-            5^-3 + O(5^-1)            
+            5^-3 + O(5^-1)
         """
         cdef CRElement ans
         cdef long aprec, newprec
-        if PY_TYPE_CHECK(absprec, int):
+        if absprec is infinity:
+            return self
+        elif PY_TYPE_CHECK(absprec, int):
             aprec = absprec
         else:
             if not PY_TYPE_CHECK(absprec, Integer):
@@ -796,14 +833,13 @@ cdef class CRElement(pAdicTemplateElement):
         if aprec < self.ordp:
             ans = self._new_c()
             ans._set_inexact_zero(aprec)
-            return ans
         elif aprec >= self.ordp + self.relprec:
-            return self
-        
-        ans = self._new_c()
-        ans.ordp = self.ordp
-        ans.relprec = aprec - self.ordp
-        creduce(ans.unit, self.unit, ans.relprec, ans.prime_pow)
+            ans = self
+        else:
+            ans = self._new_c()
+            ans.ordp = self.ordp
+            ans.relprec = aprec - self.ordp
+            creduce(ans.unit, self.unit, ans.relprec, ans.prime_pow)
         return ans
 
     cpdef bint _is_exact_zero(self) except -1:
@@ -827,7 +863,7 @@ cdef class CRElement(pAdicTemplateElement):
         Returns True if this element is indistinguishable from zero but has finite precision.
 
         EXAMPLES::
-        
+
             sage: R = Zp(5)
             sage: R(0)._is_inexact_zero()
             False
@@ -840,18 +876,13 @@ cdef class CRElement(pAdicTemplateElement):
 
     def is_zero(self, absprec = None):
         r"""
-        Returns whether self is zero modulo $p^{\mbox{absprec}}$.
+        Returns whether self is zero modulo `\pi^{\mbox{absprec}}`.
 
-        If absprec is None, returns True if this element is indistinguishable from zero.
+        If ``absprec is None``, returns ``True`` if this element is indistinguishable from zero.
 
         INPUT:
-        
-        - self -- a p-adic element
-        - absprec -- an integer or None
-            
-        OUTPUT:
-        
-        - boolean -- whether self is zero
+
+        - ``absprec`` -- an integer, infinity or None
 
         EXAMPLES::
 
@@ -871,6 +902,8 @@ cdef class CRElement(pAdicTemplateElement):
             return self.relprec == 0
         if exactzero(self.ordp):
             return True
+        if absprec is infinity:
+            return False
         if isinstance(absprec, int):
             if self.relprec == 0 and absprec > self.ordp:
                 raise PrecisionError, "Not enough precision to determine if element is zero"
@@ -901,19 +934,14 @@ cdef class CRElement(pAdicTemplateElement):
 
     def is_equal_to(self, _right, absprec=None):
         r"""
-        Returns whether self is equal to right modulo $p^{\mbox{absprec}}$.
+        Returns whether self is equal to right modulo `\pi^{\mbox{absprec}}`.
 
-        if absprec is None, returns True if self and right are equal to the minimum of their precisions.
+        If ``absprec is None``, returns True if self and right are equal to the minimum of their precisions.
 
         INPUT:
 
-        - self -- a p-adic element
-        - right -- a p-addic element
-        - absprec -- an integer or None
-
-        OUTPUT:
-
-        - boolean -- whether self is equal to right (modulo $p^{\mbox{absprec}}$)
+        - ``right`` -- a `p`-adic element
+        - ``absprec`` -- an integer, infinity or None
 
         EXAMPLES::
 
@@ -925,7 +953,7 @@ cdef class CRElement(pAdicTemplateElement):
             Traceback (most recent call last):
             ...
             PrecisionError: Elements not known to enough precision
-            
+
             sage: a.is_equal_to(a, 50000)
             True
 
@@ -966,7 +994,7 @@ cdef class CRElement(pAdicTemplateElement):
             Traceback (most recent call last):
             ...
             PrecisionError: Elements not known to enough precision
-            
+
             sage: b.is_equal_to(a), b.is_equal_to(a, 2)
             (True, True)
             sage: b.is_equal_to(a, 5)
@@ -990,14 +1018,17 @@ cdef class CRElement(pAdicTemplateElement):
 
             sage: cc.is_equal_to(c, 2), cc.is_equal_to(c, 4), cc.is_equal_to(c, 5)
             (True, True, False)
-            
         """
         cdef CRElement right
         cdef long aprec, rprec
         if self.parent() is _right.parent():
             right = <CRElement>_right
         else:
-            right = <CRElement>self.parent()(_right)
+            right = <CRElement>self.parent().coerce(_right)
+        if exactzero(self.ordp) and exactzero(right.ordp):
+            return 0
+        elif absprec is infinity:
+            raise PrecisionError("Elements not known to enough precision")
         if absprec is None:
             aprec = min(self.ordp + self.relprec, right.ordp + right.relprec)
         else:
@@ -1008,10 +1039,10 @@ cdef class CRElement(pAdicTemplateElement):
                    exactzero(self.ordp) and exactzero(right.ordp):
                     return True
                 else:
-                    raise PrecisionError, "Elements not known to enough precision"
+                    raise PrecisionError("Elements not known to enough precision")
             aprec = mpz_get_si((<Integer>absprec).value)
             if aprec > self.ordp + self.relprec or aprec > right.ordp + right.relprec:
-                raise PrecisionError, "Elements not known to enough precision"
+                raise PrecisionError("Elements not known to enough precision")
         if self.ordp >= aprec and right.ordp >= aprec:
             return True
         elif self.ordp != right.ordp:
@@ -1077,29 +1108,61 @@ cdef class CRElement(pAdicTemplateElement):
             ccopy(ans.unit, self.unit, ans.prime_pow)
         return ans
 
-    def list(self, lift_mode = 'simple'):
+    def list(self, lift_mode = 'simple', start_val = None):
         """
         Returns a list of coefficients in a power series expansion of
-        self in terms of p.  If self is a field element, they start at
-        p^valuation, if a ring element at p^0.
-        
+        self in terms of `\pi`.  If self is a field element, they start at
+        `\pi^{\mbox{valuation}}`, if a ring element at `\pi^0`.
+
+        For each lift mode, this funciton returns a list of `a_i` so
+        that this element can be expressed as
+
+        .. MATH::
+
+            \pi^v \cdot \sum_{i=0}^\infty a_i \pi^i
+
+        where `v` is the valuation of this element when the parent is
+        a field, and `v = 0` otherwise.
+
+        Different lift modes affect the choice of `a_i`.  When
+        ``lift_mode`` is ``'simple'``, the resulting `a_i` will be
+        non-negative: if the residue field is `\mathbb{F}_p` then they
+        will be integers with `0 \le a_i < p`; otherwise they will be
+        a list of integers in the same range giving the coefficients
+        of a polynomial in the indeterminant representing the maximal
+        unramified subextension.
+
+        Choosing ``lift_mode`` as ``'smallest'`` is similar to
+        ``'simple'``, but uses a balanced representation `-p/2 < a_i
+        \le p/2`.
+
+        Finally, setting ``lift_mode = 'teichmuller'`` will yield
+        Teichmuller representatives for the `a_i`: `a_i^q = a_i`.  In
+        this case the `a_i` will also be `p`-adic elements.
+
         INPUT:
-        
-        - self -- a p-adic element
-        - lift_mode - 'simple', 'smallest' or 'teichmuller'
+
+        - ``lift_mode`` -- ``'simple'``, ``'smallest'`` or
+          ``'teichmuller'`` (defualt: ``'simple'``)
+
+        - ``start_val`` -- start at this valuation rather than the
+          default (`0` or the valuation of this element).  If
+          ``start_val`` is larger than the valuation of this element
+          a ``ValueError`` is raised.
 
         OUTPUT:
-        
-        - list -- the list of coefficients of self.  These will be integers if lift_mode 
-          is 'simple' or 'smallest', and elements of self.parent() if lift_mode is
-          'teichmuller'.
+
+        - the list of coefficients of this element.  For base elements
+          these will be integers if ``lift_mode`` is ``'simple'`` or
+          ``'smallest'``, and elements of ``self.parent()`` if
+          ``lift_mode`` is ``'teichmuller'``.
 
         .. NOTE::
-        
+
             Use slice operators to get a particular range.
-        
+
         EXAMPLES::
-        
+
             sage: R = Zp(7,6); a = R(12837162817); a
             3 + 4*7 + 4*7^2 + 4*7^4 + O(7^6)
             sage: L = a.list(); L
@@ -1119,7 +1182,10 @@ cdef class CRElement(pAdicTemplateElement):
             5 + O(7)]
             sage: sum([L[i] * 7^i for i in range(len(L))])
             3 + 4*7 + 4*7^2 + 4*7^4 + O(7^6)
-            
+
+            sage: R(0, 7).list()
+            []
+
             sage: R = Qp(7,4); a = R(6*7+7**2); a.list()
             [6, 1]
             sage: a.list('smallest')
@@ -1129,7 +1195,7 @@ cdef class CRElement(pAdicTemplateElement):
             2 + 4*7 + 6*7^2 + O(7^3),
             3 + 4*7 + O(7^2),
             3 + O(7)]
-            
+
         TESTS:
 
         Check to see that #10292 is resolved::
@@ -1139,33 +1205,40 @@ cdef class CRElement(pAdicTemplateElement):
             sage: len(R.list())
             19
         """
+        if start_val is not None and start_val > self.ordp:
+            raise ValueError("starting valuation must be smaller than the element's valuation.  See slice()")
         if self.relprec == 0:
             return []
         if lift_mode == 'teichmuller':
-            ulist = self.teichmuller_list()
+            ulist = self.teichmuller_list(start_val=start_val)
         elif lift_mode == 'simple':
             ulist = clist(self.unit, self.relprec, True, self.prime_pow)
         elif lift_mode == 'smallest':
             ulist = clist(self.unit, self.relprec, False, self.prime_pow)
         else:
             raise ValueError, "unknown lift_mode"
-        if self.prime_pow.in_field == 0 and self.ordp > 0:
+        if (self.prime_pow.in_field == 0 and self.ordp > 0) or start_val is not None:
             if lift_mode == 'teichmuller':
                 zero = self.parent()(0)
             else:
                 # needs to be defined in the linkage file.
                 zero = _list_zero
-            return [zero] * self.valuation() + ulist
-        else:
-            return ulist
+            if start_val is None:
+                v = self.ordp
+            else:
+                v = self.ordp - start_val
+            ulist = [zero] * v + ulist
+        return ulist
 
     def teichmuller_list(self):
         r"""
-        Returns a list [$a_0$, $a_1$,..., $a_n$] such that
+        Returns a list [`a_0`, `a_1`,..., `a_n`] such that
 
-            - $a_i^p = a_i$
-            - self.unit_part() = $\sum_{i = 0}^n a_i p^i$
-            - if $a_i \ne 0$, the absolute precision of $a_i$ is self.precision_relative() - i
+        - `a_i^p = a_i`
+
+        - ``self.unit_part() =`` `\sum_{i = 0}^n a_i p^i`
+
+        - if `a_i \ne 0`, the absolute precision of `a_i` is self.precision_relative() - i
 
         EXAMPLES::
 
@@ -1190,7 +1263,7 @@ cdef class CRElement(pAdicTemplateElement):
             #lcopy = pp.__copy__() #
             #lcopy._teichmuller_set() #
             #pp -= lcopy #
-            
+
             list_elt = self._new_c()
             cteichmuller(list_elt.unit, tmp.unit, curpower, self.prime_pow)
             if ciszero(list_elt.unit, self.prime_pow):
@@ -1212,10 +1285,10 @@ cdef class CRElement(pAdicTemplateElement):
         """
         Sets self to be the Teichmuller representative with the same residue as self.
 
-        WARNING: 
+        .. WARNING::
 
-        This function modifies self, which is not safe.  Elements are
-        supposed to be immutable.
+            This function modifies the element, which is not safe.
+            Elements are supposed to be immutable.
 
         EXAMPLES::
 
@@ -1241,23 +1314,20 @@ cdef class CRElement(pAdicTemplateElement):
         Returns the absolute precision of self.
 
         This is the power of the maximal ideal modulo which this element is defined.
-        
-        INPUT:
-        
-        self -- a p-adic element
-            
-        OUTPUT:
-        
-        integer -- the absolute precision of self
-            
+
         EXAMPLES::
-        
+
             sage: R = Zp(7,3,'capped-rel'); a = R(7); a.precision_absolute()
             4
             sage: R = Qp(7,3); a = R(7); a.precision_absolute()
             4
             sage: R(7^-3).precision_absolute()
             0
+
+            sage: R(0).precision_absolute()
+            +Infinity
+            sage: R(0,7).precision_absolute()
+            7
         """
         if exactzero(self.ordp):
             return infinity
@@ -1270,14 +1340,6 @@ cdef class CRElement(pAdicTemplateElement):
         Returns the relative precision of self.
 
         This is the power of the maximal ideal modulo which the unit part of self is defined.
-        
-        INPUT:
-
-        self -- a p-adic element
-
-        OUTPUT:
-
-        integer -- the relative precision of self
 
         EXAMPLES::
 
@@ -1289,6 +1351,11 @@ cdef class CRElement(pAdicTemplateElement):
             1
             sage: a
             7^-2 + O(7^-1)
+
+            sage: R(0).precision_relative()
+            0
+            sage: R(0,7).precision_relative()
+            0
        """
         cdef Integer ans = PY_NEW(Integer)
         mpz_set_si(ans.value, self.relprec)
@@ -1298,16 +1365,8 @@ cdef class CRElement(pAdicTemplateElement):
         r"""
         Returns the unit part of self.
 
-        INPUT:
-        
-        - self -- a p-adic element
-
-        OUTPUT:
-        
-        - p-adic element -- the unit part of self
-            
         EXAMPLES::
-        
+
             sage: R = Zp(17,4,'capped-rel')
             sage: a = R(18*17)
             sage: a.unit_part()
@@ -1327,10 +1386,19 @@ cdef class CRElement(pAdicTemplateElement):
             sage: b=1/a; b
             9*17^-2 + 8*17^-1 + 8 + 8*17 + O(17^2)
             sage: b.unit_part()
-            9 + 8*17 + 8*17^2 + 8*17^3 + O(17^4)        
+            9 + 8*17 + 8*17^2 + 8*17^3 + O(17^4)
             sage: Zp(5)(75).unit_part()
             3 + O(5^20)
+
+            sage: R(0).unit_part()
+            Traceback (most recent call last):
+            ...
+            ValueError: unit part of 0 not defined
+            sage: R(0,7).unit_part()
+            O(17^0)
         """
+        if exactzero(self.ordp):
+            raise ValueError("unit part of 0 not defined")
         cdef CRElement ans = (<CRElement>self)._new_c()
         ans.ordp = 0
         ans.relprec = (<CRElement>self).relprec
@@ -1339,10 +1407,10 @@ cdef class CRElement(pAdicTemplateElement):
 
     cdef long valuation_c(self):
         """
-        Returns the valuation of self.
+        Returns the valuation of this element.
 
-        If self is an exact zero, returns maxordp+1, which is defined as
-        (1L << (sizeof(long) * 8 - 2))
+        If self is an exact zero, returns maxordp, which is defined as
+        (1L << (sizeof(long) * 8 - 2))-1
 
         EXAMPLES::
 
@@ -1353,14 +1421,21 @@ cdef class CRElement(pAdicTemplateElement):
             4
             sage: b = (a << 1073741822); b.valuation()
             1073741822
-            
         """
-        # for backward compatibility
         return self.ordp
 
-    cpdef val_unit(self):
+    cpdef val_unit(self, p=None):
         """
-        Returns a pair (self.valuation(), self.unit_part()).
+        Returns a pair ``(self.valuation(), self.unit_part())``.
+
+        INPUT:
+
+        - ``p`` -- a prime (default: None). If specified, will make sure that p==self.parent().prime()
+
+        .. NOTE::
+
+            The optional argument p is used for consistency with the
+            valuation methods on integer and rational.
 
         EXAMPLES::
 
@@ -1374,21 +1449,35 @@ cdef class CRElement(pAdicTemplateElement):
             (10, O(5^0))
         """
         # Since we keep this element normalized there's not much to do here.
-        return self.valuation(), self.unit_part()
+        if not p is None and p != self.parent().prime():
+            raise ValueError, 'Ring (%s) residue field of the wrong characteristic.'%self.parent()
+        if exactzero(self.ordp):
+            raise ValueError("unit part of 0 not defined")
+        cdef Integer val = PY_NEW(Integer)
+        mpz_set_si(val.value, self.ordp)
+        cdef CRElement unit = (<CRElement>self)._new_c()
+        unit.ordp = 0
+        unit.relprec = (<CRElement>self).relprec
+        ccopy(unit.unit, (<CRElement>self).unit, unit.prime_pow)
+        return val, unit
 
     def __hash__(self):
         """
         Hashing.
+
+        .. WARNING::
+
+            Hashing of `p`-adic elements will likely be deprecated soon.  See :trac:`11895`.
 
         EXAMPLES::
 
             sage: R = Zp(5)
             sage: hash(R(17)) #indirect doctest
             17
-            
+
             sage: hash(R(-1)) # 32-bit
             1977822444
-            
+
             sage: hash(R(-1)) # 64-bit
             95367431640624
         """
@@ -1706,7 +1795,7 @@ cdef class pAdicConvert_QQ_CR(Morphism):
     on all elements with non-negative p-adic valuation.
 
     EXAMPLES::
-    
+
         sage: f = Zp(5).convert_map_from(QQ); f
         Generic morphism:
           From: Rational Field
