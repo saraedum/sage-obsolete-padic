@@ -902,7 +902,7 @@ cdef class CAElement(pAdicTemplateElement):
 
     def precision_relative(self):
         """
-        The relative precision of ``self``.
+        The relative precision of this element.
 
         This is the power of the maximal ideal modulo which the unit
         part of this element is defined.

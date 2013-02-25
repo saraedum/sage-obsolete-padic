@@ -1,17 +1,18 @@
 r"""
 The functions in this file are used in creating new p-adic elements.
 
-When creating a new element, the user can specify a maximum absolute
-precision and/or a maximum relative precision in addition to the data
-defining the element.  Rather than creating a new element to larger
-precision than necessary (or possibly larger than is well defined, the
-functions in this file determine the appropriate valuation and
-precision of the result from the specified maxima and the data
-defining the new element.
+When creating a p-adic element, the user can specify that the absolute
+precision be bounded and/or that the relative precision be bounded.
+Moreover, different p-adic parents impose their own bounds on the
+relative or absolute precision of their elements.  The precision
+determines to what power of `p` the defining data will be reduced, but
+the valuation of the resulting element needs to be determined before
+the element is created.  Moreover, some defining data can impose their
+own precision bounds on the result.
 
 AUTHORS:
 
-- David Roe (2012-3-1)
+- David Roe (2012-03-01)
 """
 
 #*****************************************************************************
@@ -44,17 +45,49 @@ cdef long get_ordp(x, PowComputer_class prime_pow) except? -10000:
     This function determines the valuation of the `p`-adic element
     that will result from the given data ``x``.
 
+    Note that the valuation can differ depending on the ring: if the
+    new `p`-adic element is being created in a ring with ramification
+    then the valuation will be larger.
+
+    Some preprocessing is done in the initialization methods of the element, so
+    the type of x is restricted.
+
+    Also note that for some kinds of elements conversion to and from
+    Integers and Rationals is done in a custom morphism rather than
+    through this function.
+
     INPUT:
 
-    - ``x`` -- an Integer, Rational, element of \ZZ_p or \QQ_p, pari
-      `p`-adic element, or IntegerMod element of modulus `p^k`.
+    - ``x`` -- data defining a new p-adic element: a Python int, an
+      Integer, Rational, an element of Zp or Qp with the same prime, a
+      PARI p-adic element, or an IntegerMod.
 
     - a PowComputer associated to a `p`-adic ring, which determines
-      the ramification degree.
+      the prime and the ramification degree.
+
+    OUTPUT:
+
+    - a long, giving the valuation of the resulting `p`-adic element.
+      If the input is zero, returns ``maxordp``
     """
-    cdef long k
+    cdef long k, n, p
     cdef Integer value
     cdef GEN pari_tmp
+    if PyInt_Check(x):
+        if x == 0:
+            return maxordp
+        n = PyInt_AsLong(x)
+        if n != -1 or PyErr_Occurred() == NULL:
+            if mpz_fits_slong_p(prime_pow.prime.value) == 0:
+                # x is not divisible by p
+                return 0
+            p = mpz_get_si(prime_pow.prime.value)
+            k = 0
+            while n % p == 0:
+                k += 1
+                n = n / p
+        else:
+            x = Integer(x)
     if PY_TYPE_CHECK(x, Integer):
         if mpz_sgn((<Integer>x).value) == 0:
             return maxordp
@@ -72,7 +105,7 @@ cdef long get_ordp(x, PowComputer_class prime_pow) except? -10000:
         if typ(pari_tmp) == t_PADIC:
             k = valp(pari_tmp)
         else: # t_INT and t_FRAC were converted before this function
-            raise TypeError, "unsupported coercion from pari: only p-adics, integers and rationals allowed"
+            raise TypeError("unsupported coercion from pari: only p-adics, integers and rationals allowed")
     elif sage.rings.finite_rings.integer_mod.is_IntegerMod(x):
         value = <Integer>x.lift()
         if mpz_sgn(value.value) == 0:
@@ -88,20 +121,35 @@ cdef long get_preccap(x, PowComputer_class prime_pow) except? -10000:
     This function determines the maximum absolute precision possible
     for an element created from the given data ``x``.
 
-    If the element given is exact, this function will return ``maxordp``.
+    Note that the valuation can differ depending on the ring: if the
+    new `p`-adic element is being created in a ring with ramification
+    then the precision bound will be larger.
+
+    Some preprocessing is done in the initialization methods of the element, so
+    the type of x is restricted.
+
+    Also note that for some kinds of elements conversion to and from
+    Integers and Rationals is done in a custom morphism rather than
+    through this function.
 
     INPUT:
 
-    - ``x`` -- an Integer, Rational, element of \ZZ_p or \QQ_p, pari
-      `p`-adic element, or IntegerMod element of modulus `p^k`.
+    - ``x`` -- data defining a new p-adic element: an Integer,
+      Rational, an element of Zp or Qp with the same prime, a PARI
+      p-adic element, or an IntegerMod.
+    - ``prime_pow`` -- the PowComputer for the ring into which ``x``
+      is being converted.  This is used to determine the prime and the
+      ramification degree.
 
-    - a PowComputer associated to a `p`-adic ring, which determines
-      the ramification degree.
+    OUTPUT:
+
+    - a long, giving the absolute precision modulo which the input is
+      defined.  If the input is exact, returns ``maxordp``
     """
     cdef long k
     cdef Integer prec
     cdef GEN pari_tmp
-    if PY_TYPE_CHECK(x, Integer) or PY_TYPE_CHECK(x, Rational):
+    if PyInt_Check(x) or PY_TYPE_CHECK(x, Integer) or PY_TYPE_CHECK(x, Rational):
         return maxordp
     elif PY_TYPE_CHECK(x, pAdicGenericElement) and (<pAdicGenericElement>x)._is_base_elt(prime_pow.prime):
         if (<pAdicGenericElement>x)._is_exact_zero():
@@ -115,7 +163,7 @@ cdef long get_preccap(x, PowComputer_class prime_pow) except? -10000:
     elif sage.rings.finite_rings.integer_mod.is_IntegerMod(x):
         k = mpz_remove(tmp.value, (<Integer>x.modulus()).value, prime_pow.prime.value)
         if mpz_cmp_ui(tmp.value, 1) != 0:
-            raise TypeError, "cannot coerce from the given integer mod ring (not a power of the same prime)"
+            raise TypeError("cannot coerce from the given integer mod ring (not a power of the same prime)")
     else:
         raise RuntimeError
     return k * prime_pow.e
@@ -138,7 +186,7 @@ cdef long comb_prec(iprec, long prec) except? -10000:
         if mpz_cmp_si(intprec.value, prec) >= 0:
             return prec
         if mpz_fits_slong_p(intprec.value) == 0:
-            raise ValueError("precision overflow")
+            raise OverflowError("precision overflow")
         return mpz_get_si(intprec.value)
     if isinstance(iprec, int):
         return min(PyInt_AS_LONG(iprec), prec)
@@ -149,6 +197,11 @@ cdef int _process_args_and_kwds(long *aprec, long *rprec, args, kwds, bint absol
     This function obtains values for absprec and relprec from a
     combination of positional and keyword arguments.
 
+    When creating a p-adic element, the user can pass in two arguments: ``absprec`` and ``relprec``.
+    In implementing morphisms to speed up conversion from Integers and Rationals,
+    we need to determine ``absprec`` and ``relprec`` from the ``args`` and ``kwds`` arguments of
+    ``_call_with_args``.  This function collects the code to do so.
+
     INPUT:
 
     - ``args`` -- a tuple of positional arguments (at most two)
@@ -156,7 +209,9 @@ cdef int _process_args_and_kwds(long *aprec, long *rprec, args, kwds, bint absol
     - ``kwds`` -- a dictionary of keyword arguments (only
       ``'relprec'`` and ``'absprec'`` are used)
 
-    - ``absolute`` -- (boolean) whether the precision handling is relative or absolute
+    - ``absolute`` -- (boolean) True if the precision cap of the ring
+      is a cap on absolute precision, False if a cap on relative
+      precision.
 
     - ``prime_pow`` -- a
       :class:`sage.rings.padics.pow_computer.PowComputer_class`
@@ -178,16 +233,16 @@ cdef int _process_args_and_kwds(long *aprec, long *rprec, args, kwds, bint absol
         rprec[0] = 0
         return 0
     if len(args) > 2:
-        raise TypeError, "too many positional arguments"
+        raise TypeError("too many positional arguments")
     if len(args) == 2:
         if kwds.has_key("relprec"):
-            raise TypeError, "_call_with_args() got multiple values for keyword argument 'relprec'"
+            raise TypeError("_call_with_args() got multiple values for keyword argument 'relprec'")
         relprec = args[1]
     else:
         relprec = kwds.get("relprec",infinity)
     if len(args) >= 1:
         if kwds.has_key("absprec"):
-            raise TypeError, "_call_with_args() got multiple values for keyword argument 'absprec'"
+            raise TypeError("_call_with_args() got multiple values for keyword argument 'absprec'")
         absprec = args[0]
     else:
         absprec = kwds.get("absprec",infinity)

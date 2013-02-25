@@ -740,9 +740,11 @@ cdef class pAdicZZpXCAElement(pAdicZZpXElement):
             self._set_prec_abs(new_abs_prec)
             ZZ_pX_conv_modulus(self.value, tmp, self.prime_pow.get_context_capdiv(self.absprec).x)
 
-        You may be able to just set ``self.absprec`` and
-        ``ZZ_pX_conv_modulus`` if you're decreasing precision.  I'm not
-        sure.
+        If you want to speed up this process and you're decreasing
+        precision, you may be able to just set ``self.absprec`` and
+        ``ZZ_pX_conv_modulus``.  I haven't looked into how NTL will be
+        have in this case well enough to know if your program will
+        segfault in this case or not.
 
         TESTS::
         
@@ -1726,15 +1728,6 @@ cdef class pAdicZZpXCAElement(pAdicZZpXElement):
         """
         # Should be sped up later
         return (self - right).is_zero(absprec)
-
-#     def lift(self):
-#         """
-#         Returns an element of a number field defined by the same polynomial as self's parent that is congruent to self modulo an appropriate ideal.
-
-#         Not currently implemented.
-#         """
-
-#         raise NotImplementedError
 
     cpdef pAdicZZpXCAElement lift_to_precision(self, absprec):
         """

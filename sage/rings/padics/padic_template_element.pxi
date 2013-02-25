@@ -34,11 +34,6 @@ from sage.rings.rational import Rational
 from sage.rings.padics.precision_error import PrecisionError
 from sage.structure.element import canonical_coercion
 
-#cdef inline long min(long a, long b):
-#    if a < b:
-#        return a
-#    return b
-
 cdef long maxordp = (1L << (sizeof(long) * 8 - 2)) - 1
 cdef long minusmaxordp = -maxordp
 
@@ -48,10 +43,10 @@ cdef inline int check_ordp(long ordp) except -1:
 
     There is another variant, :meth:`check_ordp_mpz`, for ``mpz_t`` input.
 
-    If overflow is detected, raises a ValueError.
+    If overflow is detected, raises a OverflowError.
     """
     if ordp >= maxordp or ordp <= minusmaxordp:
-        raise ValueError, "valuation overflow"
+        raise Overflow("valuation overflow")
 
 cdef class pAdicTemplateElement(pAdicGenericElement):
     """
@@ -78,12 +73,18 @@ cdef class pAdicTemplateElement(pAdicGenericElement):
         """
         Initialization.
 
+        .. NOTE:
+
+            This initialization function is not called for Integers
+            and Rationals since a conversion morphism has been
+            implemented.  It is, however, used for python ints and longs.
+
         EXAMPLES::
 
             sage: a = Zp(5)(1/2,3); a
             3 + 2*5 + 2*5^2 + O(5^3)
             sage: type(a)
-            
+
             sage: TestSuite(a).run()
         """
         self.prime_pow = <PowComputer_class?>parent.prime_pow

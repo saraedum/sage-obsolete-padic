@@ -1367,27 +1367,6 @@ cdef class pAdicZZpXCRElement(pAdicZZpXElement):
                 ZZ_pX_InvMod_newton_ram(high_shifter, high_shifter, modulus[0], c.x)
                 ZZ_pX_PowerMod_long_pre(high_shifter, high_shifter, shift, modulus[0])
                 ZZ_pX_MulMod_pre(self.unit, self.unit, high_shifter, modulus[0])
-                
-                #modulus_up = self.prime_pow.get_modulus_capdiv(self.relprec + self.prime_pow.e)[0]
-                #c = self.prime_pow.get_context_capdiv(self.relprec + self.prime_pow.e)
-                #c.restore_c()
-                #ZZ_pX_SetX(high_shifter)
-                #ZZ_pX_LeftShift(high_shifter, high_shifter, self.prime_pow.e)
-                #ZZ_pX_sub(high_shifter, high_shifter, modulus_up.val())
-                #c = self.prime_pow.get_context_capdiv(self.relprec)
-                #c.restore_c()
-                #ZZ_pX_right_pshift(high_shifter2, high_shifter, self.prime_pow.pow_ZZ_tmp(1)[0], c.x)
-                #printer = ntl_ZZ_pX([],c)
-                #printer.x = high_shifter2
-                #print "high_shifter2 = %s"%(printer)
-                #print "shift = %s"%shift
-                #printer.x = modulus.val()
-                #print "modulus = %s"%(printer)
-                #print c
-                #print "before PowerMod1"
-                #ZZ_pX_PowerMod_long_pre(high_shifter2, high_shifter2, shift, modulus) 
-                #print "after PowerMod"
-                #ZZ_pX_MulMod_pre(self.unit, self.unit, high_shifter2, modulus)
             elif shift > 0:
                 i = 0
                 c = self.prime_pow.get_context_capdiv(self.relprec)
@@ -3060,6 +3039,10 @@ def make_ZZpXCRElement(parent, unit, ordp, relprec, version):
         w^10 + 4*w^12 + 2*w^14 + w^15 + 2*w^16 + 4*w^17 + w^18 + O(w^19)
         sage: loads(dumps(y)) #indirect doctest
         w^10 + 4*w^12 + 2*w^14 + w^15 + 2*w^16 + 4*w^17 + w^18 + O(w^19)
+
+        sage: from sage.rings.padics.padic_ZZ_pX_CR_element import make_ZZpXCRElement
+        sage: make_ZZpXCRElement(W, y._ntl_rep(), 3, 9, 0)
+        w^3 + 4*w^5 + 2*w^7 + w^8 + 2*w^9 + 4*w^10 + w^11 + O(w^12)
     """
     cdef pAdicZZpXCRElement ans
     cdef ZZ_pX_c poly
