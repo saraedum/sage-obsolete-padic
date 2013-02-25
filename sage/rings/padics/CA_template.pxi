@@ -13,7 +13,8 @@ The gluing file does the following:
 - ctypedef's celement to be the appropriate type (e.g. mpz_t)
 - includes the linkage file
 - includes this template
-- defines a concrete class inheriting from CRElement, and implements any desired extra methods
+- defines a concrete class inheriting from CRElement, and implements
+  any desired extra methods
 
 AUTHORS:
 
@@ -102,7 +103,8 @@ cdef class CAElement(pAdicTemplateElement):
 
     cdef int check_preccap(self) except -1:
         """
-        Checks that this element doesn't have precision higher than allowed by the precision cap.
+        Checks that this element doesn't have precision higher than
+        allowed by the precision cap.
 
         TESTS::
 
@@ -202,7 +204,7 @@ cdef class CAElement(pAdicTemplateElement):
             sage: R(12) + R(1)
             13 + O(13^4)
         """
-        cdef CAElement right = <CAElement>_right
+        cdef CAElement right = _right
         cdef CAElement ans = self._new_c()
         ans.absprec = min(self.absprec, right.absprec)
         cadd(ans.value, self.value, right.value, ans.absprec, ans.prime_pow)
@@ -221,7 +223,7 @@ cdef class CAElement(pAdicTemplateElement):
             sage: R(10) - R(11)
             12 + 12*13 + 12*13^2 + 12*13^3 + O(13^4)
         """
-        cdef CAElement right = <CAElement>_right
+        cdef CAElement right = _right
         cdef CAElement ans = self._new_c()
         ans.absprec = min(self.absprec, right.absprec)
         csub(ans.value, self.value, right.value, ans.absprec, ans.prime_pow)
@@ -256,7 +258,7 @@ cdef class CAElement(pAdicTemplateElement):
             sage: a = R(20,5); b = R(75, 4); a * b #indirect doctest
             2*5^3 + 2*5^4 + O(5^5)
         """
-        cdef CAElement right = <CAElement>_right
+        cdef CAElement right = _right
         cdef CAElement ans = self._new_c()
         cdef long vals, valr
         if self.absprec == self.prime_pow.prec_cap and right.absprec == self.prime_pow.prec_cap:
@@ -425,6 +427,14 @@ cdef class CAElement(pAdicTemplateElement):
 
             sage: R = ZpCA(5); a = R(17); a << 2
             2*5^2 + 3*5^3 + O(5^20)
+            sage: a << -1
+            3 + O(5^19)
+            sage: a << 0 == a
+            True
+            sage: a << 400
+            O(5^20)
+            sage: a << -400
+            O(5^0)
         """
         if shift < 0:
             return self._rshift_c(-shift)
@@ -449,6 +459,14 @@ cdef class CAElement(pAdicTemplateElement):
 
             sage: R = ZpCA(5); a = R(77); a >> 1
             3*5 + O(5^19)
+            sage: a >> -1
+            2*5 + 3*5^3 + O(5^20)
+            sage: a >> 0 == a
+            True
+            sage: a >> 400
+            O(5^0)
+            sage: a >> -400
+            O(5^20)
         """
         if shift < 0:
             return self._lshift_c(-shift)
@@ -466,11 +484,11 @@ cdef class CAElement(pAdicTemplateElement):
     def add_bigoh(self, absprec):
         """
         Returns a new element with absolute precision decreased to
-        ``prec``.  The precision never increases.
+        ``absprec``.  The precision never increases.
 
         INPUT:
 
-        - ``prec`` -- an integer
+        - ``absprec`` -- an integer
 
         OUTPUT:
 
@@ -505,15 +523,15 @@ cdef class CAElement(pAdicTemplateElement):
 
     cpdef bint _is_exact_zero(self) except -1:
         """
-        Capped absolute elements are never exactly zero.
+        Tests whether this element is an exact zero, which is always
+        False for capped absolute elements.
 
         This function exists for compatibility with capped relative
         elements.
 
         EXAMPLES::
 
-            sage: R = ZpCA(5)
-            sage: R(0)._is_exact_zero()
+            sage: R = ZpCA(5)(0)._is_exact_zero()
             False
         """
         return False
@@ -594,10 +612,9 @@ cdef class CAElement(pAdicTemplateElement):
 
         EXAMPLES::
 
-            sage: bool(ZpCA(5)(5))
-            True
-            sage: bool(ZpCA(5)(0))
-            False
+            sage: R = ZpCA(5); a = R(0); b = R(0,5); c = R(75)
+            sage: bool(a), bool(b), bool(c)
+            (False, False, True)
         """
         return not ciszero(self.value, self.prime_pow)
 
@@ -637,9 +654,9 @@ cdef class CAElement(pAdicTemplateElement):
         cdef CAElement right
         cdef long aprec, rprec, sval, rval
         if self.parent() is _right.parent():
-            right = <CAElement>_right
+            right = _right
         else:
-            right = <CAElement>self.parent()(_right)
+            right = self.parent()(_right)
         if absprec is None:
             aprec = min(self.absprec, right.absprec)
         else:
@@ -665,7 +682,7 @@ cdef class CAElement(pAdicTemplateElement):
             sage: R(17) == R(17+37^6) # indirect doctest
             False
         """
-        cdef CAElement right = <CAElement>_right
+        cdef CAElement right = _right
         cdef long aprec = min(self.absprec, right.absprec)
         if aprec == 0:
             return 0
@@ -775,7 +792,7 @@ cdef class CAElement(pAdicTemplateElement):
         elif lift_mode == 'smallest':
             vlist = clist(self.value, self.absprec, False, self.prime_pow)
         else:
-            raise ValueError, "unknown lift_mode"
+            raise ValueError("unknown lift_mode")
         if start_val is not None:
             if start_val > 0:
                 if start_val > self.valuation_c():
@@ -821,10 +838,10 @@ cdef class CAElement(pAdicTemplateElement):
             list_elt = self._new_c()
             cteichmuller(list_elt.value, tmp.value, curpower, self.prime_pow)
             if ciszero(list_elt.value, self.prime_pow):
-                cshift0(tmp.value, tmp.value, -1, curpower-1, self.prime_pow)
+                cshift_notrunc(tmp.value, tmp.value, -1, curpower-1, self.prime_pow)
             else:
                 csub(tmp.value, tmp.value, list_elt.value, curpower, self.prime_pow)
-                cshift0(tmp.value, tmp.value, -1, curpower-1, self.prime_pow)
+                cshift_notrunc(tmp.value, tmp.value, -1, curpower-1, self.prime_pow)
                 creduce(tmp.value, tmp.value, curpower-1, self.prime_pow)
             list_elt.absprec = curpower
             curpower -= 1
@@ -850,6 +867,14 @@ cdef class CAElement(pAdicTemplateElement):
             11 + 14*17 + 2*17^2 + 12*17^3 + 15*17^4 + O(17^5)
             sage: a.list('teichmuller')
             [11 + 14*17 + 2*17^2 + 12*17^3 + 15*17^4 + O(17^5)]
+
+        Note that if you set an element which is congruent to 0 you
+        get 0 to maximum precision::
+
+            sage: b = R(17*5); b
+            5*17 + O(17^5)
+            sage: b._teichmuller_set_unsafe(); b
+            O(17^5)
         """
         if self.valuation_c() > 0:
             csetzero(self.value, self.prime_pow)
@@ -1026,14 +1051,16 @@ cdef class pAdicCoercion_ZZ_CA(RingHomomorphism_coercion):
             return self._zero
         cdef CAElement ans = self._zero._new_c()
         ans.absprec = ans.prime_pow.prec_cap
-        cconv_mpzt(ans.value, (<Integer>x).value, ans.absprec, True, ans.prime_pow)
+        cconv_mpz_t(ans.value, (<Integer>x).value, ans.absprec, True, ans.prime_pow)
         return ans
 
     cpdef Element _call_with_args(self, x, args=(), kwds={}):
         """
-        This function is used when some precision cap is passed in (relative or absolute or both).
+        This function is used when some precision cap is passed in
+        (relative or absolute or both).
 
-        See the documentation for pAdicCappedAbsoluteElement.__init__ for more details.
+        See the documentation for
+        :meth:`pAdicCappedAbsoluteElement.__init__` for more details.
 
         EXAMPLES::
 
@@ -1070,12 +1097,13 @@ cdef class pAdicCoercion_ZZ_CA(RingHomomorphism_coercion):
                 ans.absprec = aprec
             else:
                 ans.absprec = min(aprec, val + rprec)
-                cconv_mpzt(ans.value, (<Integer>x).value, ans.absprec, True, self._zero.prime_pow)
+                cconv_mpz_t(ans.value, (<Integer>x).value, ans.absprec, True, self._zero.prime_pow)
         return ans
 
     def section(self):
         """
-        Returns a map back to ZZ that approximates an element of Zp by an integer.
+        Returns a map back to ZZ that approximates an element of Zp by
+        an integer.
 
         EXAMPLES::
 
@@ -1087,10 +1115,12 @@ cdef class pAdicCoercion_ZZ_CA(RingHomomorphism_coercion):
 
 cdef class pAdicConvert_CA_ZZ(RingMap):
     """
-    The map from a capped absolute ring back to ZZ that returns the the smallest non-negative integer
-    approximation to its input which is accurate up to the precision.
+    The map from a capped absolute ring back to ZZ that returns the
+    the smallest non-negative integer approximation to its input which
+    is accurate up to the precision.
 
-    If the input is not in the closure of the image of ZZ, raises a ValueError.
+    If the input is not in the closure of the image of ZZ, raises a
+    ValueError.
 
     EXAMPLES::
 
@@ -1128,14 +1158,14 @@ cdef class pAdicConvert_CA_ZZ(RingMap):
             0
         """
         cdef Integer ans = PY_NEW(Integer)
-        cdef CAElement x = <CAElement>_x
-        cconv_mpzt_out(ans.value, x.value, 0, x.absprec, x.prime_pow)
+        cdef CAElement x = _x
+        cconv_mpz_t_out(ans.value, x.value, 0, x.absprec, x.prime_pow)
         return ans
 
 cdef class pAdicConvert_QQ_CA(Morphism):
     """
-    The inclusion map from QQ to a capped absolute ring that is defined
-    on all elements with non-negative p-adic valuation.
+    The inclusion map from QQ to a capped absolute ring that is
+    defined on all elements with non-negative p-adic valuation.
 
     EXAMPLES::
 
@@ -1171,7 +1201,7 @@ cdef class pAdicConvert_QQ_CA(Morphism):
         if mpq_sgn((<Rational>x).value) == 0:
             return self._zero
         cdef CAElement ans = self._zero._new_c()
-        cconv_mpqt(ans.value, (<Rational>x).value, ans.prime_pow.prec_cap, True, ans.prime_pow)
+        cconv_mpq_t(ans.value, (<Rational>x).value, ans.prime_pow.prec_cap, True, ans.prime_pow)
         ans.absprec = ans.prime_pow.prec_cap
         return ans
 
@@ -1220,12 +1250,12 @@ cdef class pAdicConvert_QQ_CA(Morphism):
                 ans.absprec = aprec
             else:
                 ans.absprec = min(aprec, val + rprec)
-                cconv_mpqt(ans.value, (<Rational>x).value, ans.absprec, True, self._zero.prime_pow)
+                cconv_mpq_t(ans.value, (<Rational>x).value, ans.absprec, True, self._zero.prime_pow)
         return ans
 
 def unpickle_cae_v2(cls, parent, value, absprec):
     """
-    For unpickling.
+    Unpickles capped absolute elements.
 
     INPUT:
 
@@ -1241,9 +1271,11 @@ def unpickle_cae_v2(cls, parent, value, absprec):
     EXAMPLES::
 
         sage: from sage.rings.padics.padic_capped_absolute_element import unpickle_cae_v2, pAdicCappedAbsoluteElement
-        sage: R = ZpCA(5)
-        sage: unpickle_cae_v2(pAdicCappedAbsoluteElement, R, 22, 4)
-        2 + 4*5 + O(5^4)
+        sage: R = ZpCA(5,8)
+        sage: a = unpickle_cae_v2(pAdicCappedAbsoluteElement, R, 42, int(6)); a
+        2 + 3*5 + 5^2 + O(5^6)
+        sage: a.parent() is R
+        True
     """
     cdef CAElement ans = PY_NEW(cls)
     ans._parent = parent
