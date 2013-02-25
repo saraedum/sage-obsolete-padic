@@ -1319,16 +1319,18 @@ cdef class pAdicZZpXFMElement(pAdicZZpXElement):
                 self.prime_pow.eis_shift(&u.value, &u.value, 1, self.prime_pow.ram_prec_cap)
         return L
 
-    def _teichmuller_set(self):
+    def _teichmuller_set_unsafe(self):
         """
-        Sets ``self`` to the teichmuller representative congruent to
-        ``self`` modulo `\pi`.
+        Sets this element to the Teichmuller representative with the
+        same residue.
 
-        This function should not be used externally: elements are
-        supposed to be immutable.
-                
+        .. WARNING::
+
+            This function modifies the element, which is not safe.
+            Elements are supposed to be immutable.
+
         EXAMPLES::
-        
+
             sage: R = ZpFM(5,5)
             sage: S.<x> = R[]
             sage: f = x^5 + 75*x^3 - 15*x^2 +125*x - 5

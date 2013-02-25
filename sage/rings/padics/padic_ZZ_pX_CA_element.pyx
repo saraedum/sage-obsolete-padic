@@ -1988,16 +1988,18 @@ cdef class pAdicZZpXCAElement(pAdicZZpXElement):
         return L
 
 
-    def _teichmuller_set(self):
+    def _teichmuller_set_unsafe(self):
         """
-        Sets self to the teichmuller representative congruent to self
-        modulo `\pi`, with the same relative precision as ``self``.
+        Sets this element to the Teichmuller representative with the
+        same residue.
 
-        This function should not be used externally: elements are
-        supposed to be immutable.
-                
+        .. WARNING::
+
+            This function modifies the element, which is not safe.
+            Elements are supposed to be immutable.
+
         EXAMPLES::
-        
+
             sage: R = ZpCA(11,5)
             sage: S.<x> = ZZ[]
             sage: f = x^5 + 33*x^3 - 121*x^2 - 77

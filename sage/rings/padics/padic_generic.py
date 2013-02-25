@@ -377,7 +377,7 @@ class pAdicGeneric(PrincipalIdealDomain, LocalGeneric):
         else:
             prec = min(Integer(prec), self.precision_cap())
         ans = self(x, prec)
-        ans._teichmuller_set()
+        ans._teichmuller_set_unsafe()
         return ans
 
     def teichmuller_system(self):

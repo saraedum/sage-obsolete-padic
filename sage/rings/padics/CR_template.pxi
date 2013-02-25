@@ -1294,7 +1294,7 @@ cdef class CRElement(pAdicTemplateElement):
         #pp = self.__copy__() #
         while not ciszero(tmp.unit, tmp.prime_pow) and curpower > 0:
             #lcopy = pp.__copy__() #
-            #lcopy._teichmuller_set() #
+            #lcopy._teichmuller_set_unsafe() #
             #pp -= lcopy #
 
             list_elt = self._new_c()
@@ -1314,9 +1314,10 @@ cdef class CRElement(pAdicTemplateElement):
             PyList_Append(ans, list_elt)
         return ans
 
-    def _teichmuller_set(self):
+    def _teichmuller_set_unsafe(self):
         """
-        Sets self to be the Teichmuller representative with the same residue as self.
+        Sets this element to the Teichmuller representative with the
+        same residue.
 
         .. WARNING::
 
@@ -1328,7 +1329,7 @@ cdef class CRElement(pAdicTemplateElement):
             sage: R = Zp(17,5); a = R(11)
             sage: a
             11 + O(17^5)
-            sage: a._teichmuller_set(); a
+            sage: a._teichmuller_set_unsafe(); a
             11 + 14*17 + 2*17^2 + 12*17^3 + 15*17^4 + O(17^5)
             sage: a.list('teichmuller')
             [11 + 14*17 + 2*17^2 + 12*17^3 + 15*17^4 + O(17^5)]

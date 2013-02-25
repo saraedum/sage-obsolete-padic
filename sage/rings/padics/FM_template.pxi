@@ -661,18 +661,22 @@ cdef class FMElement(pAdicTemplateElement):
             PyList_Append(ans, list_elt)
         return ans
 
-    def _teichmuller_set(self):
+    def _teichmuller_set_unsafe(self):
         """
-        Sets self to be the Teichmuller representative with the same residue as self.
+        Sets this element to the Teichmuller representative with the
+        same residue.
 
-        WARNING: This function modifies self, which is not safe.  Elements are supposed to be immutable.
+        .. WARNING::
+
+            This function modifies the element, which is not safe.
+            Elements are supposed to be immutable.
 
         EXAMPLES::
 
             sage: R = ZpFM(17,5); a = R(11)
             sage: a
             11 + O(17^5)
-            sage: a._teichmuller_set(); a
+            sage: a._teichmuller_set_unsafe(); a
             11 + 14*17 + 2*17^2 + 12*17^3 + 15*17^4 + O(17^5)
             sage: a.list('teichmuller')
             [11 + 14*17 + 2*17^2 + 12*17^3 + 15*17^4 + O(17^5)]
