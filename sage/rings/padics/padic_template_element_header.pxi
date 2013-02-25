@@ -15,4 +15,4 @@ cdef class pAdicTemplateElement(pAdicGenericElement):
     #cpdef RingElement _floordiv_c_impl(self, RingElement right)
     cdef int check_preccap(self) except -1
     cdef pAdicTemplateElement lift_to_precision_c(self, long absprec)
-    cdef pAdicTemplateElement unit_part(self)
+    cpdef pAdicTemplateElement unit_part(self)

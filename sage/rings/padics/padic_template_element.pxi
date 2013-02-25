@@ -429,6 +429,19 @@ cdef long padic_pow_helper(celement result, celement base, long base_val, long b
     OUTPUT:
 
     - the precision of the result
+
+    EXAMPLES::
+
+        sage: R = Zp(17,print_mode='digits')
+        sage: a = R(9283732, 6); b = R(17^3*237, 7)
+        sage: a
+        ...692AAF
+        sage: a^b # indirect doctest
+        ...55GA0001
+        sage: (a // R.teichmuller(15))^b
+        ...55GA0001
+        sage: (a.log()*b).exp()
+        ...55GA0001
     """
     if base_val != 0:
         raise ValueError("in order to raise to a p-adic exponent, base must be a unit")
@@ -455,7 +468,7 @@ cdef long padic_pow_helper(celement result, celement base, long base_val, long b
         expcheck = PY_NEW(Integer)
         mpz_sub_ui(expcheck.value, prime_pow.prime.value, 1)
         mpz_mul_si(expcheck.value, expcheck.value, bloga_val)
-        if mpz_cmp_ui(expcheck.value, prime_pow.e) <= 1:
+        if mpz_cmp_ui(expcheck.value, prime_pow.e) <= 0:
             raise ValueError("exponential does not converge")
         right = PY_NEW(Integer)
         try:

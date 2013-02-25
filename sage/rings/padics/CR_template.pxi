@@ -496,10 +496,35 @@ cdef class CRElement(pAdicTemplateElement):
         When ``right`` is divisible by `p` then one can get more
         precision than expected.
 
-        Lemma 2.1 [SP]_: (modified from original for Qp.  See
-        :mod:`sage.rings.padics.padic_ZZ_pX_CR_element` for
-        original) Let `\alpha` be in `\ZZ_p`. The `p`-th power of
-        `1 + \alpha p^{\lambda}` satisfies
+        Lemma 2.1 [SP]_:
+
+        Let `\alpha` be in `\mathcal{O}_K`.  Let
+
+        ..math ::
+
+            p = -\pi_K^{e_K} \epsilon
+
+        be the factorization of `p` where `\epsilon` is a unit.  Then
+        the `p`-th power of `1 + \alpha \pi_K^{\lambda}` satisfies
+
+        ..math ::
+
+            (1 + \alpha \pi^{\lambda})^p \equiv \left{ \begin{array}{lll}
+            1 + \alpha^p \pi_K^{p \lambda} & \mod \mathfrak{p}_K^{p \lambda + 1} & \mbox{if $1 \le \lambda < \frac{e_K}{p-1}$} \\
+            1 + (\alpha^p - \epsilon \alpha) \pi_K^{p \lambda} & \mod \mathfrak{p}_K^{p \lambda + 1} & \mbox{if $\lambda = \frac{e_K}{p-1}$} \\
+            1 - \epsilon \alpha \pi_K^{\lambda + e} & \mod \mathfrak{p}_K^{\lambda + e + 1} & \mbox{if $\lambda > \frac{e_K}{p-1}$}
+            \end{array} \right.
+
+
+        So if ``right`` is divisible by `p^k` we can multiply the
+        relative precision by `p` until we exceed `e/(p-1)`, then add
+        `e` until we have done a total of `k` things: the precision of
+        the result can therefore be greater than the precision of
+        ``self``.
+
+        For `\alpha` in `\ZZ_p` we can simplify the result a bit.  In
+        this case, the `p`-th power of `1 + \alpha p^{\lambda}`
+        satisfies
 
         .. MATH::
 
@@ -516,25 +541,37 @@ cdef class CRElement(pAdicTemplateElement):
 
         For `p = 2`, if we start with something of relative precision
         1 (ie `2^m + O(2^{m+1})`), `\alpha^2 + \alpha \equiv 0 \mod
-        2`, so the precision of the result is `k + 2`: `(2^m +
-        O(2^{m+1}))^{2^k} = 2^{m 2^k} + O(2^{m 2^k + k + 2})`
+        2`, so the precision of the result is `k + 2`:
 
-        There is also the issue of `p`-adic exponents, and determining
-        how the precision of the exponent affects the precision of the
-        result.  In computing `(a + O(p^k))^{b + O(p^m)}`, we can
-        factor out the Teichmuller part and use the above lemma to
-        find the first spot where `(1 + \alpha p^{\lambda})^(p^m)`
-        differs from 1.  This a relative precision of `\lambda + m`
-        except in the case `p = 2` and `\lambda = 1`, where it gives
-        `m + 2`.  We compare this with the precision bound given by
-        computing `(a + O(p^k))^b` (ie `k + v`, or `2 + v` if `p = 2`
-        and `k = 1`; here `v` is the valuation of `b`) and take the
-        lesser of the two.
+        .. MATH::
 
-        In order to do this we need to compute the valuation of
-        ``(self / self.parent().teichmuller(self)) - 1``.  This takes
-        a reasonable amount of time: we cache the result as
-        ``__pow_level.``
+            (2^m + O(2^{m+1}))^{2^k} = 2^{m 2^k} + O(2^{m 2^k + k + 2})
+
+        For `p`-adic exponents, we define `\alpha^\beta` as
+        `\exp(\beta \log(\alpha))`.  The precision of the result is
+        determined using the power series expansions for the
+        exponential and logarithm maps, together with the notes above.
+
+        .. NOTE::
+
+            For `p`-adic exponents we always need that `a` is a unit.
+            For unramified extensions `a^b` will converge as long as
+            `b` is integral (though it may converge for non-integral
+            `b` as well depending on the value of `a`).  However, in
+            highly ramified extensions some bases may be sufficiently
+            close to `1` that `exp(b log(a))` does not converge even
+            though `b` is integral.
+
+        .. WARNING::
+
+            If `\alpha` is a unit, but not congruent to `1` modulo
+            `\pi_K`, the result will not be the limit over integers
+            `b` converging to `\beta` since this limit does not exist.
+            Rather, the logarithm kills torsion in `\ZZ_p^\times`, and
+            `\alpha^\beta` will equal `(\alpha')^\beta`, where
+            `\alpha'` is the quotient of `\alpha` by the Teichmuller
+            representative congruent to `\alpha` modulo `\pi_K`.  Thus
+            the result will always be congruent to `1` modulo `\pi_K`.
 
         .. REFERENCES::
 
@@ -571,6 +608,17 @@ cdef class CRElement(pAdicTemplateElement):
             11 + 14*19 + 19^2 + 7*19^3 + O(19^5)
             sage: K(5, 3)^19 #indirect doctest
             5 + 3*19 + 11*19^3 + O(19^4)
+
+        `p`-adic exponents are also supported::
+
+            sage: a = K(8/5,4); a
+            13 + 7*19 + 11*19^2 + 7*19^3 + O(19^4)
+            sage: a^(K(19/7))
+            1 + 14*19^2 + 11*19^3 + 13*19^4 + O(19^5)
+            sage: (a // K.teichmuller(13))^(K(19/7))
+            1 + 14*19^2 + 11*19^3 + 13*19^4 + O(19^5)
+            sage: (a.log() * 19/7).exp()
+            1 + 14*19^2 + 11*19^3 + 13*19^4 + O(19^5)
         """
         cdef long base_level, exp_prec
         cdef mpz_t tmp
@@ -582,7 +630,7 @@ cdef class CRElement(pAdicTemplateElement):
                 base = ~self
                 return base.__pow__(-_right, dummy)
             exact_exp = True
-        elif self.parent() is right.parent():
+        elif self.parent() is _right.parent():
             ## For extension elements, we need to switch to the
             ## fraction field sometimes in highly ramified extensions.
             exact_exp = False
@@ -610,7 +658,8 @@ cdef class CRElement(pAdicTemplateElement):
             if isinstance(_right, (int, long)):
                 _right = Integer(_right)
             if PY_TYPE_CHECK(_right, Integer):
-                mpz_init(tmp, self.ordp)
+                right = <Integer>_right
+                mpz_init(tmp)
                 mpz_mul_si(tmp, (<Integer>_right).value, self.ordp)
                 check_ordp_mpz(tmp)
                 ans._set_inexact_zero(mpz_get_si(tmp))
@@ -731,7 +780,7 @@ cdef class CRElement(pAdicTemplateElement):
         if exactzero(self.ordp):
             return self
         cdef CRElement right = <CRElement>_right
-        assert_nonzer(right)
+        assert_nonzero(right)
         cdef CRElement ans = self._new_c()
         cdef long diff = self.ordp - right.ordp
         if self.relprec == 0:

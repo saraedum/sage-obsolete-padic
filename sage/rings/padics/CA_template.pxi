@@ -302,25 +302,6 @@ cdef class CAElement(pAdicTemplateElement):
         Since the `p`-adic logarithm is defined for `a` a unit, the
         same is true of exponentiation.
 
-        .. NOTE::
-
-            For `p`-adic exponents we always need that `a` is a unit.
-            For unramified extensions `a^b` will converge as long as
-            `b` is integral (though it may converge for non-integral
-            `b` as well depending on the value of `a`).  However, in
-            highly ramified extensions some bases may be sufficiently
-            close to `1` that `exp(b log(a))` does not converge even
-            though `b` is integral.
-
-        .. WARNING::
-
-            When `a` is not congruent to `1` modulo `\pi` and `b` is
-            an integer, the result of `a^b` and `a^(b + O(p^k))` may
-            not be `p`-adically close.  Instead, due to the extension
-            of the `p`-adic logarithm from `1 + \pi O_K` to `O_K^x`,
-            `a^c` will always be congruent to `1` modulo `\pi` for any
-            `p`-adic exponent.
-
         INPUT:
 
         - ``_right`` -- currently integers and `p`-adic exponents are
@@ -353,6 +334,18 @@ cdef class CAElement(pAdicTemplateElement):
             sage: a^35790
             177 + O(11^3)
             sage: a^c
+
+        `p`-adic exponents are supported::
+
+            sage: R = ZpCA(19, 5, print_mode='series')
+            sage: a = R(8/5,4); a
+            13 + 7*19 + 11*19^2 + 7*19^3 + O(19^4)
+            sage: a^(R(19/7))
+            1 + 14*19^2 + 11*19^3 + 13*19^4 + O(19^5)
+            sage: (a // R.teichmuller(13))^(R(19/7))
+            1 + 14*19^2 + 11*19^3 + 13*19^4 + O(19^5)
+            sage: (a.log() * 19/7).exp()
+            1 + 14*19^2 + 11*19^3 + 13*19^4 + O(19^5)
         """
         cdef long relprec, val, rval
         cdef mpz_t tmp
@@ -364,7 +357,7 @@ cdef class CAElement(pAdicTemplateElement):
                 base = ~self
                 return base.__pow__(-_right, dummy)
             exact_exp = True
-        elif self.parent() is right.parent():
+        elif self.parent() is _right.parent():
             ## For extension elements, we need to switch to the
             ## fraction field sometimes in highly ramified extensions.
             exact_exp = False
@@ -383,6 +376,7 @@ cdef class CAElement(pAdicTemplateElement):
             if isinstance(_right, (int, long)):
                 _right = Integer(_right)
             if PY_TYPE_CHECK(_right, Integer):
+                right = <Integer>_right
                 if self.absprec == 0:
                     ans.absprec = 0
                 else:
