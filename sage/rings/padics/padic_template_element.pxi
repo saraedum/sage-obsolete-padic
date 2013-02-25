@@ -46,7 +46,7 @@ cdef inline int check_ordp(long ordp) except -1:
     If overflow is detected, raises a OverflowError.
     """
     if ordp >= maxordp or ordp <= minusmaxordp:
-        raise Overflow("valuation overflow")
+        raise OverflowError("valuation overflow")
 
 cdef class pAdicTemplateElement(pAdicGenericElement):
     """
@@ -84,7 +84,7 @@ cdef class pAdicTemplateElement(pAdicGenericElement):
             sage: a = Zp(5)(1/2,3); a
             3 + 2*5 + 2*5^2 + O(5^3)
             sage: type(a)
-
+            <type 'sage.rings.padics.padic_capped_relative_element.pAdicCappedRelativeElement'>
             sage: TestSuite(a).run()
         """
         self.prime_pow = <PowComputer_class?>parent.prime_pow
@@ -435,14 +435,14 @@ cdef long padic_pow_helper(celement result, celement base, long base_val, long b
 
         sage: R = Zp(17,print_mode='digits')
         sage: a = R(9283732, 6); b = R(17^3*237, 7)
-        sage: a
-        ...692AAF
-        sage: a^b # indirect doctest
-        ...55GA0001
-        sage: (a // R.teichmuller(15))^b
-        ...55GA0001
-        sage: (a.log()*b).exp()
-        ...55GA0001
+        sage: str(a)
+        '...692AAF'
+        sage: str(a^b) # indirect doctest
+        '...55GA0001'
+        sage: str((a // R.teichmuller(15))^b)
+        '...55GA0001'
+        sage: str((a.log()*b).exp())
+        '...55GA0001'
     """
     if base_val != 0:
         raise ValueError("in order to raise to a p-adic exponent, base must be a unit")
@@ -473,7 +473,7 @@ cdef long padic_pow_helper(celement result, celement base, long base_val, long b
             raise ValueError("exponential does not converge")
         right = PY_NEW(Integer)
         try:
-            cconv_mpzt_out(right.value, right_unit, right_val, right_relprec, prime_pow)
+            cconv_mpz_t_out(right.value, right_unit, right_val, right_relprec, prime_pow)
         except ValueError:
             # Here we need to use the exp(b log(a)) definition,
             # since we can't convert the exponent to an integer

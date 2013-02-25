@@ -25,7 +25,7 @@ from sage.structure.parent import Parent
 from sage.rings.integer import Integer
 
 class LocalGeneric(CommutativeRing):
-    def __init__(self, base, prec, names, element_class):
+    def __init__(self, base, prec, names, element_class, category=None):
         """
         Initializes self.
 
@@ -36,7 +36,9 @@ class LocalGeneric(CommutativeRing):
             20
         """
         self._prec = prec
-        Parent.__init__(self, base, element_constructor=element_class, names=(names,), normalize=False, category=CommutativeRings())
+        if category is None:
+            category = CommutativeRings()
+        Parent.__init__(self, base, element_constructor=element_class, names=(names,), normalize=False, category=category)
 
     def is_capped_relative(self):
         """

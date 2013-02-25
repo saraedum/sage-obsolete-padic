@@ -324,6 +324,7 @@ cdef class CAElement(pAdicTemplateElement):
             sage: R(3)^1000
             1 + 4*11^2 + 3*11^3 + 7*11^4 + O(11^5)
 
+        `p`-adic exponents are supported::
 
             sage: R = ZpCA(11, 5, print_mode='terse')
             sage: a = R(3/14, 3); b = R(8/9); c = R(11,2)
@@ -336,8 +337,9 @@ cdef class CAElement(pAdicTemplateElement):
             sage: a^35790
             177 + O(11^3)
             sage: a^c
-
-        `p`-adic exponents are supported::
+            848 + O(11^3)
+            sage: (a.log()*c).exp()
+            848 + O(11^3)
 
             sage: R = ZpCA(19, 5, print_mode='series')
             sage: a = R(8/5,4); a
@@ -364,7 +366,7 @@ cdef class CAElement(pAdicTemplateElement):
             ## For extension elements, we need to switch to the
             ## fraction field sometimes in highly ramified extensions.
             exact_exp = False
-            pright = <CAElement>_right
+            pright = _right
         else:
             self, _right = canonical_coercion(self, _right)
             return self.__pow__(_right, dummy)
@@ -411,10 +413,12 @@ cdef class CAElement(pAdicTemplateElement):
                 mpz_clear(tmp)
             else:
                 rval = pright.valuation_c()
+                if rval != 0:
+                    pright = pright.unit_part()
                 # We may assume that val = 0 since the following will quickly raise an error otherwise.
                 # padic_pow_helper is defined in padic_template_element.pxi
                 ans.absprec = padic_pow_helper(ans.value, self.value, val, self.absprec,
-                                               pright.value, rval, pright.absprec - rval, self.prime_pow)
+                                               pright.value, rval, pright.absprec, self.prime_pow)
         return ans
 
     cdef pAdicTemplateElement _lshift_c(self, long shift):
@@ -531,7 +535,7 @@ cdef class CAElement(pAdicTemplateElement):
 
         EXAMPLES::
 
-            sage: R = ZpCA(5)(0)._is_exact_zero()
+            sage: ZpCA(5)(0)._is_exact_zero()
             False
         """
         return False
@@ -937,7 +941,7 @@ cdef class CAElement(pAdicTemplateElement):
             sage: type(a)
             <type 'sage.rings.padics.padic_capped_absolute_element.pAdicCappedAbsoluteElement'>
             sage: R(0).unit_part()
-            O(5^0)
+            O(17^0)
         """
         cdef CAElement ans = (<CAElement>self)._new_c()
         cdef long val = cremove(ans.value, (<CAElement>self).value, (<CAElement>self).absprec, (<CAElement>self).prime_pow)

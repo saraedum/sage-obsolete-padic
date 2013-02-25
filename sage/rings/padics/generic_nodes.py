@@ -208,7 +208,7 @@ def is_pAdicField(R):
 
 class pAdicFieldGeneric(pAdicGeneric, Field):
     pass
-    
+
     #def class_field(self, group=None, map=None, generators=None):
     #    raise NotImplementedError
 

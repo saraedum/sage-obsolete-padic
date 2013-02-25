@@ -30,7 +30,7 @@ from sage.rings.padics.padic_generic_element cimport pAdicGenericElement
 import sage.rings.finite_rings.integer_mod
 
 cdef Integer holder = PY_NEW(Integer)
-cdef Integer holder2 = PY_NEW(Integer)xs
+cdef Integer holder2 = PY_NEW(Integer)
 
 cdef inline int cconstruct(mpz_t value, PowComputer_class prime_pow) except -1:
     """
@@ -722,7 +722,7 @@ cdef inline long cconv_mpq_t(mpz_t out, mpq_t x, long prec, bint absolute, PowCo
         mpz_mod(out, out, prime_pow.pow_mpz_t_tmp(prec)[0])
         return numval - denval
 
-cdef inline int cconv_mpqt_out(mpq_t out, mpz_t x, long valshift, long prec, PowComputer_class prime_pow) except -1:
+cdef inline int cconv_mpq_t_out(mpq_t out, mpz_t x, long valshift, long prec, PowComputer_class prime_pow) except -1:
     """
     Converts the underlying `p`-adic element into a rational
 

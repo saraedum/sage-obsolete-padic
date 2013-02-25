@@ -1076,7 +1076,7 @@ cdef class CRElement(pAdicTemplateElement):
         else:
             right = self.parent().coerce(_right)
         if exactzero(self.ordp) and exactzero(right.ordp):
-            return 0
+            return True
         elif absprec is infinity:
             raise PrecisionError("Elements not known to enough precision")
         if absprec is None:
@@ -1497,17 +1497,19 @@ cdef class CRElement(pAdicTemplateElement):
             sage: a.val_unit()
             (2, 3 + O(5^18))
             sage: R(0).val_unit()
-            (+Infinity, O(5^0))
+            Traceback (most recent call last):
+            ...
+            ValueError: unit part of 0 not defined
             sage: R(0, 10).val_unit()
             (10, O(5^0))
         """
         # Since we keep this element normalized there's not much to do here.
-        if not p is None and p != self.parent().prime():
+        if p is not None and p != self.parent().prime():
             raise ValueError('Ring (%s) residue field of the wrong characteristic.'%self.parent())
-        if exactzero(self.ordp):
+        if exactzero((<CRElement>self).ordp):
             raise ValueError("unit part of 0 not defined")
         cdef Integer val = PY_NEW(Integer)
-        mpz_set_si(val.value, self.ordp)
+        mpz_set_si(val.value, (<CRElement>self).ordp)
         cdef CRElement unit = (<CRElement>self)._new_c()
         unit.ordp = 0
         unit.relprec = (<CRElement>self).relprec

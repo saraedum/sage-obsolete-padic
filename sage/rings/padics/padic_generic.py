@@ -21,6 +21,8 @@ AUTHORS:
 #                  http://www.gnu.org/licenses/
 #*****************************************************************************
 
+from sage.categories.principal_ideal_domains import PrincipalIdealDomains
+from sage.categories.fields import Fields
 from sage.rings.infinity import infinity
 from local_generic import LocalGeneric
 from sage.rings.ring import PrincipalIdealDomain
@@ -28,7 +30,7 @@ from sage.rings.integer import Integer
 from sage.rings.padics.padic_printing import pAdicPrinter
 
 class pAdicGeneric(PrincipalIdealDomain, LocalGeneric):
-    def __init__(self, base, p, prec, print_mode, names, element_class):
+    def __init__(self, base, p, prec, print_mode, names, element_class, category=None):
         """
         Initialization.
 
@@ -44,7 +46,12 @@ class pAdicGeneric(PrincipalIdealDomain, LocalGeneric):
 
             sage: R = Zp(17) #indirect doctest
         """
-        LocalGeneric.__init__(self, base, prec, names, element_class)
+        if category is None:
+            if self.is_field():
+                category = Fields()
+            else:
+                category = PrincipalIdealDomains()
+        LocalGeneric.__init__(self, base, prec, names, element_class, category)
         self._printer = pAdicPrinter(self, print_mode)
 
     def _modified_print_mode(self, print_mode):
