@@ -32,6 +32,7 @@ from sage.rings.integer cimport Integer
 from sage.rings.infinity import infinity
 from sage.rings.rational import Rational
 from sage.rings.padics.precision_error import PrecisionError
+from sage.structure.element import canonical_coercion
 
 #cdef inline long min(long a, long b):
 #    if a < b:
@@ -365,7 +366,7 @@ cdef class pAdicTemplateElement(pAdicGenericElement):
         """
         return self.prime_pow.prime == p and self.prime_pow.deg == 1
 
-cdef Integer pow_helper(long *ansrelprec, long *exp_prec, long ordp, long relprec, _right, PowComputer_class prime_pow):
+cdef Integer exact_pow_helper(long *ansrelprec, long relprec, _right, PowComputer_class prime_pow):
     """
     This function is used by exponentiation in both CR_template.pxi
     and CA_template.pxi to determine the extra precision gained from
@@ -375,10 +376,6 @@ cdef Integer pow_helper(long *ansrelprec, long *exp_prec, long ordp, long relpre
     INPUT:
 
     - ``ansrelprec`` -- (return value) the relative precision of the answer
-
-    - ``exp_prec`` -- (return value) a nonnegative integer, or -1 to indicate infinite precision exponent
-
-    - ``ordp`` -- an integer: just used to check that the base is a unit for p-adic exponents
 
     - ``relprec`` -- a positive integer: the relative precision of the base
 
@@ -399,58 +396,78 @@ cdef Integer pow_helper(long *ansrelprec, long *exp_prec, long ordp, long relpre
     if PY_TYPE_CHECK(_right, Integer):
         right = <Integer> _right
         exp_val = mpz_get_si((<Integer>right.valuation(p)).value)
-        exp_prec[0] = -1
     elif PY_TYPE_CHECK(_right, Rational):
         raise NotImplementedError
-    else:
-        try:
-            isbase = _right._is_base_elt(p)
-        except AttributeError:
-            isbase = False
-        if not isbase:
-            raise TypeError("exponent must be an integer, rational or base p-adic with the same prime")
-        if ordp != 0:
-            raise ValueError("in order to raise to a p-adic exponent, base must be a unit")
-        right = Integer(_right)
-        exp_prec[0] = mpz_get_si((<Integer>_right.precision_absolute()).value)
-        exp_val = (<pAdicGenericElement>_right).valuation_c()
-        if exp_val < 0:
-            raise NotImplementedError("negative valuation exponents not yet supported")
-        if exp_prec[0] == 0:
-            # The calling code should set an inexact zero with no precision
-            return right
     ansrelprec[0] = relprec + exp_val
     if exp_val > 0 and mpz_cmp_ui(p.value, 2) == 0 and relprec == 1:
         ansrelprec[0] += 1
     
     return right
 
-cdef inline long padic_exp_helper(long relprec, long exp_prec, long base_level, PowComputer_class prime_pow) except -1:
+cdef long padic_pow_helper(celement result, celement base, long base_val, long base_relprec,
+                           celement right_unit, long right_val, long right_relprec, PowComputer_class prime_pow) except -1:
     """
-    Used by CR_template.pxi and CA_template.pxi in computing the
-    precision of exponentiation when the exponent is itself a `p`-adic
-    number.
-
     INPUT:
 
-    - ``relprec`` -- (positive integer) the relative precision bound
-      produced by ``pow_helper``
+    - ``result`` -- the result of exponentiation.
 
-    - ``exp_prec`` -- (positive integer) the precision of the `p`-adic
-      exponent.
+    - ``base`` -- a celement, the base of the exponentiation.
 
-    - ``base_level`` -- (positive integer) the valuation of
-      `u/teich(u) - 1`, where `u` is the unit part of the base.
+    - ``base_val`` -- a long, used to check that the base is a unit
+
+    - ``base_relprec`` -- a positive integer: the relative precision
+      of the base.
+
+    - ``right_unit`` -- the unit part of the exponent
+
+    - ``right_val`` -- the valuation of the exponent
+
+    - ``right_relprec`` -- the relative precision of the exponent
 
     - ``prime_pow`` -- the Powcomputer for the ring.
 
     OUTPUT:
 
-    - an updated relative precision for the result.
+    - the precision of the result
     """
-    if base_level == 0:
-        raise ValueError("in order to raise to a p-adic exponent, base must reduce to an element of F_p mod the uniformizer")
-    cdef Integer p = prime_pow.prime
-    if mpz_cmp_ui(p.value, 2) == 0 and base_level == 1:
-        base_level = 2
-    return min(relprec, base_level + exp_prec)
+    if base_val != 0:
+        raise ValueError("in order to raise to a p-adic exponent, base must be a unit")
+    ####### NOTE:  this function needs to be updated for extension elements. #######
+    cdef celement oneunit, teichdiff
+    cdef long loga_val, loga_aprec, bloga_val, bloga_aprec
+    cdef Integer expcheck, right
+    try:
+        cconstruct(oneunit, prime_pow)
+        cconstruct(teichdiff, prime_pow)
+        cteichmuller(oneunit, base, base_relprec, prime_pow)
+        cdivunit(oneunit, base, oneunit, base_relprec, prime_pow)
+        csetone(teichdiff, prime_pow)
+        csub(teichdiff, oneunit, teichdiff, base_relprec, prime_pow)
+        ## For extension elements in ramified extensions, the computation of the
+        ## valuation and precision of log(a) is more complicated)
+        loga_val = cvaluation(teichdiff, base_relprec, prime_pow)
+        loga_aprec = base_relprec
+        # valuation of b*log(a)
+        bloga_val = loga_val + right_val
+        bloga_aprec = bloga_val + min(right_relprec, loga_aprec - loga_val)
+        if bloga_aprec > prime_pow.ram_prec_cap:
+            bloga_aprec = prime_pow.ram_prec_cap
+        expcheck = PY_NEW(Integer)
+        mpz_sub_ui(expcheck.value, prime_pow.prime.value, 1)
+        mpz_mul_si(expcheck.value, expcheck.value, bloga_val)
+        if mpz_cmp_ui(expcheck.value, prime_pow.e) <= 1:
+            raise ValueError("exponential does not converge")
+        right = PY_NEW(Integer)
+        try:
+            cconv_mpzt_out(right.value, right_unit, right_val, right_relprec, prime_pow)
+        except ValueError:
+            # Here we need to use the exp(b log(a)) definition,
+            # since we can't convert the exponent to an integer
+            raise NotImplementedError("exponents with negative valuation not yet supported")
+        ## For extension elements in ramified extensions
+        ## the following precision might need to be changed.
+        cpow(result, oneunit, right.value, bloga_aprec, prime_pow)
+    finally:
+        cdestruct(oneunit, prime_pow)
+        cdestruct(teichdiff, prime_pow)
+    return bloga_aprec

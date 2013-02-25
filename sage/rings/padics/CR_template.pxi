@@ -491,9 +491,9 @@ cdef class CRElement(pAdicTemplateElement):
 
     def __pow__(CRElement self, _right, dummy):
         r"""
-        Returns self to the power of right.
+        Exponentiation.
 
-        When right is divisible by `p` then one can get more
+        When ``right`` is divisible by `p` then one can get more
         precision than expected.
 
         Lemma 2.1 [SP]_: (modified from original for Qp.  See
@@ -575,83 +575,64 @@ cdef class CRElement(pAdicTemplateElement):
         cdef long base_level, exp_prec
         cdef mpz_t tmp
         cdef Integer right
-        cdef CRElement base, ans
-        if exactzero(self.ordp):
-            if PY_TYPE_CHECK(_right, Integer) or isinstance(_right, (int, long)) or PY_TYPE_CHECK(_right, Rational):
-                if _right == 0:
-                    raise ArithmeticError, "0^0 is undefined"
-                elif _right < 0:
-                    raise ZeroDivisionError
-                return self
-            elif _right._is_base_elt(self.prime_pow.prime):
-                # For p-adic exponents we take the limit over positive integers, so this exponent is defined.
-                if _right.is_exact_zero():
-                    raise ArithmeticError, "0^0 is undefined"
-                return self
-            else:
-                raise TypeError, "exponent must be an integer, rational or base p-adic with the same prime"
-        elif isinstance(_right, (int, long, Integer)) and _right == 0:
+        cdef CRElement base, pright, ans
+        cdef bint exact_exp
+        if (PY_TYPE_CHECK(_right, Integer) or isinstance(_right, (int, long)) or PY_TYPE_CHECK(_right, Rational)):
+            if _right < 0:
+                base = ~self
+                return base.__pow__(-_right, dummy)
+            exact_exp = True
+        elif self.parent() is right.parent():
+            ## For extension elements, we need to switch to the
+            ## fraction field sometimes in highly ramified extensions.
+            exact_exp = False
+            pright = <CRElement>_right
+        else:
+            self, _right = canonical_coercion(self, _right)
+            return self.__pow__(_right, dummy)
+        if exact_exp and _right == 0:
             # return 1 to maximum precision
             ans = self._new_c()
             ans.ordp = 0
-            ans.relprec = self.prime_pow.prec_cap
+            ans.relprec = self.prime_pow.ram_prec_cap
             csetone(ans.unit, ans.prime_pow)
             return ans
-        elif self.relprec == 0:
+        if exactzero(self.ordp):
+            if exact_exp:
+                # We may assume from above that right > 0
+                return self
+            else:
+                # log(0) is not defined
+                raise ValueError("0^x is not defined for p-adic x: log(0) does not converge")
+        ans = self._new_c()
+        if self.relprec == 0:
             # If a positive integer exponent, return an inexact zero of valuation right * self.ordp.  Otherwise raise an error.
             if isinstance(_right, (int, long)):
                 _right = Integer(_right)
             if PY_TYPE_CHECK(_right, Integer):
-                if _right < 0:
-                    raise ValueError, "Need more precision"
-                ans = self._new_c()
-                mpz_init_set_si(tmp, self.ordp)
-                mpz_mul(tmp, tmp, (<Integer>_right).value)
+                mpz_init(tmp, self.ordp)
+                mpz_mul_si(tmp, (<Integer>_right).value, self.ordp)
                 check_ordp_mpz(tmp)
                 ans._set_inexact_zero(mpz_get_si(tmp))
                 mpz_clear(tmp)
-                return ans
-            elif PY_TYPE_CHECK(_right, Rational) or (PY_TYPE_CHECK(_right, pAdicGenericElement) and _right._is_base_elt(self.prime_pow.prime)):
-                raise ValueError, "Need more precision"
             else:
-                raise TypeError, "exponent must be an integer, rational or base p-adic with the same prime"
-        ans = self._new_c()
-        # pow_helper is defined in padic_template_element.pxi
-        right = pow_helper(&ans.relprec, &exp_prec, self.ordp, self.relprec, _right, self.prime_pow)
-        if exp_prec == 0:
-            # a p-adic exponent with no relative precision
-            ans._set_inexact_zero(0)
-            return ans
-        elif exp_prec > 0 and exp_prec < ans.relprec - 1:
-            # p-adic exponent that potentially imposes a lower precision
-            # Exponentiation by a p-adic exponent only makes sense if the
-            # base reduces to an element of F_p modulo the uniformizer.
-
-            # We want to compute the "level," namely the valuation k
-            # of `u/T - 1`, where u is the unit part of this element
-            # and T is the Teichmuller representative of u.  I claim
-            # that k is the valuation of u - u^p.  Let M be a unit
-            # such that u/T = 1 + pi^k*M.  Then
-            # u^p/T = (1 + pi^k*M)^p = 1 (mod pi^(k+1)).
-            # Thus u - u^p = T*M*p^k (mod p^(k+1)).
-
-            # We use ans.value as a temporary variable.
-            cpow(ans.unit, self.unit, self.prime_pow.prime.value, self.relprec, self.prime_pow)
-            csub(ans.unit, ans.unit, self.unit, self.relprec, self.prime_pow)
-            ans.relprec = padic_exp_helper(ans.relprec, exp_prec, cvaluation(ans.unit, self.relprec, self.prime_pow), self.prime_pow)
-        if ans.relprec > self.prime_pow.prec_cap:
-            ans.relprec = self.prime_pow.prec_cap
-        if right < 0:
-            base = ~self
-            right = -right
+                raise PrecisionError("Need more precision")
+        elif exact_exp:
+            # exact_pow_helper is defined in padic_template_element.pxi
+            right = exact_pow_helper(&ans.relprec, self.relprec, _right, self.prime_pow)
+            if ans.relprec > self.prime_pow.ram_prec_cap:
+                ans.relprec = self.prime_pow.ram_prec_cap
+            mpz_init(tmp)
+            mpz_mul_si(tmp, right.value, self.ordp)
+            check_ordp_mpz(tmp)
+            ans.ordp = mpz_get_si(tmp)
+            mpz_clear(tmp)
+            cpow(ans.unit, self.unit, right.value, ans.relprec, ans.prime_pow)
         else:
-            base = self
-        mpz_init_set_si(tmp, base.ordp)
-        mpz_mul(tmp, right.value, tmp)
-        check_ordp_mpz(tmp)
-        ans.ordp = mpz_get_si(tmp)
-        mpz_clear(tmp)
-        cpow(ans.unit, base.unit, right.value, ans.relprec, ans.prime_pow)
+            # padic_pow_helper is defined in padic_template_element.pxi
+            ans.relprec = padic_pow_helper(ans.unit, self.unit, self.ordp, self.relprec,
+                                           pright.unit, pright.ordp, pright.relprec, self.prime_pow)
+            ans.ordp = 0
         return ans
 
     cdef pAdicTemplateElement _lshift_c(self, long shift):
