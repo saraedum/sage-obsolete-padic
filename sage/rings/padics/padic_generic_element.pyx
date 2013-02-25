@@ -1579,6 +1579,35 @@ cdef class pAdicGenericElement(LocalGenericElement):
             1 + O(5^20)
             sage: R3(-1).square_root() == R3.teichmuller(2) or R3(-1).square_root() == R3.teichmuller(3)
             True
+
+            sage: R = Zp(3,20,'capped-abs')
+            sage: R(0).square_root()
+            O(3^10)
+            sage: R(1).square_root()
+            1 + O(3^20)
+            sage: R(4).square_root() == R(-2)
+            True
+            sage: R(9).square_root()
+            3 + O(3^19)
+            sage: R2 = Zp(2,20,'capped-abs')
+            sage: R2(0).square_root()
+            O(2^10)
+            sage: R2(1).square_root()
+            1 + O(2^19)
+            sage: R2(4).square_root()
+            2 + O(2^18)
+            sage: R2(9).square_root() == R2(3) or R2(9).square_root() == R2(-3)
+            True
+            sage: R2(17).square_root()
+            1 + 2^3 + 2^5 + 2^6 + 2^7 + 2^9 + 2^10 + 2^13 + 2^16 + 2^17 + O(2^19)
+            sage: R3 = Zp(5,20,'capped-abs')
+            sage: R3(0).square_root()
+            O(5^10)
+            sage: R3(1).square_root()
+            1 + O(5^20)
+            sage: R3(-1).square_root() == R3.teichmuller(2) or R3(-1).square_root() == R3.teichmuller(3)
+            True
+
         """
         # need special case for zero since pari(self) is the *integer* zero
         # whose square root is a real number....!

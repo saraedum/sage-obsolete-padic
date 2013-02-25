@@ -815,7 +815,7 @@ cdef class CRElement(pAdicTemplateElement):
 
         OUTPUT:
 
-        - an equal element with precision set to the minimum of self's precision and absprec
+        - an equal element with precision set to the minimum of self's precision and ``absprec``
 
         EXAMPLE::
 
@@ -906,9 +906,11 @@ cdef class CRElement(pAdicTemplateElement):
 
     def is_zero(self, absprec = None):
         r"""
-        Returns whether self is zero modulo `\pi^{\mbox{absprec}}`.
+        Determines whether this element is zero modulo
+        `\pi^{\mbox{absprec}}`.
 
-        If ``absprec is None``, returns ``True`` if this element is indistinguishable from zero.
+        If ``absprec is None``, returns ``True`` if this element is
+        indistinguishable from zero.
 
         INPUT:
 
@@ -951,8 +953,9 @@ cdef class CRElement(pAdicTemplateElement):
         """
         Returns True if self is distinguishable from zero.
 
-        For most applications, explicitly specifying the power of p modulo which the element 
-        is supposed to be nonzero is preferable.
+        For most applications, explicitly specifying the power of p
+        modulo which the element is supposed to be nonzero is
+        preferable.
 
         EXAMPLES::
 
@@ -1240,7 +1243,7 @@ cdef class CRElement(pAdicTemplateElement):
         if self.relprec == 0:
             return []
         if lift_mode == 'teichmuller':
-            ulist = self.teichmuller_list(start_val=start_val)
+            ulist = self.teichmuller_list()
         elif lift_mode == 'simple':
             ulist = clist(self.unit, self.relprec, True, self.prime_pow)
         elif lift_mode == 'smallest':
@@ -1393,7 +1396,7 @@ cdef class CRElement(pAdicTemplateElement):
 
     cpdef pAdicTemplateElement unit_part(self):
         r"""
-        Returns the unit part of self.
+        Returns `u`, where this element is `\pi^v u`.
 
         EXAMPLES::
 

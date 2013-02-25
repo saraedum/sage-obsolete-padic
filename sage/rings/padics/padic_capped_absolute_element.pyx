@@ -30,8 +30,18 @@ from sage.rings.finite_rings.integer_mod import Mod
 
 cdef class pAdicCappedAbsoluteElement(CAElement):
     """
+    Constructs new element with given parent and value.
+
+    INPUT:
+
+    - ``x`` -- value to coerce into a capped absolute ring
+
+    - ``absprec`` -- maximum number of digits of absolute precision
+
+    - ``relprec`` -- maximum number of digits of relative precision
+
     EXAMPLES::
-        
+
         sage: R = ZpCA(3, 5)
         sage: R(2)
         2 + O(3^5)
@@ -58,9 +68,9 @@ cdef class pAdicCappedAbsoluteElement(CAElement):
         """
         Returns an integer congruent to this `p`-adic element modulo
         ``p^self.absprec()``.
-        
+
         EXAMPLES::
-        
+
             sage: R = ZpCA(3)
             sage: R(10).lift()
             10
@@ -101,7 +111,7 @@ cdef class pAdicCappedAbsoluteElement(CAElement):
         Converts this element to an equivalent pari element.
 
         EXAMPLES::
-        
+
             sage: R = Zp(5, 10); a = R(17); pari(a) #indirect doctest
             2 + 3*5 + O(5^10)
             sage: pari(R(0))
@@ -121,7 +131,7 @@ cdef class pAdicCappedAbsoluteElement(CAElement):
         Converts self to an integer
 
         TESTS::
-        
+
             sage: R = ZpCA(5, prec = 4); a = R(642); a
             2 + 3*5 + O(5^4)
             sage: a._integer_()
@@ -134,18 +144,16 @@ cdef class pAdicCappedAbsoluteElement(CAElement):
         Reduces ``self`` modulo ``p^absprec``
 
         INPUT:
-        
-        - ``self`` -- a `p`-adic element
-        
+
         - ``absprec`` - an integer
-            
+
         OUTPUT:
-        
+
         - element of `\mathbb{Z}/p^{\mbox{absprec}} \mathbb{Z}` --
           ``self`` reduced modulo ``p^absprec``.
 
         EXAMPLES::
-        
+
             sage: R = Zp(7,4,'capped-abs'); a = R(8); a.residue(1)
             1
         """
@@ -168,17 +176,17 @@ cdef class pAdicCappedAbsoluteElement(CAElement):
         Returns the minimum possible multiplicative order of ``self``.
 
         INPUT:
-        
+
         - ``self`` -- a `p`-adic element
-            
+
         OUTPUT:
-        
+
         - the multiplicative order of self.  This is the minimum
           multiplicative order of all elements of `\mathbb{Z}_p`
           lifting ``self`` to infinite precision.
-            
+
         EXAMPLES::
-        
+
             sage: R = ZpCA(7, 6)
             sage: R(1/3)
             5 + 4*7 + 4*7^2 + 4*7^3 + 4*7^4 + 4*7^5 + O(7^6)
@@ -216,50 +224,6 @@ cdef class pAdicCappedAbsoluteElement(CAElement):
         else:
             mpz_clear(ppow_minus_one)
             return infinity
-
-    #def square_root(self):
-    #    r"""
-    #    Returns the square root of this p-adic number
-
-    #    INPUT:
-    #        self -- a p-adic element
-    #    OUTPUT:
-    #        p-adic element -- the square root of this p-adic number
-    #    EXAMPLES:
-    #        sage: R = Zp(3,20,'capped-abs')
-    #        sage: R(0).square_root()
-    #            O(3^10)
-    #        sage: R(1).square_root()
-    #            1 + O(3^20)
-    #        sage: R(4).square_root() == R(-2)
-    #            True
-    #        sage: R(9).square_root()
-    #            3 + O(3^19)
-    #        sage: R2 = Zp(2,20,'capped-abs')
-    #        sage: R2(0).square_root()
-    #            O(2^10)
-    #        sage: R2(1).square_root()
-    #            1 + O(2^19)
-    #        sage: R2(4).square_root()
-    #            2 + O(2^18)
-    #        sage: R2(9).square_root() == R2(3) or R2(9).square_root() == R2(-3)
-    #            True
-    #        sage: R2(17).square_root()
-    #            1 + 2^3 + 2^5 + 2^6 + 2^7 + 2^9 + 2^10 + 2^13 + 2^16 + 2^17 + O(2^19)
-    #        sage: R3 = Zp(5,20,'capped-abs')
-    #        sage: R3(0).square_root()
-    #            O(5^10)
-    #        sage: R3(1).square_root()
-    #            1 + O(5^20)
-    #        sage: R3(-1).square_root() == R3.teichmuller(2) or R3(-1).square_root() == R3.teichmuller(3)
-    #            True
-    #    """
-    #    #todo: make more efficient
-    #    try:
-    #        # use pari
-    #        return self.parent()(pari(self).sqrt())
-    #    except PariError:
-    #        raise ValueError, "element is not a square" # should eventually change to return an element of an extension field
 
 def make_pAdicCappedAbsoluteElement(parent, x, absprec):
     """
