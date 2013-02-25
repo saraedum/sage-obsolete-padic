@@ -147,10 +147,12 @@ AUTHORS:
 """
 
 #*****************************************************************************
-#       Copyright (C) 2008 David Roe <roed@math.harvard.edu>
+#       Copyright (C) 2008 David Roe <roed.math@gmail.com>
 #                          William Stein <wstein@gmail.com>
 #
 #  Distributed under the terms of the GNU General Public License (GPL)
+#  as published by the Free Software Foundation; either version 2 of
+#  the License, or (at your option) any later version.
 #
 #                  http://www.gnu.org/licenses/
 #*****************************************************************************
@@ -738,9 +740,11 @@ cdef class pAdicZZpXCAElement(pAdicZZpXElement):
             self._set_prec_abs(new_abs_prec)
             ZZ_pX_conv_modulus(self.value, tmp, self.prime_pow.get_context_capdiv(self.absprec).x)
 
-        You may be able to just set ``self.absprec`` and
-        ``ZZ_pX_conv_modulus`` if you're decreasing precision.  I'm not
-        sure.
+        If you want to speed up this process and you're decreasing
+        precision, you may be able to just set ``self.absprec`` and
+        ``ZZ_pX_conv_modulus``.  I haven't looked into how NTL will be
+        have in this case well enough to know if your program will
+        segfault in this case or not.
 
         TESTS::
         
@@ -1725,15 +1729,6 @@ cdef class pAdicZZpXCAElement(pAdicZZpXElement):
         # Should be sped up later
         return (self - right).is_zero(absprec)
 
-#     def lift(self):
-#         """
-#         Returns an element of a number field defined by the same polynomial as self's parent that is congruent to self modulo an appropriate ideal.
-
-#         Not currently implemented.
-#         """
-
-#         raise NotImplementedError
-
     cpdef pAdicZZpXCAElement lift_to_precision(self, absprec):
         """
         Returns a ``pAdicZZpXCAElement`` congruent to ``self`` but with
@@ -1986,16 +1981,18 @@ cdef class pAdicZZpXCAElement(pAdicZZpXElement):
         return L
 
 
-    def _teichmuller_set(self):
+    def _teichmuller_set_unsafe(self):
         """
-        Sets self to the teichmuller representative congruent to self
-        modulo `\pi`, with the same relative precision as ``self``.
+        Sets this element to the Teichmuller representative with the
+        same residue.
 
-        This function should not be used externally: elements are
-        supposed to be immutable.
-                
+        .. WARNING::
+
+            This function modifies the element, which is not safe.
+            Elements are supposed to be immutable.
+
         EXAMPLES::
-        
+
             sage: R = ZpCA(11,5)
             sage: S.<x> = ZZ[]
             sage: f = x^5 + 33*x^3 - 121*x^2 - 77

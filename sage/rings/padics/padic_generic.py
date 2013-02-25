@@ -11,14 +11,18 @@ AUTHORS:
 """
 
 #*****************************************************************************
-#       Copyright (C) 2007 David Roe <roed@math.harvard.edu>
-#                          William Stein <wstein@gmail.com>
+#       Copyright (C) 2007-2013 David Roe <roed.math@gmail.com>
+#                               William Stein <wstein@gmail.com>
 #
 #  Distributed under the terms of the GNU General Public License (GPL)
+#  as published by the Free Software Foundation; either version 2 of
+#  the License, or (at your option) any later version.
 #
 #                  http://www.gnu.org/licenses/
 #*****************************************************************************
 
+from sage.categories.principal_ideal_domains import PrincipalIdealDomains
+from sage.categories.fields import Fields
 from sage.rings.infinity import infinity
 from local_generic import LocalGeneric
 from sage.rings.ring import PrincipalIdealDomain
@@ -26,7 +30,7 @@ from sage.rings.integer import Integer
 from sage.rings.padics.padic_printing import pAdicPrinter
 
 class pAdicGeneric(PrincipalIdealDomain, LocalGeneric):
-    def __init__(self, base, p, prec, print_mode, names, element_class):
+    def __init__(self, base, p, prec, print_mode, names, element_class, category=None):
         """
         Initialization.
 
@@ -42,7 +46,12 @@ class pAdicGeneric(PrincipalIdealDomain, LocalGeneric):
 
             sage: R = Zp(17) #indirect doctest
         """
-        LocalGeneric.__init__(self, base, prec, names, element_class)
+        if category is None:
+            if self.is_field():
+                category = Fields()
+            else:
+                category = PrincipalIdealDomains()
+        LocalGeneric.__init__(self, base, prec, names, element_class, category)
         self._printer = pAdicPrinter(self, print_mode)
 
     def _modified_print_mode(self, print_mode):
@@ -375,7 +384,7 @@ class pAdicGeneric(PrincipalIdealDomain, LocalGeneric):
         else:
             prec = min(Integer(prec), self.precision_cap())
         ans = self(x, prec)
-        ans._teichmuller_set()
+        ans._teichmuller_set_unsafe()
         return ans
 
     def teichmuller_system(self):
