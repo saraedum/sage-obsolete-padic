@@ -54,6 +54,18 @@ class pAdicGeneric(PrincipalIdealDomain, LocalGeneric):
         LocalGeneric.__init__(self, base, prec, names, element_class, category)
         self._printer = pAdicPrinter(self, print_mode)
 
+    def some_elements(self):
+        r"""
+        Returns a list of elements in this ring.
+
+        This is typically used for running generic tests (see :class:`TestSuite`).
+
+        EXAMPLES::
+
+            sage: Zp(2).some_elements()
+        """
+        return [self.zero(), self.one(), self(self.prime())]
+
     def _modified_print_mode(self, print_mode):
         """
         Returns a dictionary of print options, starting with self's
