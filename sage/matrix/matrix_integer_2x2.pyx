@@ -117,6 +117,13 @@ cdef class Matrix_integer_2x2(matrix_dense.Matrix_dense):
         [1 2]
         [3 4]
         sage: TestSuite(m).run()
+
+    We check that #13949 is fixed::
+
+        sage: x = MS([1,2,3,4])
+        sage: y = MS([4,5,6,7])
+        sage: z = x * y
+        sage: z.set_immutable()
     """
     ########################################################################
     # LEVEL 1 functionality
@@ -129,12 +136,16 @@ cdef class Matrix_integer_2x2(matrix_dense.Matrix_dense):
     # x * def _unpickle
     ########################################################################
 
-    def __cinit__(self):
+    def __cinit__(self, parent, entries,copy, coerce):
         mpz_init(self.a)
         mpz_init(self.b)
         mpz_init(self.c)
         mpz_init(self.d)
         self._entries = &self.a
+        self._parent = parent
+        self._base_ring = ZZ
+        self._nrows = 2
+        self._ncols = 2
 
     def __init__(self, parent, entries, copy, coerce):
         """
@@ -156,8 +167,6 @@ cdef class Matrix_integer_2x2(matrix_dense.Matrix_dense):
             TypeError: cannot construct an element of
             Space of 2x2 integer matrices from [11, 3]!
         """
-        matrix.Matrix.__init__(self, parent)
-
         cdef Py_ssize_t i, n
         
         if entries is None:
@@ -344,7 +353,7 @@ cdef class Matrix_integer_2x2(matrix_dense.Matrix_dense):
         mpz_set(x.b, self.b)
         mpz_set(x.c ,self.c)
         mpz_set(x.d, self.d)
-        x._mutability = Mutability(False)
+        x._is_immutable = False
         x._base_ring = self._base_ring
         if self._subdivisions is not None:
             x.subdivide(*self.subdivisions())

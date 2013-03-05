@@ -15,7 +15,7 @@ Arithmetic subgroups (finite index subgroups of `{\rm SL}_2(\ZZ)`)
 ################################################################################
 
 
-import sage.groups.group as group
+import sage.groups.old as group
 from sage.rings.all import ZZ
 import sage.rings.arith as arith
 from sage.misc.cachefunc import cached_method
@@ -72,6 +72,21 @@ class ArithmeticSubgroup(group.Group):
         """
         return "Generic arithmetic subgroup of SL2Z"
 
+    def _repr_option(self, key):
+        """
+        Metadata about the :meth:`_repr_` output.
+
+        See :meth:`sage.structure.parent._repr_option` for details.
+
+        EXAMPLES::
+
+            sage: Gamma1(7)._repr_option('element_ascii_art')
+            True
+        """
+        if key == 'element_ascii_art':
+            return True
+        return super(ArithmeticSubgroup, self)._repr_option(key)
+    
     def __reduce__(self):
         r"""
         Used for pickling self.

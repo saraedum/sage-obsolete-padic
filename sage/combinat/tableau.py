@@ -85,6 +85,7 @@ from sage.categories.finite_enumerated_sets import FiniteEnumeratedSets
 from sage.categories.infinite_enumerated_sets import InfiniteEnumeratedSets
 from sage.categories.sets_cat import Sets
 import __builtin__
+from sage.combinat.combinatorial_map import combinatorial_map
 
 class Tableau(CombinatorialObject, Element):
     """
@@ -363,6 +364,7 @@ class Tableau(CombinatorialObject, Element):
         """
         return [self]
 
+    @combinatorial_map(name='shape')
     def shape(self):
         r"""
         Returns the shape of a tableau t.
@@ -401,6 +403,7 @@ class Tableau(CombinatorialObject, Element):
         return self.shape().corners()
 
 
+    @combinatorial_map(order=2,name='conjugate')
     def conjugate(self):
         """
         Returns the conjugate of the tableau t.
@@ -603,6 +606,7 @@ class Tableau(CombinatorialObject, Element):
         p = self.shape()
         return len(self.inversions()) - sum([ p.arm_length(*cell) for cell in self.descents() ])
 
+    @combinatorial_map(order=2,name='Schuetzenberger involution')
     def schuetzenberger_involution(self, n = None):
         """
         Returns the Schuetzenberger involution of the tableau self.
@@ -646,6 +650,19 @@ class Tableau(CombinatorialObject, Element):
         for k in range(1, w.length()):
             t = t.bump(wi[k])
         return t
+
+    @combinatorial_map(name ='reading word permutation')
+    def reading_word_permutation(self):
+        """
+        Returns a permutation with the entries of ``self`` obtained by reading
+        ``self`` in the given reading order.
+
+        EXAMPLES::
+
+            sage: StandardTableau([[1,2],[3,4]]).reading_word_permutation()
+            [3, 4, 1, 2]
+        """
+        return permutation.Permutation(self.to_word())
 
     def entries(self):
         """
@@ -916,10 +933,10 @@ class Tableau(CombinatorialObject, Element):
         # attempt to return a tableau of the same type
         try:
             return self.parent()( res )
-        except:
+        except StandardError:
             try:
                 return self.parent().Element( res )
-            except:
+            except StandardError:
                 return Tableau(res)
 
     def to_chain(self):
@@ -1652,10 +1669,10 @@ class Tableau(CombinatorialObject, Element):
         # attempt to return a tableau of the same type as self
         try:
             return self.parent()(tab)
-        except:
+        except StandardError:
             try:
                 return self.parent().Element(tab)
-            except:
+            except StandardError:
                 return Tableau(tab)
 
 
@@ -1970,7 +1987,7 @@ class Tableau(CombinatorialObject, Element):
         w=w*permutation.Permutation( (self.size(),) )   #need to ensure that it belongs to Sym_size
         try:
             return self.parent()([[w[entry-1] for entry in row] for row in self])
-        except:
+        except StandardError:
             return Tableau([[w[entry-1] for entry in row] for row in self])
 
 

@@ -56,12 +56,28 @@ from sage.combinat.matrices.dlxcpp import DLXCPP
 from sage.plot.colors import rainbow
 from graph_generators import GraphGenerators
 
-def all_graph_colorings(G,n,count_only=False):
+def all_graph_colorings(G,n,count_only=False, hex_colors=False, vertex_color_dict=False):
     r"""
     Computes all `n`-colorings of the graph `G` by casting the graph
     coloring problem into an exact cover problem, and passing this
     into an implementation of the Dancing Links algorithm described
     by Knuth (who attributes the idea to Hitotumatu and Noshita).
+
+    INPUT:
+
+    * ``G`` - a graph
+
+    * ``n`` - a positive integer the number of colors
+
+    * `count_only` -- (default: ``False``) when set to ``True``, it returns 1
+       for each coloring
+
+    * `hex_colors` -- (default: ``False``) when set to ``False``, it labels
+      the colors [0,1,..,``n``-1], otherwise it uses the RGB Hex labeling
+
+    * `vertex_color_dict` -- (default: ``False``) when set to ``True``, it
+      returns a dictionary {vertex:color}, otherwise it returns a dictionary
+      {color:[list of vertices]}
 
     The construction works as follows. Columns:
 
@@ -106,7 +122,7 @@ def all_graph_colorings(G,n,count_only=False):
         sage: from sage.graphs.graph_coloring import all_graph_colorings
         sage: G = Graph({0:[1,2,3],1:[2]})
         sage: n = 0
-        sage: for C in all_graph_colorings(G,3):
+        sage: for C in all_graph_colorings(G,3,hex_colors=True):
         ...       parts = [C[k] for k in C]
         ...       for P in parts:
         ...           l = len(P)
@@ -118,6 +134,7 @@ def all_graph_colorings(G,n,count_only=False):
         sage: print "G has %s 3-colorings."%n
         G has 12 3-colorings.
 
+
     TESTS::
 
         sage: G = Graph({0:[1,2,3],1:[2]})
@@ -126,6 +143,22 @@ def all_graph_colorings(G,n,count_only=False):
         Traceback (most recent call last):
         ...
         ValueError: n must be non-negative.
+        sage: G = Graph({0:[1],1:[2]})
+        sage: for c in all_graph_colorings(G,2, vertex_color_dict = True): print c
+        {0: 0, 1: 1, 2: 0}
+        {0: 1, 1: 0, 2: 1}
+        sage: for c in all_graph_colorings(G,2,hex_colors = True): print c
+        {'#00ffff': [1], '#ff0000': [0, 2]}
+        {'#ff0000': [1], '#00ffff': [0, 2]}
+        sage: for c in all_graph_colorings(G,2,hex_colors=True,vertex_color_dict = True): print c
+        {0: '#ff0000', 1: '#00ffff', 2: '#ff0000'}
+        {0: '#00ffff', 1: '#ff0000', 2: '#00ffff'}
+        sage: for c in all_graph_colorings(G, 2, vertex_color_dict = True): print c
+        {0: 0, 1: 1, 2: 0}
+        {0: 1, 1: 0, 2: 1}
+        sage: for c in all_graph_colorings(G, 2, count_only=True, vertex_color_dict = True): print c
+        1
+        1
     """
 
     if n == 0: return
@@ -164,6 +197,7 @@ def all_graph_colorings(G,n,count_only=False):
             ones.append([k+i, [nV+i]])
 
     colors = rainbow(n)
+    color_dict = {colors[i]:i for i in range(len(colors))}
 
     for i in range(len(ones)): ones[i] = ones[i][1]
 
@@ -173,13 +207,28 @@ def all_graph_colorings(G,n,count_only=False):
                 yield 1
                 continue
             coloring = {}
-            for x in a:
-                if colormap.has_key(x):
-                    v,c = colormap[x]
-                    if coloring.has_key(colors[c]):
-                        coloring[colors[c]].append(v)
-                    else:
-                        coloring[colors[c]] = [v]
+            if vertex_color_dict:
+                for x in a:
+                    if colormap.has_key(x):
+                        v,c = colormap[x]
+                        if hex_colors:
+                            coloring[v] = colors[c]
+                        else:
+                            coloring[v] = color_dict[colors[c]]
+            else:
+                for x in a:
+                    if colormap.has_key(x):
+                        v,c = colormap[x]
+                        if hex_colors:
+                            if coloring.has_key(colors[c]):
+                                coloring[colors[c]].append(v)
+                            else:
+                                coloring[colors[c]] = [v]
+                        else:
+                            if coloring.has_key(color_dict[colors[c]]):
+                                coloring[color_dict[colors[c]]].append(v)
+                            else:
+                                coloring[color_dict[colors[c]]] = [v]
             yield coloring
     except RuntimeError:
         raise RuntimeError, "Too much recursion!  Graph coloring failed."
@@ -206,7 +255,7 @@ def first_coloring(G, n=0, hex_colors=False):
     """
     o = G.order()
     for m in xrange(n, o + 1):
-        for C in all_graph_colorings(G, m):
+        for C in all_graph_colorings(G, m, hex_colors=True):
             if hex_colors:
                 return C
             else:
@@ -225,10 +274,10 @@ def number_of_n_colorings(G,n):
     """
     #Take care of the stupid stuff
     if n == 1:
-        return int(len(G.edges()) == 0)
+        return int(G.size() == 0)
     if n < 1:
         if n == 0:
-            return int(len(G.vertices()) == 0)
+            return int(G.order() == 0)
         else:
             #negative colors?? what does that even mean?
             return 0
@@ -272,7 +321,7 @@ def chromatic_number(G):
     o = G.order()
     if o == 0:
         return 0
-    if len(G.edges()) == 0:
+    if G.size() == 0:
         return 1
     elif G.is_bipartite(): #can we do it in linear time?
         return 2
@@ -1084,19 +1133,18 @@ def round_robin(n):
         g.delete_vertex(n)
         return g
 
-def linear_arboricity(g, k=1, hex_colors=False, value_only=False, solver = None, verbose = 0):
+def linear_arboricity(g, plus_one=None, hex_colors=False, value_only=False, solver = None, verbose = 0):
     r"""
     Computes the linear arboricity of the given graph.
 
-    The linear arboricity of a graph `G` is the least
-    number `la(G)` such that the edges of `G` can be
-    partitioned into linear forests (i.e. into forests
+    The linear arboricity of a graph `G` is the least number `la(G)` such that
+    the edges of `G` can be partitioned into linear forests (i.e. into forests
     of paths).
 
     Obviously, `la(G)\geq \lceil \frac {\Delta(G)} 2 \rceil`.
 
-    It is conjectured in [Aki80]_ that
-    `la(G)\leq \lceil \frac {\Delta(G)+1} 2 \rceil`.
+    It is conjectured in [Aki80]_ that `la(G)\leq \lceil \frac {\Delta(G)+1} 2
+    \rceil`.
 
     INPUT:
 
@@ -1118,29 +1166,28 @@ def linear_arboricity(g, k=1, hex_colors=False, value_only=False, solver = None,
         - If ``value_only = False``, returns the color classes
           according to the value of ``hex_colors``
 
-    - ``k`` (integer) -- the number of colors to use.
+    - ``plus_one`` (integer) -- whether to use `\lceil \frac {\Delta(G)} 2
+      \rceil` or `\lceil \frac {\Delta(G)+1} 2 \rceil` colors.
 
-        - If ``0``, computes a decomposition of `G` into
-          `\lceil \frac {\Delta(G)} 2 \rceil`
-          forests of paths
+        - If ``0``, computes a decomposition of `G` into `\lceil \frac
+          {\Delta(G)} 2 \rceil` forests of paths
 
-        - If ``1`` (default), computes a decomposition of `G` into
-          `\lceil \frac {\Delta(G)+1} 2 \rceil` colors,
-          which is the conjectured general bound.
+        - If ``1``, computes a decomposition of `G` into `\lceil \frac
+          {\Delta(G)+1} 2 \rceil` colors, which is the conjectured general
+          bound.
 
-        - If ``k=None``, computes a decomposition using the
+        - If ``plus_one = None`` (default), computes a decomposition using the
           least possible number of colors.
 
-    - ``solver`` -- (default: ``None``) Specify a Linear Program (LP)
-      solver to be used. If set to ``None``, the default one is
-      used. For more information on LP solvers and which default
-      solver is used, see the method :meth:`solve
-      <sage.numerical.mip.MixedIntegerLinearProgram.solve>` of the
+    - ``solver`` -- (default: ``None``) Specify a Linear Program (LP) solver to
+      be used. If set to ``None``, the default one is used. For more information
+      on LP solvers and which default solver is used, see the method
+      :meth:`solve <sage.numerical.mip.MixedIntegerLinearProgram.solve>` of the
       class :class:`MixedIntegerLinearProgram
       <sage.numerical.mip.MixedIntegerLinearProgram>`.
 
-    - ``verbose`` -- integer (default: ``0``). Sets the level of
-       verbosity. Set to 0 by default, which means quiet.
+    - ``verbose`` -- integer (default: ``0``). Sets the level of verbosity. Set
+       to 0 by default, which means quiet.
 
     ALGORITHM:
 
@@ -1158,7 +1205,7 @@ def linear_arboricity(g, k=1, hex_colors=False, value_only=False, solver = None,
 
         sage: from sage.graphs.graph_coloring import linear_arboricity
         sage: g = graphs.GridGraph([4,4])
-        sage: g1,g2 = linear_arboricity(g, k=0)
+        sage: g1,g2 = linear_arboricity(g)
 
     Each graph is of course a forest::
 
@@ -1185,31 +1232,32 @@ def linear_arboricity(g, k=1, hex_colors=False, value_only=False, solver = None,
 
     from sage.rings.integer import Integer
 
-    if k is None:
+    if plus_one is None:
         try:
             return linear_arboricity(g,
-                                     k = (Integer(max(g.degree()))/2).ceil(),
+                                     plus_one = 0,
                                      value_only = value_only,
                                      hex_colors = hex_colors,
                                      solver = solver,
                                      verbose = verbose)
         except ValueError:
             return linear_arboricity(g,
-                                     k = 0,
+                                     plus_one = 1,
                                      value_only = value_only,
                                      hex_colors = hex_colors,
                                      solver = solver,
                                      verbose = verbose)
-    elif k==1:
+    elif plus_one==1:
         k = (Integer(1+max(g.degree()))/2).ceil()
-    elif k==0:
+    elif plus_one==0:
         k = (Integer(max(g.degree()))/2).ceil()
+    else:
+        raise ValueError("plus_one must be equal to 0,1, or to None !")
 
     from sage.numerical.mip import MixedIntegerLinearProgram, MIPSolverException
     from sage.plot.colors import rainbow
 
     p = MixedIntegerLinearProgram(solver = solver)
-
 
     # c is a boolean value such that c[i][(u,v)] = 1 if and only if (u,v) is colored with i
     c = p.new_variable(dim=2)
@@ -1250,7 +1298,7 @@ def linear_arboricity(g, k=1, hex_colors=False, value_only=False, solver = None,
             p.solve(log = verbose)
 
     except MIPSolverException:
-        if k == (Integer(max(g.degree()))/2).ceil():
+        if plus_one:
             raise RuntimeError("It looks like you have found a counterexample to a very old conjecture. Please do not loose it ! Please publish it, and send a post to sage-devel to warn us. I implore you ! Nathann Cohen ")
         else:
             raise ValueError("This graph can not be colored with the given number of colors.")

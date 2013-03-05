@@ -14,7 +14,9 @@ graphs. Here is what they can do
     :meth:`~DiGraph.layout_acyclic_dummy` | Computes a (dummy) ranked layout so that all edges point upward.
     :meth:`~DiGraph.layout_acyclic` | Computes a ranked layout so that all edges point upward.
     :meth:`~DiGraph.reverse` | Returns a copy of digraph with edges reversed in direction.
-    :meth:`~DiGraph.out_degree_sequence` | Return the outdegree sequence
+    :meth:`~DiGraph.reverse_edge` | Reverses an edge.
+    :meth:`~DiGraph.reverse_edges` | Reverses a list of edges.
+    :meth:`~DiGraph.out_degree_sequence` | Return the outdegree sequence.
     :meth:`~DiGraph.out_degree_iterator` | Same as degree_iterator, but for out degree.
     :meth:`~DiGraph.out_degree` | Same as degree, but for out degree.
     :meth:`~DiGraph.in_degree_sequence` | Return the indegree sequence of this digraph.
@@ -384,12 +386,12 @@ class DiGraph(GenericGraph):
 
     TESTS::
 
-            sage: DiGraph({0:[1,2,3], 2:[4]}).edges()
-            [(0, 1, None), (0, 2, None), (0, 3, None), (2, 4, None)]
-            sage: DiGraph({0:(1,2,3), 2:(4,)}).edges()
-            [(0, 1, None), (0, 2, None), (0, 3, None), (2, 4, None)]
-            sage: DiGraph({0:Set([1,2,3]), 2:Set([4])}).edges()
-            [(0, 1, None), (0, 2, None), (0, 3, None), (2, 4, None)]
+        sage: DiGraph({0:[1,2,3], 2:[4]}).edges()
+        [(0, 1, None), (0, 2, None), (0, 3, None), (2, 4, None)]
+        sage: DiGraph({0:(1,2,3), 2:(4,)}).edges()
+        [(0, 1, None), (0, 2, None), (0, 3, None), (2, 4, None)]
+        sage: DiGraph({0:Set([1,2,3]), 2:Set([4])}).edges()
+        [(0, 1, None), (0, 2, None), (0, 3, None), (2, 4, None)]
 
     """
     _directed = True
@@ -454,6 +456,15 @@ class DiGraph(GenericGraph):
             sage: DiGraph({})
             Digraph on 0 vertices
             sage: # not "Multi-digraph on 0 vertices"
+
+        Problem with weighted adjacency matrix (:trac:`13919`)::
+
+            sage: B = {0:{1:2,2:5,3:4},1:{2:2,4:7},2:{3:1,4:4,5:3},3:{5:4},4:{5:1,6:5},5:{4:1,6:7,5:1}}
+            sage: grafo3 = DiGraph(B,weighted=True)
+            sage: matad = grafo3.weighted_adjacency_matrix()
+            sage: grafo4 = DiGraph(matad,format = "adjacency_matrix", weighted=True)
+            sage: grafo4.shortest_path(0,6,by_weight=True)
+            [0, 1, 2, 5, 4, 6]
         """
         msg = ''
         GenericGraph.__init__(self)
@@ -631,8 +642,13 @@ class DiGraph(GenericGraph):
                     weighted = True
                     if multiedges is None: multiedges = False
                     break
-            if multiedges is None: multiedges = (sorted(entries) != [0,1])
-            if weighted is None: weighted = False
+
+            if weighted is None:
+                weighted = False
+
+            if multiedges is None:
+                multiedges = ((not weighted) and sorted(entries) != [0,1])
+
             for i in xrange(data.nrows()):
                 if data[i,i] != 0:
                     if loops is None: loops = True
@@ -1785,9 +1801,9 @@ class DiGraph(GenericGraph):
     def reverse(self):
         """
         Returns a copy of digraph with edges reversed in direction.
-        
+
         EXAMPLES::
-        
+
             sage: D = DiGraph({ 0: [1,2,3], 1: [0,2], 2: [3], 3: [4], 4: [0,5], 5: [1] })
             sage: D.reverse()
             Reverse of (): Digraph on 6 vertices
@@ -1800,6 +1816,327 @@ class DiGraph(GenericGraph):
             name = ''
         H.name("Reverse of (%s)"%name)
         return H
+
+    def reverse_edge(self, u, v=None, label=None, inplace=True, multiedges=None):
+        """
+        Reverses the edge from u to v.
+
+        INPUT:
+
+        - ``inplace`` -- (default: True) if ``False``, a new digraph is created
+           and returned as output, otherwise ``self`` is modified.
+
+        - ``multiedges`` -- (default: None) how to decide what should be done in
+          case of doubt (for instance when edge `(1,2)` is to be reversed in a
+          graph while `(2,1)` already exists).
+
+           - If set to ``True``, input graph will be forced to allow parallel
+             edges if necessary and edge `(1,2)` will appear twice in the graph.
+
+           - If set to ``False``, only one edge `(1,2)` will remain in the graph
+             after `(2,1)` is reversed. Besides, the label of edge `(1,2)` will
+             be overwritten with the label of edge `(2,1)`.
+
+           The default behaviour (``multiedges = None``) will raise an exception
+           each time a subjective decision (setting ``multiedges`` to ``True``
+           or ``False``) is necessary to perform the operation.
+
+        The following forms are all accepted:
+
+        - D.reverse_edge( 1, 2 )
+        - D.reverse_edge( (1, 2) )
+        - D.reverse_edge( [1, 2] )
+        - D.reverse_edge( 1, 2, 'label' )
+        - D.reverse_edge( ( 1, 2, 'label') )
+        - D.reverse_edge( [1, 2, 'label'] )
+        - D.reverse_edge( ( 1, 2), label='label') )
+
+        EXAMPLES:
+
+        If ``inplace`` is ``True`` (default value), ``self`` is modified::
+
+            sage: D = DiGraph([(0,1,2)])
+            sage: D.reverse_edge(0,1)
+            sage: D.edges()
+            [(1, 0, 2)]
+
+        If ``inplace`` is ``False``, ``self`` is not modified
+        and a new digraph is returned::
+
+            sage: D = DiGraph([(0,1,2)])
+            sage: re = D.reverse_edge(0,1, inplace=False)
+            sage: re.edges()
+            [(1, 0, 2)]
+            sage: D.edges()
+            [(0, 1, 2)]
+
+        If ``multiedges`` is ``True``, ``self`` will be forced to allow parallel
+        edges when and only when it is necessary::
+
+            sage: D = DiGraph( [(1, 2, 'A'), (2, 1, 'A'), (2, 3, None)] )
+            sage: D.reverse_edge(1,2, multiedges=True)
+            sage: D.edges()
+            [(2, 1, 'A'), (2, 1, 'A'), (2, 3, None)]
+            sage: D.allows_multiple_edges()
+            True
+
+        Even if ``multiedges`` is ``True``, ``self`` will not be forced to allow
+        parallel edges when it is not necessary::
+
+            sage: D = DiGraph( [(1,2,'A'), (2,1,'A'), (2, 3, None)] )
+            sage: D.reverse_edge(2,3, multiedges=True)
+            sage: D.edges()
+            [(1, 2, 'A'), (2, 1, 'A'), (3, 2, None)]
+            sage: D.allows_multiple_edges()
+            False
+
+        If user specifies ``multiedges = False``, ``self`` will not be forced to
+        allow parallel edges and a parallel edge will get deleted::
+
+            sage: D = DiGraph( [(1, 2, 'A'), (2, 1,'A'), (2, 3, None)] )
+            sage: D.edges()
+            [(1, 2, 'A'), (2, 1, 'A'), (2, 3, None)]
+            sage: D.reverse_edge(1,2, multiedges=False)
+            sage: D.edges()
+            [(2, 1, 'A'), (2, 3, None)]
+
+        Note that in the following graph, specifying ``multiedges = False`` will
+        result in overwriting the label of `(1,2)` with the label of `(2,1)`::
+
+            sage: D = DiGraph( [(1, 2, 'B'), (2, 1,'A'), (2, 3, None)] )
+            sage: D.edges()
+            [(1, 2, 'B'), (2, 1, 'A'), (2, 3, None)]
+            sage: D.reverse_edge(2,1, multiedges=False)
+            sage: D.edges()
+            [(1, 2, 'A'), (2, 3, None)]
+
+        If input edge in digraph has weight/label, then the weight/label should
+        be preserved in the output digraph.  User does not need to specify the
+        weight/label when calling function::
+
+            sage: D = DiGraph([[0,1,2],[1,2,1]], weighted=True)
+            sage: D.reverse_edge(0,1)
+            sage: D.edges()
+            [(1, 0, 2), (1, 2, 1)]
+            sage: re = D.reverse_edge([1,2],inplace=False)
+            sage: re.edges()
+            [(1, 0, 2), (2, 1, 1)]
+
+        If ``self`` has multiple copies (parallel edges) of the input edge, only
+        1 of the parallel edges is reversed::
+
+            sage: D = DiGraph([(0,1,'01'),(0,1,'01'),(0,1,'cat'),(1,2,'12')], weighted = True, multiedges = true)
+            sage: re = D.reverse_edge([0,1,'01'],inplace=False)
+            sage: re.edges()
+            [(0, 1, '01'), (0, 1, 'cat'), (1, 0, '01'), (1, 2, '12')]
+
+        If ``self`` has multiple copies (parallel edges) of the input edge but
+        with distinct labels and no input label is specified, only 1 of the
+        parallel edges is reversed (the edge that is labeled by the first label
+        on the list returned by :meth:`.edge_label`)::
+
+            sage: D = DiGraph([(0,1,'A'),(0,1,'B'),(0,1,'mouse'),(0,1,'cat')], multiedges = true)
+            sage: D.edge_label(0,1)
+            ['cat', 'mouse', 'B', 'A']
+            sage: D.reverse_edge(0,1)
+            sage: D.edges()
+            [(0, 1, 'A'), (0, 1, 'B'), (0, 1, 'mouse'), (1, 0, 'cat')]
+
+        Finally, an exception is raised when Sage does not know how to chose
+        between allowing multiple edges and losing some data::
+
+            sage: D = DiGraph([(0,1,'A'),(1,0,'B')])
+            sage: D.reverse_edge(0,1)
+            Traceback (most recent call last):
+            ...
+            ValueError: Reversing the given edge is about to create two parallel
+            edges but input digraph doesn't allow them - User needs to specify
+            multiedges is True or False.
+
+        The following syntax is supported, but note that you must use
+        the ``label`` keyword::
+
+            sage: D = DiGraph()
+            sage: D.add_edge((1,2), label='label')
+            sage: D.edges()
+            [(1, 2, 'label')]
+            sage: D.reverse_edge((1,2),label ='label')
+            sage: D.edges()
+            [(2, 1, 'label')]
+            sage: D.add_edge((1,2),'label')
+            sage: D.edges()
+            [(2, 1, 'label'), ((1, 2), 'label', None)]
+            sage: D.reverse_edge((1,2), 'label')
+            sage: D.edges()
+            [(2, 1, 'label'), ('label', (1, 2), None)]
+
+        TESTS::
+
+            sage: D = DiGraph([(0,1,None)])
+            sage: D.reverse_edge(0,1,'mylabel')
+            Traceback (most recent call last):
+            ...
+            ValueError: Input edge must exist in the digraph.
+        """
+        # Assigns the expected values to u,v, and label depending on the input.
+        if label is None:
+            if v is None:
+                try:
+                    u, v, label = u
+                except StandardError:
+                    try:
+                        u, v = u
+                    except StandardError:
+                        pass
+        else:
+            if v is None:
+                try:
+                    u, v = u
+                except StandardError:
+                    pass
+
+        if not self.has_edge(u,v,label):
+            raise ValueError, "Input edge must exist in the digraph."
+
+        tempG = self if inplace else self.copy()
+
+        if label == None:
+            if not tempG.allows_multiple_edges():
+                label = tempG.edge_label(u,v)
+            else:
+                # If digraph has parallel edges for input edge, pick the first
+                # from the labels on the list
+                label = tempG.edge_label(u,v)[0]
+
+        if ((not tempG.allows_multiple_edges()) and (tempG.has_edge(v,u))):
+            # If user wants to force digraph to allow parallel edges
+            if multiedges == True:
+                tempG.allow_multiple_edges(True)
+                tempG.delete_edge(u,v,label)
+                tempG.add_edge(v,u,label)
+
+            # If user does not want to force digraph to allow parallel
+            # edges, we delete edge u to v and overwrite v,u with the
+            # label of u,v
+            elif multiedges == False:
+                tempG.delete_edge(u,v,label)
+                tempG.set_edge_label(v,u,label)
+
+            # User is supposed to specify multiedges True or None
+            else:
+                raise ValueError("Reversing the given edge is about to "
+                                 "create two parallel edges but input digraph "
+                                 "doesn't allow them - User needs to specify "
+                                 "multiedges is True or False.")
+        else:
+            tempG.delete_edge(u,v,label)
+            tempG.add_edge(v,u,label)
+
+        if not inplace:
+            return tempG
+
+    def reverse_edges(self, edges, inplace=True, multiedges=None):
+        """
+        Reverses a list of edges.
+
+        INPUT:
+
+        - ``edges`` -- a list of edges in the DiGraph.
+
+        - ``inplace`` -- (default: True) if ``False``, a new digraph is created
+           and returned as output, otherwise ``self`` is modified.
+
+        - ``multiedges`` -- (default: None) if ``True``, input graph will be
+           forced to allow parallel edges when necessary (for more information
+           see the documentation of :meth:`~DiGraph.reverse_edge`)
+
+        .. SEEALSO::
+
+            :meth:`~DiGraph.reverse_edge` - Reverses a single edge.
+
+        EXAMPLES:
+
+        If ``inplace`` is ``True`` (default value), ``self`` is modified::
+
+            sage: D = DiGraph({ 0: [1,1,3], 2: [3,3], 4: [1,5]}, multiedges = true)
+            sage: D.reverse_edges( [ [0,1], [0,3] ])
+            sage: D.reverse_edges( [ (2,3),(4,5) ])
+            sage: D.edges()
+            [(0, 1, None), (1, 0, None), (2, 3, None), (3, 0, None),
+             (3, 2, None), (4, 1, None), (5, 4, None)]
+
+        If ``inplace`` is ``False``, ``self`` is not modified and a new digraph
+        is returned::
+
+            sage: D = DiGraph ([(0,1,'A'),(1,0,'B'),(1,2,'C')])
+            sage: re = D.reverse_edges( [ (0,1), (1,2) ],
+            ...                         inplace = False,
+            ...                         multiedges = True)
+            sage: re.edges()
+            [(1, 0, 'A'), (1, 0, 'B'), (2, 1, 'C')]
+            sage: D.edges()
+            [(0, 1, 'A'), (1, 0, 'B'), (1, 2, 'C')]
+            sage: D.allows_multiple_edges()
+            False
+            sage: re.allows_multiple_edges()
+            True
+
+        If ``multiedges`` is ``True``, ``self`` will be forced to allow parallel
+        edges when and only when it is necessary::
+
+            sage: D = DiGraph( [(1, 2, 'A'), (2, 1, 'A'), (2, 3, None)] )
+            sage: D.reverse_edges([(1,2),(2,3)], multiedges=True)
+            sage: D.edges()
+            [(2, 1, 'A'), (2, 1, 'A'), (3, 2, None)]
+            sage: D.allows_multiple_edges()
+            True
+
+        Even if ``multiedges`` is ``True``, ``self`` will not be forced to allow
+        parallel edges when it is not necessary::
+
+            sage: D = DiGraph( [(1, 2, 'A'), (2, 1, 'A'), (2,3, None)] )
+            sage: D.reverse_edges([(2,3)], multiedges=True)
+            sage: D.edges()
+            [(1, 2, 'A'), (2, 1, 'A'), (3, 2, None)]
+            sage: D.allows_multiple_edges()
+            False
+
+        If ``multiedges`` is ``False``, ``self`` will not be forced to allow
+        parallel edges and an edge will get deleted::
+
+            sage: D = DiGraph( [(1,2), (2,1)] )
+            sage: D.edges()
+            [(1, 2, None), (2, 1, None)]
+            sage: D.reverse_edges([(1,2)], multiedges=False)
+            sage: D.edges()
+            [(2, 1, None)]
+
+        If input edge in digraph has weight/label, then the weight/label should
+        be preserved in the output digraph.  User does not need to specify the
+        weight/label when calling function::
+
+            sage: D = DiGraph([(0,1,'01'),(1,2,1),(2,3,'23')], weighted = True)
+            sage: D.reverse_edges([(0,1,'01'),(1,2),(2,3)])
+            sage: D.edges()
+            [(1, 0, '01'), (2, 1, 1), (3, 2, '23')]
+
+        TESTS::
+
+            sage: D = digraphs.Circuit(6)
+            sage: D.reverse_edges(D.edges(),inplace=False).edges()
+            [(0, 5, None), (1, 0, None), (2, 1, None),
+             (3, 2, None), (4, 3, None), (5, 4, None)]
+
+            sage: D = digraphs.Kautz(2,3)
+            sage: Dr = D.reverse_edges(D.edges(),inplace=False,multiedges=True)
+            sage: Dr.edges() == D.reverse().edges()
+            True
+        """
+        tempG = self if inplace else self.copy()
+        for e in edges:
+            tempG.reverse_edge(e,inplace=True,multiedges=multiedges)
+        if not inplace:
+            return tempG
 
     ### Paths and cycles iterators
 
@@ -1825,7 +2162,7 @@ class DiGraph(GenericGraph):
            all lengths are allowed.
         -  ``trivial`` - boolean (default: False). If set to True, then
            the empty paths are also enumerated.
-                             
+
         OUTPUT:
 
             iterator

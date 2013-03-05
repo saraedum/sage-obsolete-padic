@@ -121,6 +121,14 @@ TESTS::
     sage: x+z
     z + x
 
+Check that :trac:`5562` has been fixed::
+
+    sage: R.<u> = PolynomialRing(RDF, 1, 'u')
+    sage: v1 = vector([u])
+    sage: v2 = vector([CDF(2)])
+    sage: v1 * v2
+    2.0*u 
+
 These may change over time::
 
     sage: type(ZZ['x'].0)
@@ -1323,9 +1331,22 @@ class PolynomialRing_commutative(PolynomialRing_general, commutative_algebra.Com
             sage: R.<x> = QQ[]
             sage: R.quotient_by_principal_ideal(x^2-1, names=('foo',))
             Univariate Quotient Polynomial Ring in foo over Rational Field with modulus x^2 - 1
+
+        TESTS:
+
+        Quotienting by the zero ideal returns ``self`` (:trac:`5978`)::
+
+            sage: R = QQ['x']
+            sage: R.quotient_by_principal_ideal(R.zero_ideal()) is R
+            True
+            sage: R.quotient_by_principal_ideal(0) is R
+            True
         """
         from sage.rings.ideal import Ideal
-        f = Ideal(f).gen()
+        I = Ideal(f)
+        if I.is_zero():
+            return self
+        f = I.gen()
         from sage.rings.polynomial.polynomial_quotient_ring import PolynomialQuotientRing
         return PolynomialQuotientRing(self, f, names)
     
@@ -1751,29 +1772,6 @@ class PolynomialRing_field(PolynomialRing_integral_domain,
 
         else:
             raise ValueError, "algorithm must be one of 'divided_difference' or 'neville'"
-
-    def fraction_field(self):
-        """
-        Returns the fraction field of self.
-
-        EXAMPLES::
-
-            sage: R.<t> = GF(5)[]
-            sage: R.fraction_field()
-            Fraction Field of Univariate Polynomial Ring in t over Finite Field of size 5
-        """
-        try:
-            return self._fraction_field
-        except AttributeError:
-            R = self.base_ring()
-            p = R.characteristic()
-            if p != 0 and R.is_prime_field() and 2 < p and p < 2**16:
-                from sage.rings.fraction_field_FpT import FpT
-                self._fraction_field = FpT(self)
-            else:
-                from sage.rings.fraction_field import FractionField_1poly_field
-                self._fraction_field = FractionField_1poly_field(self)
-            return self._fraction_field
 
     def fraction_field(self):
         """

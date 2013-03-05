@@ -418,7 +418,7 @@ class Polyhedron_base(Element):
         """
         return all( other_H.contains(self_V)
                     for other_H, self_V in
-                    CartesianProduct(other.Hrep_generator(), self.Vrep_generator()) )
+                    CartesianProduct(other.Hrepresentation(), self.Vrepresentation()) )
 
     def plot(self, **kwds):
         """
@@ -662,10 +662,11 @@ class Polyhedron_base(Element):
 
         OUTPUT:
 
-        The optional argument is an index in
-        `0...n_Hrepresentations()`. If present, the H-representation
-        object at the given index will be returned. Without an
-        argument, returns the list of all H-representation objects.
+        The optional argument is an index running from ``0`` to
+        ``self.n_Hrepresentation()-1``. If present, the
+        H-representation object at the given index will be
+        returned. Without an argument, returns the list of all
+        H-representation objects.
 
         EXAMPLES::
 
@@ -729,10 +730,11 @@ class Polyhedron_base(Element):
 
         OUTPUT:
 
-        The optional argument is an index in
-        `0...n_Vrepresentation()`. If present, the V-representation
-        object at the given index will be returned. Without an
-        argument, returns the list of all V-representation objects.
+        The optional argument is an index running from ``0`` to
+        `self.n_Vrepresentation()-1``. If present, the
+        V-representation object at the given index will be
+        returned. Without an argument, returns the list of all
+        V-representation objects.
 
         EXAMPLES::
 
@@ -1469,6 +1471,60 @@ class Polyhedron_base(Element):
         else:
             return self.ambient_dim() - self.n_equations()
 
+    def is_empty(self):
+        """
+        Test whether the polyhedron is the empty polyhedron
+
+        OUTPUT:
+
+        Boolean.
+
+        EXAMPLES::
+
+            sage: P = Polyhedron(vertices=[[1,0,0],[0,1,0],[0,0,1]]);  P
+            A 2-dimensional polyhedron in ZZ^3 defined as the convex hull of 3 vertices
+            sage: P.is_empty(), P.is_universe()
+            (False, False)
+
+            sage: Q = Polyhedron(vertices=());  Q
+            The empty polyhedron in ZZ^0
+            sage: Q.is_empty(), Q.is_universe()
+            (True, False)
+
+            sage: R = Polyhedron(lines=[(1,0),(0,1)]);  R
+            A 2-dimensional polyhedron in ZZ^2 defined as the convex hull of 1 vertex and 2 lines
+            sage: R.is_empty(), R.is_universe()
+            (False, True)
+        """
+        return self.n_Vrepresentation() == 0
+
+    def is_universe(self):
+        """
+        Test whether the polyhedron is the whole ambient space
+
+        OUTPUT:
+
+        Boolean.
+
+        EXAMPLES::
+
+            sage: P = Polyhedron(vertices=[[1,0,0],[0,1,0],[0,0,1]]);  P
+            A 2-dimensional polyhedron in ZZ^3 defined as the convex hull of 3 vertices
+            sage: P.is_empty(), P.is_universe()
+            (False, False)
+
+            sage: Q = Polyhedron(vertices=());  Q
+            The empty polyhedron in ZZ^0
+            sage: Q.is_empty(), Q.is_universe()
+            (True, False)
+
+            sage: R = Polyhedron(lines=[(1,0),(0,1)]);  R
+            A 2-dimensional polyhedron in ZZ^2 defined as the convex hull of 1 vertex and 2 lines
+            sage: R.is_empty(), R.is_universe()
+            (False, True)
+        """
+        return self.n_Hrepresentation() == 0
+
     @cached_method
     def vertex_adjacency_matrix(self):
         """
@@ -1749,6 +1805,8 @@ class Polyhedron_base(Element):
         """
         Test for simplicity of a polytope.
 
+        See :wikipedia:`Simple_polytope`
+
         EXAMPLES::
 
             sage: p = Polyhedron([[0,0,0],[1,0,0],[0,1,0],[0,0,1]])
@@ -1758,9 +1816,6 @@ class Polyhedron_base(Element):
             sage: p.is_simple()
             False
 
-        REFERENCES:
-
-            http://en.wikipedia.org/wiki/Simple_polytope
         """
         if not self.is_compact(): return False
 
@@ -1769,6 +1824,43 @@ class Polyhedron_base(Element):
             if len(adj) != self.dim():
                 return False
         return True
+
+    def is_simplicial(self):
+        """
+        Tests if the polytope is simplicial
+
+        A polytope is simplicial if every facet is a simplex.
+
+        See :wikipedia:`Simplicial_polytope`
+
+        EXAMPLES::
+
+            sage: p = polytopes.n_cube(3)
+            sage: p.is_simplicial()
+            False
+            sage: q = polytopes.n_simplex(5)
+            sage: q.is_simplicial()
+            True
+            sage: p = Polyhedron([[0,0,0],[1,0,0],[0,1,0],[0,0,1]])
+            sage: p.is_simplicial()
+            True
+            sage: q = Polyhedron([[1,1,1],[-1,1,1],[1,-1,1],[-1,-1,1],[1,1,-1]])
+            sage: q.is_simplicial()
+            False
+
+        The method is not implemented for unbounded polyhedra::
+
+            sage: p = Polyhedron(vertices=[(0,0)],rays=[(1,0),(0,1)])
+            sage: p.is_simplicial()
+            Traceback (most recent call last):
+            ...
+            NotImplementedError: This function is implemented for polytopes only.
+        """
+        if not(self.is_compact()):
+            raise NotImplementedError("This function is implemented for polytopes only.")
+        d = self.dim()
+        return all(len([vertex for vertex in face.incident()]) == d
+                   for face in self.Hrepresentation())
 
     @cached_method
     def gale_transform(self):
@@ -2004,6 +2096,17 @@ class Polyhedron_base(Element):
         """
         Return the Minkowski sum.
 
+        Minkowski addition of two subsets of a vector space is defined
+        as
+
+        .. math::
+
+            X \oplus Y =
+            \cup_{y\in Y} (X+y) =
+            \cup_{x\in X, y\in Y} (x+y)
+
+        See :meth:`Minkowski_difference` for a partial inverse operation.
+
         INPUT:
 
         - ``other`` -- a :class:`Polyhedron_base`.
@@ -2013,6 +2116,11 @@ class Polyhedron_base(Element):
         The Minkowski sum of ``self`` and ``other``.
 
         EXAMPLES::
+
+            sage: X = polytopes.n_cube(3)
+            sage: Y = Polyhedron(vertices=[(0,0,0), (0,0,1/2), (0,1/2,0), (1/2,0,0)])
+            sage: X+Y
+            A 3-dimensional polyhedron in QQ^3 defined as the convex hull of 13 vertices
 
             sage: four_cube = polytopes.n_cube(4)
             sage: four_simplex = Polyhedron(vertices = [[0, 0, 0, 1], [0, 0, 1, 0], [0, 1, 0, 0], [1, 0, 0, 0]])
@@ -2039,6 +2147,183 @@ class Polyhedron_base(Element):
 
     _add_ = Minkowski_sum
 
+    @coerce_binop
+    def Minkowski_difference(self, other):
+        """
+        Return the Minkowski difference.
+
+        Minkowski subtraction can equivalently be defined via
+        Minkowski addition (see :meth:`Minkowski_sum`) or as
+        set-theoretic intersection via
+
+        .. math::
+
+            X \ominus Y =
+            (X^c \oplus Y)^c =
+            \cap_{y\in Y} (X-y)
+
+        where superscript-"c" means the complement in the ambient
+        vector space. The Minkowski difference of convex sets is
+        convex, and the difference of polyhedra is again a
+        polyhedron. We only consider the case of polyhedra in the
+        following. Note that it is not quite the inverse of
+        addition. In fact:
+
+        * `(X+Y)-Y = X` for any polyhedra `X`, `Y`.
+
+        * `(X-Y)+Y \subseteq X`
+
+        * `(X-Y)+Y = X` if and only if Y is a Minkowski summand of X.
+
+        INPUT:
+
+        - ``other`` -- a :class:`Polyhedron_base`.
+
+        OUTPUT:
+
+        The Minkowski difference of ``self`` and ``other``. Also known
+        as Minkowski subtraction of ``other`` from ``self``.
+
+        EXAMPLES::
+
+            sage: X = polytopes.n_cube(3)
+            sage: Y = Polyhedron(vertices=[(0,0,0), (0,0,1), (0,1,0), (1,0,0)]) / 2
+            sage: (X+Y)-Y == X
+            True
+            sage: (X-Y)+Y < X
+            True
+
+        The polyhedra need not be full-dimensional::
+
+            sage: X2 = Polyhedron(vertices=[(-1,-1,0),(1,-1,0),(-1,1,0),(1,1,0)])
+            sage: Y2 = Polyhedron(vertices=[(0,0,0), (0,1,0), (1,0,0)]) / 2
+            sage: (X2+Y2)-Y2 == X2
+            True
+            sage: (X2-Y2)+Y2 < X2
+            True
+
+        Minus sign is really an alias for :meth:`Minkowski_difference`
+        ::
+
+            sage: four_cube = polytopes.n_cube(4)
+            sage: four_simplex = Polyhedron(vertices = [[0, 0, 0, 1], [0, 0, 1, 0], [0, 1, 0, 0], [1, 0, 0, 0]])
+            sage: four_cube - four_simplex
+            A 4-dimensional polyhedron in ZZ^4 defined as the convex hull of 16 vertices
+            sage: four_cube.Minkowski_difference(four_simplex) == four_cube - four_simplex
+            True
+
+        Coercion of the base ring works::
+
+            sage: poly_spam = Polyhedron([[3,4,5,2],[1,0,0,1],[0,0,0,0],[0,4,3,2],[-3,-3,-3,-3]], base_ring=ZZ)
+            sage: poly_eggs = Polyhedron([[5,4,5,4],[-4,5,-4,5],[4,-5,4,-5],[0,0,0,0]], base_ring=QQ) / 100
+            sage: poly_spam - poly_eggs
+            A 4-dimensional polyhedron in QQ^4 defined as the convex hull of 5 vertices
+
+        TESTS::
+
+            sage: X = polytopes.n_cube(2)
+            sage: Y = Polyhedron(vertices=[(1,1)])
+            sage: (X-Y).Vrepresentation()
+            (A vertex at (0, -2), A vertex at (0, 0), A vertex at (-2, 0), A vertex at (-2, -2))
+
+            sage: Y = Polyhedron(vertices=[(1,1), (0,0)])
+            sage: (X-Y).Vrepresentation()
+            (A vertex at (0, -1), A vertex at (0, 0), A vertex at (-1, 0), A vertex at (-1, -1))
+
+            sage: X = X + Y   # now Y is a Minkowski summand of X
+            sage: (X+Y)-Y == X
+            True
+            sage: (X-Y)+Y == X
+            True
+       """
+        if other.is_empty():
+            return self.parent().universe()   # empty intersection = everything
+        if not other.is_compact():
+            raise NotImplementedError('only subtracting compact polyhedra is implemented')
+        new_eqns = []
+        for eq in self.equations():
+            values = [ eq.A() * v.vector() for v in other.vertices() ]
+            eq = list(eq)
+            eq[0] += min(values)   # shift constant term
+            new_eqns.append(eq)
+        P = self.parent()
+        new_ieqs = []
+        for ieq in self.inequalities():
+            values = [ ieq.A() * v.vector() for v in other.vertices() ]
+            ieq = list(ieq)
+            ieq[0] += min(values)   # shift constant term
+            new_ieqs.append(ieq)
+        P = self.parent()
+        return P.element_class(P, None, [new_ieqs, new_eqns])
+
+    def __sub__(self, other):
+        """
+        Implement minus binary operation
+
+        Polyhedra are not a ring with respect to dilatation and
+        Minkowski sum, for example `X\oplus(-1)*Y \not= X\ominus Y`.
+
+        INPUT:
+
+        - ``other`` -- a translation vector or a polyhedron.
+
+        OUTPUT:
+
+        Either translation by the negative of the given vector or
+        Minkowski subtraction by the given polyhedron.
+
+        EXAMPLES::
+
+            sage: X = polytopes.n_cube(2)
+            sage: v = vector([1,1])
+            sage: (X - v/2).Vrepresentation()
+            (A vertex at (-3/2, -3/2), A vertex at (-3/2, 1/2),
+             A vertex at (1/2, -3/2), A vertex at (1/2, 1/2))
+            sage: (X-v)+v == X
+            True
+
+            sage: Y = Polyhedron(vertices=[(1/2,0),(0,1/2)])
+            sage: (X-Y).Vrepresentation()
+            (A vertex at (1/2, -1), A vertex at (1/2, 1/2),
+             A vertex at (-1, 1/2), A vertex at (-1, -1))
+            sage: (X+Y)-Y == X
+            True
+        """
+        if is_Polyhedron(other):
+            return self.Minkowski_difference(other)
+        return self + (-other)
+
+    def is_Minkowski_summand(self, Y):
+        """
+        Test whether ``Y`` is a Minkowski summand.
+
+        See :meth:`Minkowski_sum`.
+
+        OUTPUT:
+
+        Boolean. Whether there exists another polyhedron `Z` such that
+        ``self`` can be written as `Y\oplus Z`.
+
+        EXAMPLES::
+
+            sage: A = polytopes.n_cube(2)
+            sage: B = Polyhedron(vertices=[(0,1), (1/2,1)])
+            sage: C = Polyhedron(vertices=[(1,1)])
+            sage: A.is_Minkowski_summand(B)
+            True
+            sage: A.is_Minkowski_summand(C)
+            True
+            sage: B.is_Minkowski_summand(C)
+            True
+            sage: B.is_Minkowski_summand(A)
+            False
+            sage: C.is_Minkowski_summand(A)
+            False
+            sage: C.is_Minkowski_summand(B)
+            False
+        """
+        return self.Minkowski_difference(Y).Minkowski_sum(Y) == self
+
     def translation(self, displacement):
         """
         Return the translated polyhedron.
@@ -2064,7 +2349,7 @@ class Polyhedron_base(Element):
         new_vertices = [x.vector()+displacement for x in self.vertex_generator()]
         new_rays = self.rays()
         new_lines = self.lines()
-        new_ring = self.parent()._coerce_base_ring(displacement.base_ring())
+        new_ring = self.parent()._coerce_base_ring(displacement)
         return Polyhedron(vertices=new_vertices, rays=new_rays, lines=new_lines, base_ring=new_ring)
 
     @coerce_binop
@@ -2150,7 +2435,7 @@ class Polyhedron_base(Element):
         new_lines = self.lines()
         return Polyhedron(vertices=new_vertices,
                           rays=new_rays, lines=new_lines,
-                          base_ring=self.parent()._coerce_base_ring(scalar.parent()))
+                          base_ring=self.parent()._coerce_base_ring(scalar))
 
     def _acted_upon_(self, actor, self_on_left):
         """
@@ -2253,6 +2538,11 @@ class Polyhedron_base(Element):
             sage: cube.intersection(oct*2)
             A 3-dimensional polyhedron in ZZ^3 defined as the convex hull of 12 vertices
 
+       As a shorthand, one may use::
+
+            sage: cube & oct*2
+            A 3-dimensional polyhedron in ZZ^3 defined as the convex hull of 12 vertices
+
        The intersection of two `\ZZ`-polyhedra is not necessarily a `\ZZ`-polyhedron::
 
             sage: P = Polyhedron([(0,0),(1,1)], base_ring=ZZ)
@@ -2275,6 +2565,8 @@ class Polyhedron_base(Element):
                 return parent.element_class(parent, None, [new_ieqs, new_eqns])
             else:
                 raise TypeError(msg)
+
+    __and__ = intersection
 
     def edge_truncation(self, cut_frac = Integer(1)/3):
         r"""
@@ -2656,7 +2948,7 @@ class Polyhedron_base(Element):
         assert self.is_compact(), "Not a polytope."
 
         verts = [list(v.vector() - self.center()) for v in self.vertex_generator()]
-        base_ring = self.parent()._coerce_base_ring(self.center().parent().base_ring())
+        base_ring = self.parent()._coerce_base_ring(self.center().parent())
         return Polyhedron(ieqs=[[1] + list(v) for v in verts], base_ring=base_ring)
 
     def pyramid(self):
@@ -2888,6 +3180,13 @@ class Polyhedron_base(Element):
             sage: P.contains( P.center() )  # true for any convex set
             True
 
+        As a shorthand, one may use the usual ``in`` operator::
+
+            sage: P.center() in P
+            True
+            sage: [-1,-1] in P
+            False
+
         The point need not have coordinates in the same field as the
         polyhedron::
 
@@ -2933,6 +3232,8 @@ class Polyhedron_base(Element):
             if not H.contains(p):
                 return False
         return True
+
+    __contains__ = contains
 
     def interior_contains(self, point):
         """

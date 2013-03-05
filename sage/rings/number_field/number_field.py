@@ -19,6 +19,8 @@ AUTHORS:
 - Robert Harron (2012-08): added is_CM(), complex_conjugation(), and
   maximal_totally_real_subfield()
 
+- Christian Stump (2012-11): added conversion to universal cyclotomic field
+
 .. note::
 
    Unlike in PARI/GP, class group computations *in Sage* do *not* by default
@@ -408,7 +410,7 @@ def NumberField(polynomial, name=None, check=True, names=None, cache=True,
         sage: W.<a> = NumberField(x^2 + 1); W
         Number Field in a with defining polynomial x^2 + 1 over its base field
 
-    The following has been fixed in trac ticket #8800::
+    The following has been fixed in :trac:`8800`::
 
         sage: P.<x> = QQ[]
         sage: K.<a> = NumberField(x^3-5,embedding=0)
@@ -781,84 +783,95 @@ def is_QuadraticField(x):
 
     
 _cyclo_cache = {}
-def CyclotomicField(n, names=None, embedding=True):
+def CyclotomicField(n=0, names=None, bracket="()", embedding=True):
     r"""
-    Return the n-th cyclotomic field, where n is a positive integer.
-    
+    Return the `n`-th cyclotomic field, where n is a positive integer,
+    or the universal cyclotomic field if ``n==0``.
+
+    For the documentation of the universal cyclotomic field, see :class:`~sage.rings.universal_cyclotomic_field.universal_cyclotomic_field.UniversalCyclotomicField`.
+
     INPUT:
-    
-    -  ``n`` - a positive integer
-    
-    -  ``names`` - name of generator (optional - defaults
-       to zetan).
-    
+
+    -  ``n`` - a nonnegative integer, default:``0``
+
+    -  ``names`` - name of generator (optional - defaults to zetan)
+
+    - ``bracket`` - Defines the brackets in the case of ``n==0``, and
+      is ignored otherwise. Can be any even length string, with ``"()"`` being the default.
+
     -  ``embedding`` - bool or n-th root of unity in an
        ambient field (default True)
-    
-    
-    EXAMPLES: We create the `7`\th cyclotomic field
+
+    EXAMPLES:
+
+    If called without a parameter, we get the :class:`universal cyclotomic field<sage.rings.universal_cyclotomic_field.universal_cyclotomic_field.UniversalCyclotomicField>`::
+
+        sage: CyclotomicField()
+        Universal Cyclotomic Field
+
+    We create the `7`\th cyclotomic field
     `\QQ(\zeta_7)` with the default generator name.
-    
+
     ::
-    
+
         sage: k = CyclotomicField(7); k
         Cyclotomic Field of order 7 and degree 6
         sage: k.gen()
         zeta7
-    
+
     The default embedding sends the generator to the complex primitive
     `n^{th}` root of unity of least argument.
-    
+
     ::
-    
+
         sage: CC(k.gen())
         0.623489801858734 + 0.781831482468030*I
-    
+
     Cyclotomic fields are of a special type.
-    
+
     ::
-    
+
         sage: type(k)
         <class 'sage.rings.number_field.number_field.NumberField_cyclotomic_with_category'>
-    
+
     We can specify a different generator name as follows.
-    
+
     ::
-    
+
         sage: k.<z7> = CyclotomicField(7); k
         Cyclotomic Field of order 7 and degree 6
         sage: k.gen()
         z7
-    
+
     The `n` must be an integer.
-    
+
     ::
-    
+
         sage: CyclotomicField(3/2)
         Traceback (most recent call last):
         ...
         TypeError: no conversion of this rational to integer
-    
-    The degree must be positive.
-    
+
+    The degree must be nonnegative.
+
     ::
-    
-        sage: CyclotomicField(0)
+
+        sage: CyclotomicField(-1)
         Traceback (most recent call last):
         ...
-        ValueError: n (=0) must be a positive integer
-    
+        ValueError: n (=-1) must be a positive integer
+
     The special case `n=1` does *not* return the rational
     numbers::
-    
+
         sage: CyclotomicField(1)
         Cyclotomic Field of order 1 and degree 1
-    
+
     Due to their default embedding into `\CC`,
     cyclotomic number fields are all compatible.
-    
+
     ::
-    
+
         sage: cf30 = CyclotomicField(30)
         sage: cf5 = CyclotomicField(5)
         sage: cf3 = CyclotomicField(3)
@@ -886,9 +899,12 @@ def CyclotomicField(n, names=None, embedding=True):
         zeta9^3
     """
     n = ZZ(n)
-    if n <= 0:
+    if n == 0:
+        from sage.rings.universal_cyclotomic_field.universal_cyclotomic_field import UniversalCyclotomicField
+        return UniversalCyclotomicField(names=names, bracket=bracket, embedding=embedding)
+    if n < 0:
         raise ValueError, "n (=%s) must be a positive integer"%n
-    
+
     if names is None:
         names = "zeta%s"%n
     names = sage.structure.parent_gens.normalize_names(1, names)
@@ -1255,6 +1271,60 @@ class NumberField_generic(number_field_base.NumberField):
             return self(w)
         else:
             return w
+
+    def _coerce_from_universal_cyclotomic_field(self, x):
+        """
+        Coerce an element of the universal cyclotomic field
+        into this cyclotomic field.
+
+        EXAMPLES::
+
+            sage: CF = CyclotomicField(5)
+            sage: UCF.<E> = UniversalCyclotomicField()
+
+            sage: CF(E(5)) # indirect doctest
+            zeta5
+
+            sage: CF = CyclotomicField(7)
+            sage: CF(E(5)) # indirect doctest
+            Traceback (most recent call last):
+            ...
+            TypeError: The element E(5) cannot be converted to Cyclotomic Field of order 7 and degree 6
+
+            sage: CF = CyclotomicField(10)
+            sage: CF(E(5)) # indirect doctest
+            zeta10^2
+
+        Matrices are correctly dealt with::
+
+            sage: M = Matrix(UCF,2,[E(3),E(4),E(5),E(6)]); M
+            [   E(3)    E(4)]
+            [   E(5) -E(3)^2]
+
+            sage: Matrix(CyclotomicField(60),M) # indirect doctest
+            [zeta60^10 - 1     zeta60^15]
+            [    zeta60^12     zeta60^10]
+
+        Using a non-standard embedding::
+
+            sage: CF = CyclotomicField(5,embedding=CC(exp(4*pi*i/5)))
+            sage: x = E(5)
+            sage: CC(x)
+            0.309016994374947 + 0.951056516295154*I
+            sage: CC(CF(x))
+            0.309016994374947 + 0.951056516295154*I
+
+            sage: UCF.<E> = UniversalCyclotomicField(embedding=None)
+            sage: CF(E(5))
+            Traceback (most recent call last):
+            ...
+            TypeError: The element E(5) cannot be converted to Cyclotomic Field of order 5 and degree 4
+        """
+        from sage.rings.universal_cyclotomic_field.universal_cyclotomic_field import UniversalCyclotomicField
+        assert isinstance(x,UniversalCyclotomicField.Element)
+        if not x.parent()._has_standard_embedding or self._n() % x.field_order():
+            raise TypeError("The element %s cannot be converted to %s"%(x,self))
+        return self(x.to_cyclotomic_field())
 
     def _Hom_(self, codomain, cat=None):
         """
@@ -3224,7 +3294,7 @@ class NumberField_generic(number_field_base.NumberField):
             sage: G.0
             Fractional ideal class (2, 1/2*a - 1/2)
             sage: G.gens()
-            [Fractional ideal class (2, 1/2*a - 1/2)]
+            (Fractional ideal class (2, 1/2*a - 1/2),)
         
         ::
         
@@ -3235,7 +3305,7 @@ class NumberField_generic(number_field_base.NumberField):
             sage: G is K.class_group(proof=False)
             False
             sage: G.gens()
-            [Fractional ideal class (2, 1/2*a - 1/2)]
+            (Fractional ideal class (2, 1/2*a - 1/2),)
         
         There can be multiple generators::
         
@@ -3267,10 +3337,10 @@ class NumberField_generic(number_field_base.NumberField):
         except AttributeError:
             self.__class_group = {}
         k = self.pari_bnf(proof)
-        cycle_structure = [ZZ(c) for c in k.bnf_get_cyc()]
+        cycle_structure = tuple( ZZ(c) for c in k.bnf_get_cyc() )
 
         # Gens is a list of ideals (the generators)
-        gens = [self.ideal(hnf) for hnf in k.bnf_get_gen()]
+        gens = tuple( self.ideal(hnf) for hnf in k.bnf_get_gen() )
         
         G = ClassGroup(cycle_structure, names, self, gens, proof=proof)        
         self.__class_group[proof, names] = G
@@ -3350,7 +3420,8 @@ class NumberField_generic(number_field_base.NumberField):
             Slist = zip([g.ideal() for g in C.gens()], C.invariants())
         else:
             Slist = self._S_class_group_and_units(tuple(S), proof=proof)[1] 
-        return SClassGroup([s[1] for s in Slist], names, self, [s[0] for s in Slist], S) 
+        return SClassGroup(tuple(s[1] for s in Slist), names, self,
+                           tuple(s[0] for s in Slist), tuple(S))
 
     def S_units(self, S, proof=True):
         """
@@ -3376,14 +3447,14 @@ class NumberField_generic(number_field_base.NumberField):
             sage: K.S_units([])[0].multiplicative_order()
             6
 
-        An example in a relative extension (see trac #8722)::
+        An example in a relative extension (see :trac:`8722`)::
         
             sage: L.<a,b> = NumberField([x^2 + 1, x^2 - 5])
             sage: p = L.ideal((-1/2*b - 1/2)*a + 1/2*b - 1/2)
             sage: W = L.S_units([p]); [x.norm() for x in W]
             [9, 1, 1]
 
-        Our generators should have the correct parent (trac #9367)::
+        Our generators should have the correct parent (:trac:`9367`)::
 
             sage: _.<x> = QQ[]
             sage: L.<alpha> = NumberField(x^3 + x + 1)
@@ -3432,7 +3503,7 @@ class NumberField_generic(number_field_base.NumberField):
         S_pari = [p.pari_prime() for p in S]
         
         result = K_pari.bnfsunit(S_pari)
-        units = map(self, result[0]) + self.unit_group().gens()
+        units = map(self, result[0]) + self.unit_group().gens_values()
         
         pari_cyc = result[4][1]
         pari_gens = result[4][2]
@@ -4764,7 +4835,7 @@ class NumberField_generic(number_field_base.NumberField):
         EXAMPLES::
         
             sage: NumberField(x^3+x+9, 'a').narrow_class_group()
-            Multiplicative Abelian Group isomorphic to C2
+            Multiplicative Abelian group isomorphic to C2
         """
         proof = proof_flag(proof)        
         try:
@@ -5192,9 +5263,11 @@ class NumberField_generic(number_field_base.NumberField):
             sage: U = K.unit_group(); U
             Unit group with structure C10 x Z of Number Field in a with defining polynomial x^4 - 10*x^3 + 100*x^2 - 375*x + 1375
             sage: U.gens()
+            (u0, u1)
+            sage: U.gens_values()
             [-7/275*a^3 + 1/11*a^2 - 9/11*a - 1, 6/275*a^3 - 9/55*a^2 + 14/11*a - 2]
             sage: U.invariants()
-            [10, 0]
+            (10, 0)
             sage: [u.multiplicative_order() for u in U.gens()]
             [10, +Infinity]
 
@@ -5209,7 +5282,9 @@ class NumberField_generic(number_field_base.NumberField):
             sage: U = K.unit_group(proof=False)
             sage: U
             Unit group with structure C2 x Z x Z x Z x Z x Z x Z x Z x Z of Number Field in a with defining polynomial x^17 + 3
-            sage: U.gens()  # result not independently verified
+            sage: U.gens()
+            (u0, u1, u2, u3, u4, u5, u6, u7, u8)
+            sage: U.gens_values()  # result not independently verified
             [-1, a^9 + a - 1, a^16 - a^15 + a^14 - a^12 + a^11 - a^10 - a^8 + a^7 - 2*a^6 + a^4 - 3*a^3 + 2*a^2 - 2*a + 1, 2*a^16 - a^14 - a^13 + 3*a^12 - 2*a^10 + a^9 + 3*a^8 - 3*a^6 + 3*a^5 + 3*a^4 - 2*a^3 - 2*a^2 + 3*a + 4, a^15 + a^14 + 2*a^11 + a^10 - a^9 + a^8 + 2*a^7 - a^5 + 2*a^3 - a^2 - 3*a + 1, a^16 + a^15 + a^14 + a^13 + a^12 + a^11 + a^10 + a^9 + a^8 + a^7 + a^6 + a^5 + a^4 + a^3 + a^2 - 2, 2*a^16 - 3*a^15 + 3*a^14 - 3*a^13 + 3*a^12 - a^11 + a^9 - 3*a^8 + 4*a^7 - 5*a^6 + 6*a^5 - 4*a^4 + 3*a^3 - 2*a^2 - 2*a + 4, a^15 - a^12 + a^10 - a^9 - 2*a^8 + 3*a^7 + a^6 - 3*a^5 + a^4 + 4*a^3 - 3*a^2 - 2*a + 2, 2*a^16 + a^15 - a^11 - 3*a^10 - 4*a^9 - 4*a^8 - 4*a^7 - 5*a^6 - 7*a^5 - 8*a^4 - 6*a^3 - 5*a^2 - 6*a - 7]
         """
         try:
@@ -5568,7 +5643,7 @@ class NumberField_absolute(NumberField_generic):
 
         TESTS:
 
-        The following was fixed in trac ticket #8800::
+        The following was fixed in :trac:`8800`::
 
             sage: P.<x> = QQ[]
             sage: K.<a> = NumberField(x^3-5,embedding=0)
@@ -5579,7 +5654,7 @@ class NumberField_absolute(NumberField_generic):
 
         AUTHORS:
 
-        - Jeroen Demeyer (2011-09-30): Trac ticket #11869
+        - Jeroen Demeyer (2011-09-30): :trac:`11869`
 
         """
         # Special case for x in QQ.  This is common, so should be fast.
@@ -5811,7 +5886,7 @@ class NumberField_absolute(NumberField_generic):
               Defn: zeta3 -> 1/2*a - 1/2
 
         Two embedded number fields with mutual coercions (testing against a
-        bug that was fixed in trac ticket #8800)::
+        bug that was fixed in :trac:`8800`)::
 
             sage: K.<r4> = NumberField(x^4-2)
             sage: L1.<r2_1> = NumberField(x^2-2, embedding = r4**2)
@@ -5824,7 +5899,7 @@ class NumberField_absolute(NumberField_generic):
             True
 
         Coercion of an order (testing against a bug that was fixed in
-        trac ticket #8800)::
+        :trac:`8800`)::
 
             sage: K.has_coerce_map_from(L1)
             True
@@ -6005,7 +6080,7 @@ class NumberField_absolute(NumberField_generic):
             sage: L[0][0]
             Number Field in b0 with defining polynomial x - 1
             sage: L[1][0]
-            Number Field in b1 with defining polynomial x^2 - x + 1
+            Number Field in b1 with defining polynomial x^2 - 3*x + 3
             sage: [z[0] for z in L]          # random -- since algorithm is random
             [Number Field in b0 with defining polynomial x - 1,
              Number Field in b1 with defining polynomial x^2 - x + 1,
@@ -6316,7 +6391,7 @@ class NumberField_absolute(NumberField_generic):
 
         TESTS:
 
-        We verify that trac #2480 is fixed::
+        We verify that :trac:`2480` is fixed::
 
             sage: K.<a> = NumberField(x^4 + 4*x^2 + 2)
             sage: B = K.integral_basis()
@@ -7733,7 +7808,7 @@ class NumberField_cyclotomic(NumberField_absolute):
             
         TESTS:
         
-        We check that the bug reported on Trac #8938 is fixed::
+        We check that the bug reported on :trac:`8938` is fixed::
         
             sage: C5.<z> = CyclotomicField(5)
             sage: P.<s, t> = C5[]
@@ -7755,9 +7830,7 @@ class NumberField_cyclotomic(NumberField_absolute):
         `\Q(\zeta_m)` iff `n'|m`, where `n'` is the odd part of `n` if `4 \not
         | n` and `n'=n` otherwise. 
         
-        The morphism is consistant with the chosen embedding into `\CC`. In
-        particular, if `n|m` then the resulting morphism is defined by `\zeta_n
-        \mapsto \zeta_m^(m/n)`.
+        The morphism is consistant with the chosen embedding into `\CC`.
         
         If `K` is not a cyclotomic field, the normal coercion rules for number
         fields are used. 
@@ -7813,8 +7886,41 @@ class NumberField_cyclotomic(NumberField_absolute):
               From: Cyclotomic Field of order 2 and degree 1
               To:   Cyclotomic Field of order 1 and degree 1
               Defn: zeta2 -> -1
+
+        Check that custom embeddings are respected (:trac:`13765`)::
+
+            sage: z105 = CDF(exp(2*pi*I/105))
+            sage: Ka.<a> = CyclotomicField(105, embedding=z105^11)
+            sage: Kb.<b> = CyclotomicField(35, embedding=z105^6)
+            sage: Ka.coerce_map_from(Kb)
+            Generic morphism:
+              From: Cyclotomic Field of order 35 and degree 24
+              To:   Cyclotomic Field of order 105 and degree 48
+              Defn: b -> -a^44 - a^42 + a^39 + a^37 + a^35 - a^29 - a^27 - a^25 + a^24 - a^23 + a^22 - a^21 + a^20 + a^18 + a^16 - a^12 - a^10 - a^8 - a^6 + a^5 + a^3 + a
+            sage: CC(b)
+            0.936234870639737 + 0.351374824081343*I
+            sage: CC(-a^44 - a^42 + a^39 + a^37 + a^35 - a^29 - a^27 - a^25 + a^24 - a^23 + a^22 - a^21 + a^20 + a^18 + a^16 - a^12 - a^10 - a^8 - a^6 + a^5 + a^3 + a)
+            0.936234870639731 + 0.351374824081341*I
+
+            sage: z15 = CDF(exp(2*pi*I/15))
+            sage: CyclotomicField(15).coerce_map_from(CyclotomicField(6, embedding=-z15^5))
+            Generic morphism:
+              From: Cyclotomic Field of order 6 and degree 2
+              To:   Cyclotomic Field of order 15 and degree 8
+              Defn: zeta6 -> -zeta15^5
+
+            sage: CyclotomicField(15, embedding=z15^4).coerce_map_from(CyclotomicField(6, embedding=-z15^5))
+            Generic morphism:
+              From: Cyclotomic Field of order 6 and degree 2
+              To:   Cyclotomic Field of order 15 and degree 8
+              Defn: zeta6 -> -zeta15^5
         """
         if isinstance(K, NumberField_cyclotomic):
+            if (self.coerce_embedding() is None or K.coerce_embedding() is None):
+                return None
+            ambient_field = self.coerce_embedding().codomain()
+            if not ambient_field.has_coerce_map_from(K.coerce_embedding().codomain()):
+                return None
             Kn = K.__n
             n = self.__n
             if Kn.divides(n):
@@ -7823,15 +7929,78 @@ class NumberField_cyclotomic(NumberField_absolute):
                 # see #12632
                 return number_field_morphisms.NumberFieldEmbedding(K, self, -self.gen())
             if Kn % 4 == 2 and (Kn//2).divides(n):
-                e1 = (~mod(2, Kn//2)).lift()
-                e2 = 2*n // Kn
-                return number_field_morphisms.NumberFieldEmbedding(K, self, -self.gen() ** (e1*e2))
+                e = self._log_gen(ambient_field(-K.gen()))
+                return number_field_morphisms.NumberFieldEmbedding(K, self, -self.gen() ** e)
             else:
                 return None
         else:
             return NumberField_absolute._coerce_map_from_(self, K)
 
-                
+    def _log_gen(self, x):
+        """
+        Returns an integer `e` such that `self.gen()^e == x`, or `None`
+        if no such integer exists. This is primarily used to construct
+        embedding-respecting coercions.
+
+        If `x` is complex, the result is either an integer `e` such
+        that the absolute value of `self.gen()^e-x` is small or
+        `None` if no such `e` is found.
+
+        EXAMPLES::
+
+            sage: K.<a> = CyclotomicField(5)
+            sage: K._log_gen(CDF(a))
+            1
+            sage: K._log_gen(CDF(a^4))
+            4
+
+            sage: zeta105 = CC(exp(2*pi*i/105))
+            sage: K.<a> = CyclotomicField(105, embedding=zeta105^13)
+            sage: zeta105^13, CC(a)
+            (0.712376096951345 + 0.701797902883992*I, 0.712376096951345 + 0.701797902883991*I)
+            sage: K._log_gen(zeta105^26)
+            2
+            sage: K._log_gen(zeta105)
+            97
+            sage: zeta105, CC(a^97)
+            (0.998210129767735 + 0.0598041539450342*I, 0.998210129767736 + 0.0598041539450313*I)
+            sage: K._log_gen(zeta105^3)
+            81
+            sage: zeta105^3, CC(a)^81
+            (0.983929588598630 + 0.178556894798637*I, 0.983929588598631 + 0.178556894798635*I)
+
+            sage: K.<a> = CyclotomicField(5, embedding=None)
+            sage: K._log_gen(CDF(.5, -.8)) is None
+            True
+
+            sage: zeta5 = cyclotomic_polynomial(5).change_ring(Qp(11)).roots()[0][0]
+            sage: zeta5 ^ 5
+            1 + O(11^20)
+            sage: K.<a> = CyclotomicField(5, embedding=zeta5^2)
+            sage: K._log_gen(zeta5)
+            3
+        """
+        if not x.parent().has_coerce_map_from(self):
+            return None
+        if CDF.has_coerce_map_from(x.parent()):
+            x = CDF(x)
+        gen = x.parent().coerce(self.gen())
+        n = self._n()
+        two_pi = 2*RDF.pi()
+        if x.parent() is CDF:
+            # Let zeta = e^(2*pi*i/n)
+            a = (n * x.arg() / two_pi).round()         # x = zeta^a
+            b = (n * gen.arg() / two_pi).round()      # gen = zeta^b
+            e = mod(a/b, n).lift()          # e is the expected result
+            if abs(gen**e-x) < 1/n:        # a sanity check
+                return e
+        else:
+            gen_pow_e = 1
+            for e in range(n):
+                if gen_pow_e == x:
+                    return e
+                gen_pow_e *= gen
+
     def _element_constructor_(self, x):
         """
         Create an element of this cyclotomic field from `x`.
@@ -7854,8 +8023,19 @@ class NumberField_cyclotomic(NumberField_absolute):
             zeta42^7 - 1
             sage: k6(b^2)
             zeta6 - 1
-        
-        Coercion of GAP cyclotomic elements is also supported::
+
+        Conversion of elements of the :class:`~sage.rings.universal_cyclotomic_field.universal_cyclotomic_field.UniversalCyclotomicField`::
+
+            sage: CF = CyclotomicField(5)
+            sage: UCF.<E> = UniversalCyclotomicField()
+            sage: CF(E(5))
+            zeta5
+
+            sage: CF = CyclotomicField(10)
+            sage: CF(E(5))
+            zeta10^2
+
+       Coercion of GAP cyclotomic elements is also supported::
 
             sage: CyclotomicField(18)(gap('E(3)')) # indirect doctest
             zeta18^3 - 1
@@ -7869,6 +8049,8 @@ class NumberField_cyclotomic(NumberField_absolute):
             sage: K(O.1^2 + O.1 - 2)
             z^2 + z - 2
         """
+        from sage.rings.universal_cyclotomic_field.universal_cyclotomic_field import UniversalCyclotomicField
+
         if isinstance(x, number_field_element.NumberFieldElement):
             if isinstance(x.parent(), NumberField_cyclotomic):
                 return self._coerce_from_other_cyclotomic_field(x)
@@ -7876,6 +8058,8 @@ class NumberField_cyclotomic(NumberField_absolute):
                 return NumberField_absolute._element_constructor_(self, x)
         elif sage.interfaces.gap.is_GapElement(x):
             return self._coerce_from_gap(x)
+        elif isinstance(x,UniversalCyclotomicField.Element):
+            return self._coerce_from_universal_cyclotomic_field(x)
         elif isinstance(x,str):
             return self._coerce_from_str(x)
         else:

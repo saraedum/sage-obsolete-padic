@@ -44,7 +44,7 @@ class AlgebrasWithBasis(Category_over_base_ring):
         sage: A.base_ring()
         Rational Field
         sage: A.basis().keys()
-        Words over Ordered Alphabet ['a', 'b', 'c']
+        Words over {'a', 'b', 'c'}
 
         sage: (a,b,c) = A.algebra_generators()
         sage: a^3, b^2
@@ -68,6 +68,7 @@ class AlgebrasWithBasis(Category_over_base_ring):
           Running the test suite of self.an_element()
           running ._test_category() . . . pass
           running ._test_eq() . . . pass
+          running ._test_nonzero_equal() . . . pass
           running ._test_not_implemented_methods() . . . pass
           running ._test_pickling() . . . pass
           pass

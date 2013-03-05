@@ -37,11 +37,8 @@ TESTS:
 #                  http://www.gnu.org/licenses/
 ###############################################################################
 
-# Error message that matches the Sage/IPython defaults
-quit = "Use Ctrl-D (i.e. EOF), %Exit, or %Quit to exit without confirmation."
-exit = quit
-
 import os, sys
+import operator
 
 if 'SAGE_ROOT' not in os.environ:
     raise RuntimeError("To use the Sage libraries, set the environment variable SAGE_ROOT to the Sage build directory and LD_LIBRARY_PATH to $SAGE_ROOT/local/lib")
@@ -255,31 +252,6 @@ def quit_sage(verbose=True):
     from sage.libs.all import symmetrica 
     symmetrica.end() 
         
-def _quit_sage_(self):
-    import sage.misc.preparser_ipython
-    if sage.misc.preparser_ipython.interface != None:
-        sage.misc.preparser_ipython.switch_interface('sage')
-        self.exit_now = False
-        return
-    
-    from IPython.genutils import ask_yes_no
-    if self.rc.confirm_exit:
-        if ask_yes_no('Do you really want to exit ([y]/n)?','y'):
-            self.exit_now = True
-    else:
-        self.exit_now = True
-    if self.exit_now:
-        quit_sage()
-        self.exit_now = True
-
-    return self.exit_now
-
-from IPython.iplib import InteractiveShell
-InteractiveShell.exit = _quit_sage_
-
-import sage.misc.displayhook
-sage.misc.displayhook.install()
-
 from sage.ext.interactive_constructors_c import inject_on, inject_off
 
 sage.structure.sage_object.register_unpickle_override('sage.categories.category', 'Sets', Sets)
@@ -303,6 +275,7 @@ sage.misc.lazy_import.save_cache_file()
 
 
 # Write a file indicating that Sage was started up successfully.
+# This is called by the sage-starts script.
 def _write_started_file():
     """
     Write a ``sage-started.txt`` file if it does not exist.  The
@@ -315,11 +288,13 @@ def _write_started_file():
 
     Check that the file exists when Sage is running::
 
-        sage: started_file = os.path.join(SAGE_ROOT, 'local', 'lib', 'sage-started.txt')
+        sage: started_file = os.path.join(SAGE_LOCAL, 'etc', 'sage-started.txt')
         sage: os.path.isfile(started_file)
         True
     """
-    started_file = os.path.join(SAGE_ROOT, 'local', 'lib', 'sage-started.txt')
+    from sage.misc.all import SAGE_LOCAL
+
+    started_file = os.path.join(SAGE_LOCAL, 'etc', 'sage-started.txt')
     # Do nothing if the file already exists
     if os.path.isfile(started_file):
         return
@@ -331,8 +306,6 @@ def _write_started_file():
     O = open(started_file, 'w')
     O.write("Sage %s was started at %s\n"%(sage.version.version, t))
     O.close()
-
-_write_started_file()
 
 
 # Set a new random number seed as the very last thing

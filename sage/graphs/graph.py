@@ -53,6 +53,10 @@ graphs.
     :meth:`~Graph.is_weakly_chordal` | Tests whether ``self`` is weakly chordal.
     :meth:`~Graph.is_strongly_regular` | Tests whether ``self`` is strongly regular.
     :meth:`~Graph.odd_girth` | Returns the odd girth of ``self``.
+    :meth:`~Graph.is_edge_transitive` | Returns true if self is edge-transitive.
+    :meth:`~Graph.is_arc_transitive` | Returns true if self is arc-transitive.
+    :meth:`~Graph.is_half_transitive` | Returns true if self is a half-transitive graph.
+    :meth:`~Graph.is_semi_symmetric` | Returns true if self is a semi-symmetric graph.
 
 
 **Connectivity and orientations:**
@@ -998,6 +1002,14 @@ class Graph(GenericGraph):
             sage: Graph(3) == Graph(3,format='int')
             True
 
+        Problem with weighted adjacency matrix (:trac:`13919`)::
+
+            sage: B = {0:{1:2,2:5,3:4},1:{2:2,4:7},2:{3:1,4:4,5:3},3:{5:4},4:{5:1,6:5},5:{6:7}}
+            sage: grafo3 = Graph(B,weighted=True)
+            sage: matad = grafo3.weighted_adjacency_matrix()
+            sage: grafo4 = Graph(matad,format = "adjacency_matrix", weighted=True)
+            sage: grafo4.shortest_path(0,6,by_weight=True)
+            [0, 1, 2, 5, 4, 6]
         """
         GenericGraph.__init__(self)
         msg = ''
@@ -1150,7 +1162,7 @@ class Graph(GenericGraph):
             convert_empty_dict_labels_to_None = (format == 'NX')
 
         verts = None
-        
+
         if format == 'graph6':
             if loops      is None: loops      = False
             if weighted   is None: weighted   = False
@@ -1226,8 +1238,13 @@ class Graph(GenericGraph):
                     weighted = True
                     if multiedges is None: multiedges = False
                     break
-            if multiedges is None: multiedges = (sorted(entries) != [0,1])
-            if weighted is None: weighted = False
+
+            if weighted is None:
+                weighted = False
+
+            if multiedges is None:
+                multiedges = ((not weighted) and sorted(entries) != [0,1])
+
             for i in xrange(data.nrows()):
                 if data[i,i] != 0:
                     if loops is None: loops = True
@@ -1373,7 +1390,7 @@ class Graph(GenericGraph):
                 num_verts = len(data)
                 curves = data
                 verts = [curve.cremona_label() for curve in data]
-        
+
         # weighted, multiedges, loops, verts and num_verts should now be set
 
         if implementation == 'networkx':
@@ -1420,7 +1437,7 @@ class Graph(GenericGraph):
                 self._weighted = weighted
                 self.allow_loops(loops, check=False)
                 self.allow_multiple_edges(multiedges, check=False)
-            self._backend.directed = False                    
+            self._backend.directed = False
         else:
             raise NotImplementedError("Supported implementations: networkx, c_graph.")
 
@@ -2121,9 +2138,9 @@ class Graph(GenericGraph):
         Graph Theorem [SPGT]_ gives another characterization of
         perfect graphs:
 
-        A graph is perfect if and only if it contains no odd hole 
-        (cycle on an odd number `k` of vertices, `k>3`) nor any odd 
-        antihole (complement of a hole) as an induced subgraph. 
+        A graph is perfect if and only if it contains no odd hole
+        (cycle on an odd number `k` of vertices, `k>3`) nor any odd
+        antihole (complement of a hole) as an induced subgraph.
 
         INPUT:
 
@@ -2163,6 +2180,22 @@ class Graph(GenericGraph):
             sage: g.is_perfect(certificate = True)
             Subgraph of (Petersen graph): Graph on 5 vertices
 
+        TEST:
+
+        Check that :trac:`13546` has been fixed::
+
+            sage: Graph(':FgGE@I@GxGs').is_perfect()
+            False
+            sage: g = Graph({0: [2, 3, 4, 5],
+            ...              1: [3, 4, 5, 6],
+            ...              2: [0, 4, 5, 6],
+            ...              3: [0, 1, 5, 6],
+            ...              4: [0, 1, 2, 6],
+            ...              5: [0, 1, 2, 3],
+            ...              6: [1, 2, 3, 4]})
+            sage: g.is_perfect()
+            False
+
         REFERENCES:
 
         .. [SPGT] M. Chudnovsky, N. Robertson, P. Seymour, R. Thomas.
@@ -2170,75 +2203,56 @@ class Graph(GenericGraph):
           Annals of Mathematics
           vol 164, number 1, pages 51--230
           2006
+
+        TESTS::
+
+            sage: Graph(':Ab').is_perfect()
+            Traceback (most recent call last):
+            ...
+            ValueError: This method is only defined for simple graphs, and yours is not one of them !
+            sage: g = Graph()
+            sage: g.allow_loops(True)
+            sage: g.add_edge(0,0)
+            sage: g.edges()
+            [(0, 0, None)]
+            sage: g.is_perfect()
+            Traceback (most recent call last):
+            ...
+            ValueError: This method is only defined for simple graphs, and yours is not one of them !
+
         """
 
-        from sage.graphs.bipartite_graph import BipartiteGraph
-        
-        if isinstance(self, BipartiteGraph) or self.is_bipartite():
+        if self.has_multiple_edges() or self.has_loops():
+            raise ValueError("This method is only defined for simple graphs,"
+                             " and yours is not one of them !")
+        if self.is_bipartite():
+
             return True if not certificate else None
 
         self_complement = self.complement()
 
-        start_complement = self_complement.odd_girth()
-        start_self = self.odd_girth()
+        self_complement.remove_loops()
+        self_complement.remove_multiple_edges()
 
-        from sage.graphs.graph_generators import graphs
+        if self_complement.is_bipartite():
+            return True if not certificate else None
 
+        answer = self.is_odd_hole_free(certificate = certificate)
+        if not (answer is True):
+            return answer
 
-        # In these cases, we know the graph is no perfect.
-        if start_self == 5:
-            if certificate:
-                return self.subgraph_search(graphs.CycleGraph(5), induced = True)
-            else:
-                return False
+        return self_complement.is_odd_hole_free(certificate = certificate)
 
-        if start_complement == 5:
-            if certificate:
-                return self_complement.subgraph_search(graphs.CycleGraph(5), induced = True).complement()
-            else:
-                return False
-
-        # We are only looking for odd holes of size at least 5
-        from sage.rings.finite_rings.integer_mod import Mod
-
-        start = lambda x : (x+1) if Mod(x,2) == 0 else ( 5 if x == 3 else x )
-
-        # these values are possibly the infinity !!!!
-
-        start_self = start(start_self) if start_self <= self.order() else self.order()+2 
-        start_complement = start(start_complement) if start_complement <= self.order() else self.order()+2
-            
-        counter_example = None
-
-        for i in range(min(start_self, start_complement), self.order()+1,2):
-
-            # trying in self
-            if i >= start_self:
-                counter_example = self.subgraph_search(graphs.CycleGraph(i), induced = True)
-                
-                if counter_example is not None:
-                    break
-
-            # trying in the complement
-            if i >= start_complement:
-                counter_example = self.subgraph_search(graphs.CycleGraph(i), induced = True)
-                if counter_example is not None:
-                    counter_example = counter_example.complement()
-                    break
-
-        if certificate:
-            return counter_example
-        else:
-            return counter_example is None
-
-    def is_strongly_regular(self, return_parameters=False):
+    def is_strongly_regular(self, parameters=False):
         r"""
         Tests whether ``self`` is strongly regular.
 
-        A graph `G` is said to be strongly regular with parameters `(k, \lambda,
-        \mu)` if and only if:
+        A graph `G` is said to be strongly regular with parameters (n, k,
+        \lambda, \mu)` if and only if:
 
-            * `G` is `k`-regular
+            * `G` has `n` vertices.
+
+            * `G` is `k`-regular.
 
             * Any two adjacent vertices of `G` have `\lambda` common neighbors.
 
@@ -2246,11 +2260,11 @@ class Graph(GenericGraph):
 
         INPUT:
 
-        - ``return_parameters`` (boolean) -- whether to return the triple
-          `(k,\lambda,\mu)`. If ``return_parameters = False`` (default), this
-          method only returns ``True`` and ``False`` answers. If
-          ``return_parameters=True``, the ``True`` answers are replaced by
-          triples `(k,\lambda,\mu)`. See definition above.
+        - ``parameters`` (boolean) -- whether to return the quadruple `(n,
+          k,\lambda,\mu)`. If ``parameters = False`` (default), this method only
+          returns ``True`` and ``False`` answers. If ``parameters=True``, the
+          ``True`` answers are replaced by quadruples `(n, k,\lambda,\mu)`. See
+          definition above.
 
         EXAMPLES:
 
@@ -2259,16 +2273,16 @@ class Graph(GenericGraph):
             sage: g = graphs.PetersenGraph()
             sage: g.is_strongly_regular()
             True
-            sage: g.is_strongly_regular(return_parameters = True)
-            (3, 0, 1)
+            sage: g.is_strongly_regular(parameters = True)
+            (10, 3, 0, 1)
 
         And Clebsch's graph is too::
 
             sage: g = graphs.ClebschGraph()
             sage: g.is_strongly_regular()
             True
-            sage: g.is_strongly_regular(return_parameters = True)
-            (5, 0, 2)
+            sage: g.is_strongly_regular(parameters = True)
+            (16, 5, 0, 2)
 
         But Chvatal's graph is not::
 
@@ -2310,8 +2324,8 @@ class Graph(GenericGraph):
                             if m != inter:
                                 return False
 
-            if return_parameters:
-                return (k,l,m)
+            if parameters:
+                return (self.order(),k,l,m)
             else:
                 return True
 
@@ -2381,6 +2395,175 @@ class Graph(GenericGraph):
         from sage.rings.infinity import Infinity
 
         return Infinity
+
+    def is_edge_transitive(self):
+        """
+        Returns true if self is an edge transitive graph.
+
+        A graph is edge-transitive if its automorphism group acts transitively
+        on its edge set.
+
+        Equivalently, if there exists for any pair of edges `uv,u'v'\in E(G)` an
+        automorphism `\phi` of `G` such that `\phi(uv)=u'v'` (note this does not
+        necessarily mean that `\phi(u)=u'` and `\phi(v)=v'`).
+
+        See :wikipedia:`the wikipedia article on edge-transitive graphs
+        <Edge-transitive_graph>` for more information.
+
+        .. SEEALSO::
+
+          - :meth:`~Graph.is_arc_transitive`
+          - :meth:`~Graph.is_half_transitive`
+          - :meth:`~Graph.is_semi_symmetric`
+
+        EXAMPLES::
+
+            sage: P = graphs.PetersenGraph()
+            sage: P.is_edge_transitive()
+            True
+            sage: C = graphs.CubeGraph(3)
+            sage: C.is_edge_transitive()
+            True
+            sage: G = graphs.GrayGraph()
+            sage: G.is_edge_transitive()
+            True
+            sage: P = graphs.PathGraph(4)
+            sage: P.is_edge_transitive()
+            False
+        """
+        from sage.interfaces.gap import gap
+
+        if self.size() == 0:
+            return True
+
+        A,T = self.automorphism_group(translation=True)
+        e = self.edge_iterator(labels=False).next()
+        e = [T[e[0]], T[e[1]]]
+        return gap("OrbitLength("+str(A._gap_())+",Set(" + str(e) + "),OnSets);") == self.size()
+
+    def is_arc_transitive(self):
+        """
+        Returns true if self is an arc-transitive graph
+
+        A graph is arc-transitive if its automorphism group acts transitively on
+        its pairs of adjacent vertices.
+
+        Equivalently, if there exists for any pair of edges `uv,u'v'\in E(G)` an
+        automorphism `\phi_1` of `G` such that `\phi_1(u)=u'` and
+        `\phi_1(v)=v'`, as well as another automorphism `\phi_2` of `G` such
+        that `\phi_2(u)=v'` and `\phi_2(v)=u'`
+
+        See :wikipedia:`the wikipedia article on arc-transitive graphs
+        <arc-transitive_graph>` for more information.
+
+        .. SEEALSO::
+
+          - :meth:`~Graph.is_edge_transitive`
+          - :meth:`~Graph.is_half_transitive`
+          - :meth:`~Graph.is_semi_symmetric`
+
+        EXAMPLES::
+
+            sage: P = graphs.PetersenGraph()
+            sage: P.is_arc_transitive()
+            True
+            sage: G = graphs.GrayGraph()
+            sage: G.is_arc_transitive()
+            False
+        """
+
+        from sage.interfaces.gap import gap
+
+        if self.size() == 0:
+            return True
+
+        A,T = self.automorphism_group(translation=True)
+        e = self.edge_iterator(labels=False).next()
+        e = [T[e[0]], T[e[1]]]
+        return gap("OrbitLength("+str(A._gap_())+",Set(" + str(e) + "),OnTuples);") == 2*self.size()
+
+    def is_half_transitive(self):
+        """
+        Returns true if self is a half-transitive graph.
+
+        A graph is is half-transitive if it is both vertex and edge transitive
+        but not arc-transitive.
+
+        See :wikipedia:`the wikipedia article on half-transitive graphs
+        <half-transitive_graph>` for more information.
+
+        .. SEEALSO::
+
+          - :meth:`~Graph.is_edge_transitive`
+          - :meth:`~Graph.is_arc_transitive`
+          - :meth:`~Graph.is_semi_symmetric`
+
+        EXAMPLES:
+
+        The Petersen Graph is not half-transitive::
+
+            sage: P = graphs.PetersenGraph()
+            sage: P.is_half_transitive()
+            False
+
+        The smallest half-transitive graph is the Holt Graph::
+
+            sage: H = graphs.HoltGraph()
+            sage: H.is_half_transitive()
+            True
+        """
+
+        # A half-transitive graph always has only vertices of even degree
+        if not all(d%2 == 0 for d in self.degree_iterator()):
+            return False
+
+        return (self.is_edge_transitive() and
+                self.is_vertex_transitive() and
+                not self.is_arc_transitive())
+
+    def is_semi_symmetric(self):
+        """
+        Returns true if self is semi-symmetric.
+
+        A graph is semi-symmetric if it is regular, edge-transitve but not
+        vertex-transitive.
+
+        See :wikipedia:`the wikipedia article on semi-symmetric graphs
+        <Semi-symmetric_graph>` for more information.
+
+        .. SEEALSO::
+
+          - :meth:`~Graph.is_edge_transitive`
+          - :meth:`~Graph.is_arc_transitive`
+          - :meth:`~Graph.is_half-transitive`
+
+        EXAMPLES:
+
+        The Petersen graph is not semi-symmetric::
+
+            sage: P = graphs.PetersenGraph()
+            sage: P.is_semi_symmetric()
+            False
+
+        The Gray graph is the smallest possible semi-symmetric graph::
+
+            sage: G = graphs.GrayGraph()
+            sage: G.is_semi_symmetric()
+            True
+
+        Another well known semi-symmetric graph is the Ljubljana graph::
+
+            sage: L = graphs.LjubljanaGraph()
+            sage: L.is_semi_symmetric()
+            True
+        """
+        # A semi-symmetric graph is always bipartite
+        if  not self.is_bipartite() :
+            return False
+
+        return (self.is_regular() and
+                self.is_edge_transitive() and not
+                self.is_vertex_transitive())
 
     def degree_constrained_subgraph(self, bounds=None, solver=None, verbose=0):
         r"""
@@ -5216,7 +5399,7 @@ class Graph(GenericGraph):
         Returns the modular decomposition of the current graph.
 
         Crash course on modular decomposition:
-        
+
         A module `M` of a graph `G` is a proper subset of its vertices
         such that for all `u \in V(G)-M, v,w\in M` the relation `u
         \sim v \Leftrightarrow u \sim w` holds, where `\sim` denotes
@@ -5260,36 +5443,36 @@ class Graph(GenericGraph):
         You may also be interested in the survey from Michel Habib and
         Christophe Paul entitled "A survey on Algorithmic aspects of
         modular decomposition" [HabPau10]_.
-    
+
         OUTPUT:
-    
+
         A pair of two values (recursively encoding the decomposition) :
-        
+
             * The type of the current module :
-    
+
                 * ``"Parallel"``
                 * ``"Prime"``
                 * ``"Serie"``
-    
+
             * The list of submodules (as list of pairs ``(type, list)``,
               recursively...) or the vertex's name if the module is a
               singleton.
-    
+
         EXAMPLES:
-    
+
         The Bull Graph is prime::
-    
+
             sage: graphs.BullGraph().modular_decomposition()
             ('Prime', [3, 4, 0, 1, 2])
-    
+
         The Petersen Graph too::
-    
+
             sage: graphs.PetersenGraph().modular_decomposition()
             ('Prime', [2, 6, 3, 9, 7, 8, 0, 1, 5, 4])
-    
+
         This a clique on 5 vertices with 2 pendant edges, though, has a more
         interesting decomposition ::
-    
+
             sage: g = graphs.CompleteGraph(5)
             sage: g.add_edge(0,5)
             sage: g.add_edge(0,6)
@@ -5298,7 +5481,7 @@ class Graph(GenericGraph):
 
         ALGORITHM:
 
-        This function uses a C implementation of a 2-step algorithm 
+        This function uses a C implementation of a 2-step algorithm
         implemented by Fabien de Montgolfier [FMDec]_ :
 
             * Computation of a factorizing permutation [HabibViennot1999]_.
@@ -5329,6 +5512,8 @@ class Graph(GenericGraph):
           vol 4, number 1, pages 41--59, 2010
           http://www.lirmm.fr/~paul/md-survey.pdf
         """
+        from sage.misc.stopgap import stopgap
+        stopgap("Graph.modular_decomposition is known to return wrong results",13744)
 
         from sage.graphs.modular_decomposition.modular_decomposition import modular_decomposition
 

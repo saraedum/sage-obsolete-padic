@@ -442,7 +442,7 @@ def D_inverse(s, n):
         '0000000000000000000000000000001000000000010000000001000010000000000000000000110000000000000000010100000010000000000001000000000010000000000...10000000000000000000000000000000010000000001011011000000100000000001001110000000000000000000000000001000010010000001100000001000000001000000000100000000'
         sage: D_inverse('???C?@AA?_?A?O?C??S??O?q_?P?CHD??@?C?GC???C??GG?C_??O?COG????I?J??Q??O?_@@??@??????', 32)
         '0000000000000000000001000000000000010000100000100000001000000000000000100000000100000...010000000000000100010000001000000000000000000000000000001010000000001011000000000000010010000000000000010000000000100000000001000001000000000000000001000000000000000000000000000000000000'
-    
+
     """
     l = []
     cdef int i
@@ -458,7 +458,7 @@ def D_inverse(s, n):
 # Exhaustive search in graphs
 
 cdef class SubgraphSearch:
-    r""" 
+    r"""
     This class implements methods to exhaustively search for labelled
     copies of a graph `H` in a larger graph `G`.
 
@@ -482,26 +482,46 @@ cdef class SubgraphSearch:
         Constructor
 
         This constructor only checks there is no inconsistency in the
-        input : `G` and `H` are both graphs or both digraphs.
+        input : `G` and `H` are both graphs or both digraphs and that `H`
+        has order at least 2.
 
         EXAMPLE::
 
             sage: g = graphs.PetersenGraph()
             sage: g.subgraph_search(graphs.CycleGraph(5))
             Subgraph of (Petersen graph): Graph on 5 vertices
+
+        TESTS:
+
+        Test proper initialization and deallocation, see :trac:`14067`.
+        We intentionally only create the class without doing any
+        computations with it::
+
+            sage: from sage.graphs.generic_graph_pyx import SubgraphSearch
+            sage: SubgraphSearch(Graph(5), Graph(1))
+            Traceback (most recent call last):
+            ...
+            ValueError: Searched graph should have at least 2 vertices.
+            sage: SubgraphSearch(Graph(5), Graph(2))
+            <sage.graphs.generic_graph_pyx.SubgraphSearch ...>
         """
+        if H.order() <= 1:
+            raise ValueError("Searched graph should have at least 2 vertices.")
+
         if sum([G.is_directed(), H.is_directed()]) == 1:
             raise ValueError("One graph can not be directed while the other is not.")
 
+        self._initialization()
+
     def __iter__(self):
-        r""" 
+        r"""
         Returns an iterator over all the labeleld subgraphs of `G`
         isomorphic to `H`.
 
         EXAMPLE:
 
         Iterating through all the `P_3` of `P_5`::
-        
+
             sage: from sage.graphs.generic_graph_pyx import SubgraphSearch
             sage: g = graphs.PathGraph(5)
             sage: h = graphs.PathGraph(3)
@@ -614,12 +634,10 @@ cdef class SubgraphSearch:
         self.ng = G.order()
         self.nh = H.order()
 
-
-
         # Storing the list of vertices
         self.g_vertices = G.vertices()
 
-        # Are the graphs directed (at the end of the code is checked
+        # Are the graphs directed (in __init__(), we check
         # whether both are of the same type)
         self.directed = G.is_directed()
 
@@ -676,8 +694,6 @@ cdef class SubgraphSearch:
             self.line_h_in = <int **>sage_malloc(self.nh * sizeof(int *))
             for 0 <= i < self.nh:
                 self.line_h_in[i] = <int *>self.h.adjacency_sequence_in(i, self.vertices, i)
-
-        self._initialization()
 
     def __next__(self):
         r"""

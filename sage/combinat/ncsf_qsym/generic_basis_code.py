@@ -29,7 +29,7 @@ AUTHORS:
 from sage.misc.cachefunc import cached_method
 from sage.categories.realizations import Category_realization_of_parent
 from sage.categories.modules_with_basis import ModulesWithBasis, ModuleMorphismByLinearity
-from sage.combinat.composition import Composition, Composition_class
+from sage.combinat.composition import Composition
 from sage.combinat.partition import Partition
 from sage.combinat.permutation import Permutations
 from sage.rings.integer import Integer
@@ -110,7 +110,7 @@ class BasesOfQSymOrNCSF(Category_realization_of_parent):
                 This could possibly be shared with Sym, FQSym, and
                 other algebras with bases indexed by list-like objects
             """
-            if isinstance(c, Composition_class):
+            if isinstance(c, Composition):
                 assert len(rest) == 0
             else:
                 if len(rest) > 0 or isinstance(c, (int, Integer)):
@@ -214,12 +214,20 @@ class BasesOfQSymOrNCSF(Category_realization_of_parent):
                 L[1, 1, 1, 1, 1] - L[1, 1, 2, 1] - L[2, 1, 1, 1] + L[2, 2, 1]
                 sage: elementary.alternating_sum_of_finer_compositions(Composition([1,2]))
                 -L[1, 1, 1] + L[1, 2]
+
+            TESTS::
+
+                sage: complete = NonCommutativeSymmetricFunctions(ZZ).complete()
+                sage: I = Composition([2])
+                sage: x = complete.alternating_sum_of_finer_compositions(I)
+                sage: [c.parent() for c in x.coefficients()]
+                [Integer Ring, Integer Ring]
             """
             if conjugate:
                 composition = composition.conjugate()
             l = len(composition)
-            mo = self.base_ring()(-1)
-            return self.sum_of_terms( (compo, mo**(len(compo)-l)) for compo in composition.finer () )
+            ring = self.base_ring()
+            return self.sum_of_terms( (compo, ring((-1)**(len(compo)-l))) for compo in composition.finer () )
 
         def alternating_sum_of_fatter_compositions(self, composition):
             """
@@ -244,10 +252,18 @@ class BasesOfQSymOrNCSF(Category_realization_of_parent):
                 L[2, 2, 1] - L[2, 3] - L[4, 1] + L[5]
                 sage: elementary.alternating_sum_of_fatter_compositions(Composition([1,2]))
                 L[1, 2] - L[3]
+
+            TESTS::
+
+                sage: complete = NonCommutativeSymmetricFunctions(ZZ).complete()
+                sage: I = Composition([1,1])
+                sage: x = complete.alternating_sum_of_fatter_compositions(I)
+                sage: [c.parent() for c in x.coefficients()]
+                [Integer Ring, Integer Ring]
             """
             l = len(composition)
-            mo = self.base_ring()(-1)
-            return self.sum_of_terms( (compo, mo**(len(compo)-l)) for compo in composition.fatter() )
+            ring = self.base_ring()
+            return self.sum_of_terms( (compo, ring((-1)**(len(compo)-l))) for compo in composition.fatter() )
 
         def sum_of_partition_rearrangements(self, par):
             """
@@ -626,6 +642,36 @@ class BasesOfQSymOrNCSF(Category_realization_of_parent):
                             for J in Compositions(degree)] \
                             for I in Compositions(degree)])
 
+        def counit_on_basis(self, I):
+            r"""
+            The counit is defined by sending all elements of positive degree to zero.
+
+            EXAMPLES::
+
+                sage: S = NonCommutativeSymmetricFunctions(QQ).S()
+                sage: S.counit_on_basis([1,3])
+                0
+                sage: M = QuasiSymmetricFunctions(QQ).M()
+                sage: M.counit_on_basis([1,3])
+                0
+
+
+            TESTS::
+
+                sage: S.counit_on_basis([])
+                1
+                sage: S.counit_on_basis(Composition([]))
+                1
+                sage: M.counit_on_basis([])
+                1
+                sage: M.counit_on_basis(Composition([]))
+                1
+            """
+            if I != []:
+                return self.base_ring().zero()
+            else:
+                return self.base_ring().one()
+
     class ElementMethods:
 
         def duality_pairing(self, y):
@@ -855,11 +901,10 @@ class AlgebraMorphism(ModuleMorphismByLinearity): # Find a better name
             -Phi[3, 1, 2]
             sage: f.__class__
             <class 'sage.combinat.ncsf_qsym.generic_basis_code.AlgebraMorphism'>
-            sage: TestSuite(f).run() # known issue; see ModuleMorphismByLinearity.__init__
+            sage: TestSuite(f).run(skip=['_test_nonzero_equal']) # known issue; see ModuleMorphismByLinearity.__init__
             Failure in _test_category:
             ...
             The following tests failed: _test_category
-
         """
         assert position == 0
         assert codomain is not None

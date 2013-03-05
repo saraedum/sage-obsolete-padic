@@ -57,14 +57,56 @@ cdef class AttributeErrorMessage:
         sage: AttributeErrorMessage(int(1),'bla')
         'int' object has no attribute 'bla'
 
+    TESTS:
+
+    By :trac:`14100`, the attribute errors raised on elements and parents are
+    unique objects. The error message of this unique error object is changed
+    inplace. This is for reasons of efficiency.
+    ::
+
+        sage: try:
+        ...     1.__bla
+        ... except AttributeError, ElementError:
+        ...     pass
+        sage: ElementError
+        AttributeError('sage.rings.integer.Integer' object has no attribute '__bla',)
+        sage: try:
+        ...     x.__bla
+        ... except AttributeError, ElementError2:
+        ...     pass
+        sage: ElementError2 is ElementError
+        True
+        sage: ElementError
+        AttributeError('sage.symbolic.expression.Expression' object has no attribute '__bla',)
+        sage: isinstance(ElementError.message, sage.structure.misc.AttributeErrorMessage)
+        True
+
+    Hence, if one really needs the error message as a string, then one should
+    make a copy of its string representation before it changes. Attribute
+    Errors of parents behave similarly::
+
+        sage: try:
+        ...     QQ.__bla
+        ... except AttributeError, ParentError:
+        ...     pass
+        sage: ParentError
+        AttributeError('RationalField_with_category' object has no attribute '__bla',)
+        sage: try:
+        ...     ZZ.__bla
+        ... except AttributeError, ParentError2:
+        ...     pass
+        sage: ParentError2 is ParentError
+        True
+        sage: ParentError2
+        AttributeError('sage.rings.integer_ring.IntegerRing_class' object has no attribute '__bla',)
+        sage: ParentError2 is ElementError
+        False
+
     AUTHOR:
 
     - Simon King (2011-05-21)
     """
-    cdef public cls
-    cdef public name
 
-#    raise AttributeError, AttributeErrorMessage(self,name)
     def __init__(self, P,str name):
         """
         INPUT:
@@ -99,6 +141,8 @@ cdef class AttributeErrorMessage:
             return "'"+self.cls.__name__+"' object has no attribute '"+self.name+"'"
         return repr(self.cls)[6:-1] + " object has no attribute '"+self.name+"'"
 
+cdef AttributeErrorMessage dummy_error_message = AttributeErrorMessage(None, '')
+dummy_attribute_error = AttributeError(dummy_error_message)
 
 def getattr_from_other_class(self, cls, str name):
     """
@@ -156,7 +200,8 @@ def getattr_from_other_class(self, cls, str name):
         sage: getattr_from_other_class(PolynomialRing(QQ, name='x', implementation="FLINT").one(), A, "lazy_attribute")
         Traceback (most recent call last):
         ...
-        AttributeError: 'sage.rings.polynomial.polynomial_rational_flint.Polynomial_rational_flint' object has no attribute 'lazy_attribute'
+        AttributeError: 'sage.rings.polynomial.polynomial_rational_flint.Polynomial_rational_flint' 
+        object has no attribute 'lazy_attribute'
 
     In general, descriptors are not yet well supported, because they
     often do not accept to be cheated with the type of their instance::
@@ -164,7 +209,8 @@ def getattr_from_other_class(self, cls, str name):
         sage: A.__weakref__.__get__(1)
         Traceback (most recent call last):
         ...
-        TypeError: descriptor '__weakref__' for 'A' objects doesn't apply to 'sage.rings.integer.Integer' object
+        TypeError: descriptor '__weakref__' for 'A' objects doesn't apply 
+        to 'sage.rings.integer.Integer' object
 
     When this occurs, an ``AttributeError`` is raised::
 
@@ -183,9 +229,12 @@ def getattr_from_other_class(self, cls, str name):
         Traceback (most recent call last):
         ...
         AttributeError: 'sage.rings.integer.Integer' object has no attribute '__weakref__'
-        sage: import IPython
-        sage: _ip = IPython.ipapi.get()
-        sage: _ip.IP.magic_psearch('n.__weakref__') # not tested: only works with an interactive shell running
+
+        sage: n = 1
+        sage: ip = get_ipython()                 # not tested: only works in interactive shell
+        sage: ip.magic_psearch('n.N')            # not tested: only works in interactive shell
+        n.N
+        sage: ip.magic_psearch('n.__weakref__')  # not tested: only works in interactive shell
 
     Caveat: When __call__ is not defined for instances, using
     ``A.__call__`` yields the method ``__call__`` of the class. We use
@@ -197,13 +246,19 @@ def getattr_from_other_class(self, cls, str name):
         AttributeError: 'sage.rings.integer.Integer' object has no attribute '__call__'
     """
     if PY_TYPE_CHECK(self, cls):
-        raise AttributeError(AttributeErrorMessage(self, name))
+        dummy_error_message.cls = type(self)
+        dummy_error_message.name = name
+        raise dummy_attribute_error
     try:
         attribute = getattr(cls, name)
     except AttributeError:
-        raise AttributeError(AttributeErrorMessage(self, name))
+        dummy_error_message.cls = type(self)
+        dummy_error_message.name = name
+        raise dummy_attribute_error
     if PY_TYPE_CHECK(attribute, methodwrapper):
-        raise AttributeError(AttributeErrorMessage(self, name))
+        dummy_error_message.cls = type(self)
+        dummy_error_message.name = name
+        raise dummy_attribute_error
     try:
         getter = attribute.__get__
     except AttributeError:
@@ -216,7 +271,9 @@ def getattr_from_other_class(self, cls, str name):
         return getter(self, cls)
     except TypeError:
         pass
-    raise AttributeError(AttributeErrorMessage(self, name))
+    dummy_error_message.cls = type(self)
+    dummy_error_message.name = name
+    raise dummy_attribute_error
 
 def dir_with_other_class(self, cls):
     r"""

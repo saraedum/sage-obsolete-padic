@@ -140,7 +140,7 @@ class QuotientRingElement(ring_element.RingElement):
         is in `I`.
 
         EXAMPLES::
-        
+
             sage: R.<x,y> = QQ[]; S.<a,b> = R.quo(x^2 + y^2); type(a)
             <class 'sage.rings.quotient_ring_element.QuotientRing_generic_with_category.element_class'>
             sage: bool(a)     # indirect docteest
@@ -149,7 +149,7 @@ class QuotientRingElement(ring_element.RingElement):
             False
 
         TESTS::
-        
+
             sage: S(0).__nonzero__()
             False
             sage: (a-a).__nonzero__()

@@ -19,7 +19,8 @@ sys.path.append(get_doc_abspath('common'))
 
 # Add any Sphinx extension module names here, as strings. They can be extensions
 # coming with Sphinx (named 'sphinx.ext.*') or your custom ones.
-extensions = ['sage_autodoc',  'sphinx.ext.graphviz',
+extensions = ['inventory_builder', 'multidocs',
+              'sage_autodoc',  'sphinx.ext.graphviz',
               'sphinx.ext.inheritance_diagram', 'sphinx.ext.todo',
               'sphinx.ext.extlinks']
 # We do *not* fully initialize intersphinx since we call it by hand
@@ -109,12 +110,27 @@ intersphinx_mapping = {
 
 def set_intersphinx_mappings(app):
     """
-    Add reference's objects.inv to intersphinx if not compiling reference
+    Add precompiled inventory (the objects.inv)
     """
+    refpath = get_doc_abspath('output/html/en/reference')
+    invpath = get_doc_abspath('output/inventory/en/reference')
+    if app.config.multidoc_first_pass == 1 or \
+            not (os.path.exists(refpath) and os.path.exists(invpath)):
+        app.config.intersphinx_mapping = {}
+        return
     app.config.intersphinx_mapping = intersphinx_mapping
-    refpath = 'output/html/en/reference/'
-    if not app.srcdir.endswith('reference'):
-        app.config.intersphinx_mapping[get_doc_abspath(refpath)] = get_doc_abspath(refpath+'objects.inv')
+    
+    def add(subdoc=''):
+        src = os.path.join(refpath, subdoc) if subdoc else refpath
+        dst = os.path.join(invpath, subdoc, 'objects.inv')
+        app.config.intersphinx_mapping[src] = dst
+        
+    add()
+    for directory in os.listdir(os.path.join(invpath)):
+        if os.path.isdir(os.path.join(invpath, directory)):
+            add(directory)
+
+
 pythonversion = sys.version.split(' ')[0]
 # Python and Sage trac ticket shortcuts. For example, :trac:`7549` .
 
@@ -122,7 +138,15 @@ pythonversion = sys.version.split(' ')[0]
 extlinks = {
     'python': ('http://docs.python.org/release/'+pythonversion+'/%s', ''),
     'trac': ('http://trac.sagemath.org/%s', 'trac ticket #'),
-    'wikipedia': ('http://en.wikipedia.org/wiki/%s', 'Wikipedia article ')}
+    'wikipedia': ('http://en.wikipedia.org/wiki/%s', 'Wikipedia article '),
+    'arxiv': ('http://arxiv.org/abs/%s', 'Arxiv '),
+    'oeis': ('http://oeis.org/%s', 'OEIS sequence '),
+    'doi': ('http://dx.doi.org/%s', 'doi:'),
+    'mathscinet': ('http://www.ams.org/mathscinet-getitem?mr=%s', 'MathSciNet ')
+    }
+
+# By default document are not master.
+multidocs_is_master = True
 
 # Options for HTML output
 # -----------------------
@@ -178,7 +202,7 @@ if (os.environ.get('SAGE_DOC_MATHJAX', 'no') != 'no'
     mathjax_path = 'MathJax.js?config=TeX-AMS_HTML-full,../mathjax_sage.js'
 
     from sage.misc.latex_macros import sage_mathjax_macros
-    html_theme_options['mathjax_macros'] = sage_mathjax_macros
+    html_theme_options['mathjax_macros'] = sage_mathjax_macros()
 
     from pkg_resources import Requirement, working_set
     sagenb_path = working_set.find(Requirement.parse('sagenb')).location
@@ -212,6 +236,11 @@ else:
 
 # If false, no module index is generated.
 #html_use_modindex = True
+
+# A list of prefixes that are ignored for sorting the Python module index ( if
+# this is set to ['foo.'], then foo.bar is shown under B, not F). Works only
+# for the HTML builder currently.
+modindex_common_prefix = ['sage.']
 
 # If false, no index is generated.
 #html_use_index = True
@@ -290,7 +319,7 @@ try:
 except NameError:
     pngmath_latex_preamble = ""
 
-for macro in sage_latex_macros:
+for macro in sage_latex_macros():
     # used when building latex and pdf versions
     latex_elements['preamble'] += macro + '\n'
     # used when building html version
@@ -600,13 +629,13 @@ def setup(app):
     app.connect('autodoc-process-docstring', process_dollars)
     app.connect('autodoc-process-docstring', process_inherited)
     app.connect('autodoc-skip-member', skip_member)
-
+    
     # When building the standard docs, app.srcdir is set to SAGE_DOC +
     # 'LANGUAGE/DOCNAME', but when doing introspection, app.srcdir is
     # set to a temporary directory.  We don't want to use intersphinx,
     # etc., when doing introspection.
     if app.srcdir.startswith(SAGE_DOC):
-        app.add_config_value('intersphinx_mapping', {}, True)
+        app.add_config_value('intersphinx_mapping', {}, False)
         app.add_config_value('intersphinx_cache_limit', 5, False)
         # We do *not* fully initialize intersphinx since we call it by hand
         # in find_sage_dangling_links.

@@ -24,7 +24,7 @@ from integral_domain import IntegralDomain, is_IntegralDomain
 from dedekind_domain import DedekindDomain, is_DedekindDomain
 from principal_ideal_domain import PrincipalIdealDomain, is_PrincipalIdealDomain
 from euclidean_domain import EuclideanDomain, is_EuclideanDomain
-from field import Field, is_Field, is_PrimeField
+from field import Field, is_PrimeField
 
 from commutative_algebra_element import CommutativeAlgebraElement, is_CommutativeAlgebraElement
 
@@ -88,6 +88,7 @@ from real_lazy import RealLazyField, RLF, ComplexLazyField, CLF
 
 # Polynomial Rings and Polynomial Quotient Rings
 from polynomial.all import *
+
 
 # Algebraic numbers
 from qqbar import (AlgebraicRealField, is_AlgebraicRealField, AA,
@@ -160,3 +161,9 @@ from residue_field import ResidueField
 from misc import composite_field
 
 import tests
+
+# Universal Cyclotomic Field
+from sage.rings.universal_cyclotomic_field.all import *
+
+from sage.misc.lazy_import import lazy_import
+lazy_import('sage.rings.invariant_theory', 'invariant_theory')

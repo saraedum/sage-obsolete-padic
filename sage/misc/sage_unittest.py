@@ -29,6 +29,7 @@ class TestSuite(object):
         sage: TestSuite(1).run(verbose = True)
         running ._test_category() . . . pass
         running ._test_eq() . . . pass
+        running ._test_nonzero_equal() . . . pass
         running ._test_not_implemented_methods() . . . pass
         running ._test_pickling() . . . pass
 
@@ -105,7 +106,7 @@ class TestSuite(object):
 
      - Don't catch the exceptions if ``TestSuite(..).run()`` is called
        under the debugger, or with ``%pdb`` on (how to detect this? see
-       ``IPython.ipapi.get()``, ``IPython.Magic.shell.call_pdb``, ...)
+       ``get_ipython()``, ``IPython.Magic.shell.call_pdb``, ...)
        In the mean time, see the ``catch=False`` option.
 
      - Run the tests according to the inheritance order, from most
@@ -176,6 +177,7 @@ class TestSuite(object):
             sage: TestSuite(1).run(verbose = True)
             running ._test_category() . . . pass
             running ._test_eq() . . . pass
+            running ._test_nonzero_equal() . . . pass
             running ._test_not_implemented_methods() . . . pass
             running ._test_pickling() . . . pass
 
@@ -184,9 +186,11 @@ class TestSuite(object):
             sage: TestSuite(1).run(verbose = True, skip ="_test_pickling")
             running ._test_category() . . . pass
             running ._test_eq() . . . pass
+            running ._test_nonzero_equal() . . . pass
             running ._test_not_implemented_methods() . . . pass
             sage: TestSuite(1).run(verbose = True, skip =["_test_pickling", "_test_category"])
             running ._test_eq() . . . pass
+            running ._test_nonzero_equal() . . . pass
             running ._test_not_implemented_methods() . . . pass
 
         We now show (and test) some standard error reports::

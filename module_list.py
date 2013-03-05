@@ -491,6 +491,12 @@ ext_modules = [
     Extension('sage.groups.group',
               sources = ['sage/groups/group.pyx']),
 
+    Extension('sage.groups.old',
+              sources = ['sage/groups/old.pyx']),
+
+    Extension('sage.groups.libgap_wrapper',
+              sources = ['sage/groups/libgap_wrapper.pyx']),
+
     Extension('sage.groups.perm_gps.permgroup_element',
               sources = ['sage/groups/perm_gps/permgroup_element.pyx']),
 
@@ -506,6 +512,13 @@ ext_modules = [
               include_dirs = [SAGE_INC + 'FLINT/'],
               extra_compile_args = ['-std=c99'],
               depends = flint_depends),
+
+    Extension('sage.groups.perm_gps.partn_ref.canonical_augmentation',
+              sources = ['sage/groups/perm_gps/partn_ref/canonical_augmentation.pyx'],
+              libraries = ['gmp', 'flint'],
+              include_dirs = [SAGE_ROOT + '/local/include/FLINT/'],
+              extra_compile_args = ['-std=c99'],
+              depends = [SAGE_ROOT + "/local/include/FLINT/flint.h"]),
 
     Extension('sage.groups.perm_gps.partn_ref.double_coset',
               sources = ['sage/groups/perm_gps/partn_ref/double_coset.pyx'],
@@ -548,6 +561,13 @@ ext_modules = [
               include_dirs = [SAGE_INC + 'FLINT/'],
               extra_compile_args = ['-std=c99'],
               depends = flint_depends),
+
+    Extension('sage.groups.perm_gps.partn_ref.refinement_sets',
+              sources = ['sage/groups/perm_gps/partn_ref/refinement_sets.pyx'],
+              libraries = ['gmp', 'flint'],
+              include_dirs = [SAGE_ROOT + '/local/include/FLINT/'],
+              extra_compile_args = ['-std=c99'],
+              depends = [SAGE_ROOT + "/local/include/FLINT/flint.h"]),
 
     ################################
     ## 
@@ -691,7 +711,7 @@ ext_modules = [
               sources = ["sage/libs/ratpoints.pyx"],
               depends = [SAGE_INC + 'ratpoints.h'],
               libraries = ["ratpoints", "gmp"]),
-    
+
     Extension('sage.libs.singular.singular',
               sources = ['sage/libs/singular/singular.pyx'],
               libraries = singular_libs,
@@ -761,6 +781,32 @@ ext_modules = [
     Extension('sage.libs.mpmath.ext_libmp',
               sources = ["sage/libs/mpmath/ext_libmp.pyx"],
               libraries = ['gmp']),
+
+        ################################
+        ## 
+        ## sage.libs.gap
+        ##
+        ################################
+
+    Extension('sage.libs.gap.util',
+              sources = ["sage/libs/gap/util.pyx"],
+              libraries = ['csage', 'gmp', 'gap', 'm'],
+              include_dirs = [SAGE_LOCAL + '/include/']),
+
+    Extension('sage.libs.gap.element',
+              sources = ["sage/libs/gap/element.pyx"],
+              libraries = ['csage', 'gmp', 'gap', 'm'],
+              include_dirs = [SAGE_LOCAL + '/include/']),
+
+    # Extension('sage.libs.gap.type',
+    #           sources = ["sage/libs/gap/type.pyx"],
+    #           libraries = ['csage', 'gmp', 'gap', 'm'],
+    #           include_dirs = [SAGE_LOCAL + '/include/']),
+    
+    Extension('sage.libs.gap.libgap',
+              sources = ["sage/libs/gap/libgap.pyx"],
+              libraries = ['csage', 'gmp', 'gap', 'm'],
+              include_dirs = [SAGE_LOCAL + '/include/']),
 
         ###################################
         ##
@@ -1470,6 +1516,12 @@ ext_modules = [
     Extension('sage.rings.ring',
               sources = ['sage/rings/ring.pyx']),
 
+    Extension('sage.rings.universal_cyclotomic_field.universal_cyclotomic_field_c',
+              sources = ['sage/rings/universal_cyclotomic_field/universal_cyclotomic_field_c.pyx'],
+              include_dirs = numpy_include_dirs,
+              libraries = ['gmp'],
+              depends = numpy_depends),
+
         ################################
         ##
         ## sage.rings.finite_rings
@@ -1927,6 +1979,15 @@ ext_modules = [
 
 from sage.misc.package import is_package_installed
 
+if is_package_installed('fes'):
+    ext_modules.extend([
+       Extension("sage.libs.fes",
+                 ["sage/libs/fes.pyx"],
+                 include_dirs = [SAGE_INC, "sage/c_lib/include/"],
+                 language = "c",
+                 libraries = ['csage', 'fes'])
+       ])
+
 
 if (os.path.isfile(SAGE_INC + "gurobi_c.h") and                                                                                                                                                                                   
     os.path.isfile(SAGE_LOCAL + "/lib/libgurobi.so")):
@@ -1936,6 +1997,16 @@ if (os.path.isfile(SAGE_INC + "gurobi_c.h") and
                   include_dirs = [SAGE_INC, "sage/c_lib/include/"],
                   language = 'c',
                   libraries = ["csage", "stdc++", "gurobi"])
+        )
+
+
+if is_package_installed('coxeter3'):
+    ext_modules.append(
+        Extension('sage.libs.coxeter3.coxeter',
+                  sources = ['sage/libs/coxeter3/coxeter.pyx'],
+                  include_dirs = [os.path.join(SAGE_LOCAL, 'include', 'coxeter')],
+                  language="c++",
+                  libraries = ['csage', 'coxeter3', 'stdc++'])
         )
 
 

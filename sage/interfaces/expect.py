@@ -271,32 +271,6 @@ class Expect(Interface):
             self._start()
         return self._expect
 
-    def interact(self):
-        r"""
-        This allows you to interactively interact with the child
-        interpreter. Press Ctrl-D or type 'quit' or 'exit' to exit and
-        return to Sage.
-        
-        .. note::
-
-           This is completely different than the console() member
-           function. The console function opens a new copy of the
-           child interpreter, whereas the interact function gives you
-           interactive access to the interpreter that is being used by
-           Sage. Use sage(xxx) or interpretername(xxx) to pull objects
-           in from sage to the interpreter.
-        """
-        if self._expect is None:
-            self._start()
-        import sage.misc.preparser_ipython
-        sage.misc.preparser_ipython.switch_interface_general(self)
-
-    def _pre_interact(self):
-        pass
-
-    def _post_interact(self):
-        pass
-
     def pid(self):
         """
         Return the PID of the underlying sub-process.
@@ -1223,11 +1197,9 @@ If this all works, you can then make calls like:
                                         for L in code.split('\n') if L != ''])
                 else:
                     return self._eval_line(code, allow_use_file=allow_use_file, **kwds)
-        except KeyboardInterrupt:
-            # DO NOT CATCH KeyboardInterrupt, as it is being caught
-            # by _eval_line
-            # In particular, do NOT call self._keyboard_interrupt()
-            raise
+        # DO NOT CATCH KeyboardInterrupt, as it is being caught
+        # by _eval_line
+        # In particular, do NOT call self._keyboard_interrupt()
         except TypeError, s:
             raise TypeError, 'error evaluating "%s":\n%s'%(code,s)
 
@@ -1306,9 +1278,14 @@ class ExpectElement(InterfaceElement):
         else:
             try:
                 self._name = parent._create(value, name=name)
-            except (TypeError, KeyboardInterrupt, RuntimeError, ValueError), x:
+            # Convert ValueError and RuntimeError to TypeError for
+            # coercion to work properly.
+            except (RuntimeError, ValueError), x:
                 self._session_number = -1
                 raise TypeError, x
+            except BaseException:
+                self._session_number = -1
+                raise
         self._session_number = parent._session_number
 
     def __hash__(self):

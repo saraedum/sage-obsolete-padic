@@ -521,7 +521,7 @@ dep_regex = re.compile(r'^ *(?:(?:cimport +([\w\. ,]+))|(?:from +([\w.]+) +cimpo
 system_header_files = \
     ['complex.h', 'signal.h', 'math.h', 'limits.h', 'stdlib.h',
      'arpa/inet.h', 'float.h', 'string.h', 'stdint.h', 'stdio.h', 
-     'dlfcn.h', 'setjmp.h' ]
+     'dlfcn.h', 'setjmp.h', 'errno.h' ]
 
 class DependencyTree:
     """
@@ -920,6 +920,7 @@ code = setup(name = 'sage',
                      'sage.groups.abelian_gps',
                      'sage.groups.additive_abelian',
                      'sage.groups.matrix_gps',
+                     'sage.groups.misc_gps',
                      'sage.groups.perm_gps',
                      'sage.groups.perm_gps.partn_ref',
 
@@ -939,9 +940,11 @@ code = setup(name = 'sage',
                      'sage.libs.flint',
                      'sage.libs.lrcalc',
                      'sage.libs.pari',
+                     'sage.libs.gap',
                      'sage.libs.singular',
                      'sage.libs.symmetrica',
                      'sage.libs.cremona',
+                     'sage.libs.coxeter3',
                      'sage.libs.mpmath',
                      'sage.libs.lcalc',
 
@@ -986,7 +989,8 @@ code = setup(name = 'sage',
                      'sage.rings.polynomial',
                      'sage.rings.polynomial.padics',
                      'sage.rings.semirings',
-                     
+                     'sage.rings.universal_cyclotomic_field',
+
                      'sage.tests',
                      'sage.tests.french_book',
 

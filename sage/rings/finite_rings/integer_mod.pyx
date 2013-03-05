@@ -380,8 +380,8 @@ cdef class IntegerMod_abstract(FiniteRingElement):
     def _pari_init_(self):
         return 'Mod(%s,%s)'%(str(self), self.__modulus.sageInteger)
     
-    def pari(self):
-        return pari(self._pari_init_()) # TODO: is this called implicitly anywhere?
+    def _pari_(self):
+        return self.lift()._pari_().Mod(self.__modulus.sageInteger)
 
     def _gap_init_(self):
         r"""
@@ -714,6 +714,37 @@ cdef class IntegerMod_abstract(FiniteRingElement):
         """
         return self
 
+    def centerlift(self):
+        r"""
+        Lift ``self`` to an integer `i` such that `n/2 < i <= n/2`
+        (where `n` denotes the modulus).
+
+        EXAMPLES::
+
+            sage: Mod(0,5).centerlift()
+            0
+            sage: Mod(1,5).centerlift()
+            1
+            sage: Mod(2,5).centerlift()
+            2
+            sage: Mod(3,5).centerlift()
+            -2
+            sage: Mod(4,5).centerlift()
+            -1
+            sage: Mod(50,100).centerlift()
+            50
+            sage: Mod(51,100).centerlift()
+            -49
+            sage: Mod(-1,3^100).centerlift()
+            -1
+        """
+        n = self.modulus()
+        x = self.lift()
+        if 2*x <= n:
+            return x
+        else:
+            return x - n
+
     cpdef bint is_one(self):
         raise NotImplementedError
 
@@ -770,7 +801,7 @@ cdef class IntegerMod_abstract(FiniteRingElement):
             if e == 1:
                 return lift.jacobi(p) != -1
             elif p == 2:
-                return self.pari().issquare() # TODO: implement directly
+                return self._pari_().issquare() # TODO: implement directly
             elif self % p == 0:
                 val = lift.valuation(p)
                 return val >= e or (val % 2 == 0 and (lift // p**val).jacobi(p) != -1)
@@ -779,7 +810,7 @@ cdef class IntegerMod_abstract(FiniteRingElement):
         else:
             for p, e in moduli:
                 if p == 2:
-                    if e > 1 and not self.pari().issquare(): # TODO: implement directly
+                    if e > 1 and not self._pari_().issquare(): # TODO: implement directly
                         return 0
                 elif e > 1 and lift % p == 0:
                     val = lift.valuation(p)
@@ -1421,7 +1452,7 @@ cdef class IntegerMod_abstract(FiniteRingElement):
             ArithmeticError: multiplicative order of 0 not defined since it is not a unit modulo 5
         """
         try:
-            return sage.rings.integer.Integer(self.pari().order())  # pari's "order" is by default multiplicative
+            return sage.rings.integer.Integer(self._pari_().order())  # pari's "order" is by default multiplicative
         except PariError:
             raise ArithmeticError, "multiplicative order of %s not defined since it is not a unit modulo %s"%(
                 self, self.__modulus.sageInteger)
@@ -1891,16 +1922,39 @@ cdef class IntegerMod_gmp(IntegerMod_abstract):
             sage: R = Integers(p)
             sage: R(9876)^(p-1)
             1
-            sage: R(0)^0
-            Traceback (most recent call last):
-            ...
-            ArithmeticError: 0^0 is undefined.
             sage: mod(3, 10^100)^-2
             8888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888888889
             sage: mod(2, 10^100)^-2
             Traceback (most recent call last):
             ...
             ZeroDivisionError: Inverse does not exist.
+
+        TESTS:
+
+        We define ``0^0`` to be unity, :trac:`13894`::
+
+            sage: p = next_prime(11^10)
+            sage: R = Integers(p)
+            sage: R(0)^0
+            1
+
+        The value returned from ``0^0`` should belong to our ring::
+
+            sage: type(R(0)^0) == type(R(0))
+            True
+
+        When the modulus is ``1``, the only element in the ring is
+        ``0`` (and it is equivalent to ``1``), so we return that
+        instead::
+
+            sage: from sage.rings.finite_rings.integer_mod \
+            ...       import IntegerMod_gmp
+            sage: zero = IntegerMod_gmp(Integers(1),0)
+            sage: type(zero)
+            <type 'sage.rings.finite_rings.integer_mod.IntegerMod_gmp'>
+            sage: zero^0
+            0
+
         """
         cdef IntegerMod_gmp x = self._new_c()
         try:
@@ -2383,10 +2437,6 @@ cdef class IntegerMod_int(IntegerMod_abstract):
             sage: R = Integers(389)
             sage: R(7)^388
             1
-            sage: R(0)^0
-            Traceback (most recent call last):
-            ...
-            ArithmeticError: 0^0 is undefined.
 
             sage: mod(3, 100)^-1
             67
@@ -2401,6 +2451,28 @@ cdef class IntegerMod_int(IntegerMod_abstract):
             Traceback (most recent call last):
             ...
             ZeroDivisionError: Inverse does not exist.
+
+        TESTS:
+
+        We define ``0^0`` to be unity, :trac:`13894`::
+
+            sage: R = Integers(100)
+            sage: R(0)^0
+            1
+
+        The value returned from ``0^0`` should belong to our ring::
+
+            sage: type(R(0)^0) == type(R(0))
+            True
+
+        When the modulus is ``1``, the only element in the ring is
+        ``0`` (and it is equivalent to ``1``), so we return that
+        instead::
+
+            sage: R = Integers(1)
+            sage: R(0)^0
+            0
+
         """
         cdef long long_exp
         cdef int_fast32_t res
@@ -2421,7 +2493,8 @@ cdef class IntegerMod_int(IntegerMod_abstract):
                 sig_off()
         
         if long_exp == 0 and self.ivalue == 0:
-            raise ArithmeticError, "0^0 is undefined."
+            # Return 0 if the modulus is 1, otherwise return 1.
+            return self._new_c(self.__modulus.int32 != 1)
         cdef bint invert = False
         if long_exp < 0:
             invert = True
@@ -2495,7 +2568,7 @@ cdef class IntegerMod_int(IntegerMod_abstract):
             if e == 1:
                 return jacobi_int(self.ivalue, p) != -1
             elif p == 2:
-                return self.pari().issquare() # TODO: implement directly
+                return self._pari_().issquare() # TODO: implement directly
             elif self.ivalue % p == 0:
                 val = self.lift().valuation(sage_p)
                 return val >= e or (val % 2 == 0 and jacobi_int(self.ivalue / int(sage_p**val), p) != -1)
@@ -2505,7 +2578,7 @@ cdef class IntegerMod_int(IntegerMod_abstract):
             for sage_p, e in moduli:
                 p = sage_p
                 if p == 2:
-                    if e > 1 and not self.pari().issquare(): # TODO: implement directly
+                    if e > 1 and not self._pari_().issquare(): # TODO: implement directly
                         return 0
                 elif e > 1 and self.ivalue % p == 0:
                     val = self.lift().valuation(sage_p)
@@ -3201,10 +3274,6 @@ cdef class IntegerMod_int64(IntegerMod_abstract):
             sage: R = Integers(p)
             sage: R(1234)^(p-1)
             1
-            sage: R(0)^0
-            Traceback (most recent call last):
-            ...
-            ArithmeticError: 0^0 is undefined.
             sage: R = Integers(17^5)
             sage: R(17)^5
             0
@@ -3226,6 +3295,31 @@ cdef class IntegerMod_int64(IntegerMod_abstract):
         
             sage: type(R(0))
             <type 'sage.rings.finite_rings.integer_mod.IntegerMod_int64'>
+
+        We define ``0^0`` to be unity, :trac:`13894`::
+
+            sage: p = next_prime(10^5)
+            sage: R = Integers(p)
+            sage: R(0)^0
+            1
+
+        The value returned from ``0^0`` should belong to our ring::
+
+            sage: type(R(0)^0) == type(R(0))
+            True
+
+        When the modulus is ``1``, the only element in the ring is
+        ``0`` (and it is equivalent to ``1``), so we return that
+        instead::
+
+            sage: from sage.rings.finite_rings.integer_mod \
+            ...       import IntegerMod_int64
+            sage: zero = IntegerMod_int64(Integers(1),0)
+            sage: type(zero)
+            <type 'sage.rings.finite_rings.integer_mod.IntegerMod_int64'>
+            sage: zero^0
+            0
+
         """
         cdef long long_exp
         cdef int_fast64_t res
@@ -3250,7 +3344,8 @@ cdef class IntegerMod_int64(IntegerMod_abstract):
                 sig_off()
        
         if long_exp == 0 and self.ivalue == 0:
-            raise ArithmeticError, "0^0 is undefined."
+            # Return 0 if the modulus is 1, otherwise return 1.
+            return self._new_c(self.__modulus.int64 != 1)
         cdef bint invert = False
         if long_exp < 0:
             invert = True
@@ -3335,8 +3430,7 @@ cdef class IntegerMod_int64(IntegerMod_abstract):
 cdef mpz_pow_helper(mpz_t res, mpz_t base, object exp, mpz_t modulus):
     cdef bint invert = False
     cdef long long_exp
-    if mpz_sgn(base) == 0 and not exp:
-        raise ArithmeticError, "0^0 is undefined."
+
     if PyInt_CheckExact(exp):
         long_exp = PyInt_AS_LONG(exp)
         if long_exp < 0:
