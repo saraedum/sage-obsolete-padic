@@ -725,7 +725,7 @@ cdef class CAElement(pAdicTemplateElement):
         """
         Returns a list of coefficients of `p` starting with `p^0`.
 
-        For each lift mode, this funciton returns a list of `a_i` so
+        For each lift mode, this function returns a list of `a_i` so
         that this element can be expressed as
 
         .. MATH::
