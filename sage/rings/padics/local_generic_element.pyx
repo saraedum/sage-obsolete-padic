@@ -453,11 +453,16 @@ cdef class LocalGenericElement(CommutativeRingElement):
             True
             sage: Qq(3^2,5,names='a')(3).is_unit()
             True
+            sage: R(0,0).is_unit()
+            False
+            sage: K(0,0).is_unit()
+            False
         """
+        if self.is_zero():
+            return False
         if self.parent().is_field():
-            return not self.is_zero()
-        else:
-            return self.valuation() == 0
+            return True
+        return self.valuation() == 0
 
     #def is_zero(self, prec):
     #    raise NotImplementedError
