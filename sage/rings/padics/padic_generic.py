@@ -493,7 +493,7 @@ def local_print_mode(obj, print_options, pos = None, ram_name = None):
     of a p-adic ring/field.
 
     EXAMPLES::
-    
+
         sage: R = Zp(5)
         sage: R(45)
         4*5 + 5^2 + O(5^21)

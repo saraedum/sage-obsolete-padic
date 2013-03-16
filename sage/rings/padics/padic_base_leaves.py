@@ -341,7 +341,7 @@ class pAdicRingCappedAbsolute(pAdicRingBaseGeneric, pAdicCappedAbsoluteRingGener
                 return True
             if R.precision_cap() == self.precision_cap() and self._printer.cmp_modes(R._printer) <= 0:
                 return True
-    
+
 class pAdicRingFixedMod(pAdicRingBaseGeneric, pAdicFixedModRingGeneric):
     r"""
     An implementation of the `p`-adic integers using fixed modulus.
@@ -431,7 +431,6 @@ class pAdicRingFixedMod(pAdicRingBaseGeneric, pAdicFixedModRingGeneric):
             sage: a = ZpFM(5)(4); b = ZpFM(5)(5)
         """
         raise TypeError, "This implementation of the p-adic ring does not support fields of fractions."
-        
 
 class pAdicFieldCappedRelative(pAdicFieldBaseGeneric, pAdicCappedRelativeFieldGeneric):
     r"""
@@ -496,7 +495,7 @@ class pAdicFieldCappedRelative(pAdicFieldBaseGeneric, pAdicCappedRelativeFieldGe
                 return True
             elif R.precision_cap() == self.precision_cap() and self._printer.cmp_modes(R._printer) <= 0:
                 return True
-            
+
     def _repr_(self, do_latex=False):
         r"""
         Returns a string representation of ``self``.
@@ -511,7 +510,6 @@ class pAdicFieldCappedRelative(pAdicFieldBaseGeneric, pAdicCappedRelativeFieldGe
         if do_latex:
             return "\\QQ_{%s}" % self.prime()
         return "%s-adic Field with capped relative precision %s"%(self.prime(), self.precision_cap())
-        
 
     def random_element(self, algorithm='default'):
         r"""
@@ -534,5 +532,5 @@ class pAdicFieldCappedRelative(pAdicFieldBaseGeneric, pAdicCappedRelativeFieldGe
             k = ZZ.random_element()
             a = ZZ.random_element(self.prime()**self.precision_cap())
             return self(self.prime()**k * a, absprec = k + self.precision_cap())
-        else:        
+        else:
             raise NotImplementedError, "Don't know %s algorithm"%algorithm
