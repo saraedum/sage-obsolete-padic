@@ -786,6 +786,13 @@ cdef class CAElement(pAdicTemplateElement):
             5 + O(7)]
             sage: sum([L[i] * 7^i for i in range(len(L))])
             3 + 4*7 + 4*7^2 + 4*7^4 + O(7^6)
+
+        If the element has positive valuation then the list will start
+        with some zeros::
+
+            sage: a = R(7^3 * 17)
+            sage: a.list()
+            [0, 0, 0, 3, 2]
         """
         if ciszero(self.value, self.prime_pow):
             return []
