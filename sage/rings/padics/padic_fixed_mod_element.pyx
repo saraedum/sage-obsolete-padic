@@ -210,7 +210,7 @@ cdef class pAdicFixedModElement(FMElement):
 
         - ``absprec`` - an integer (default: 1)
 
-        OUTPUT::
+        OUTPUT:
 
         element of Z/(p^prec Z) -- self reduced mod p^prec
 
@@ -235,7 +235,7 @@ cdef class pAdicFixedModElement(FMElement):
         r"""
         Returns the minimum possible multiplicative order of this element.
 
-        OUTPUT::
+        OUTPUT:
 
         an integer -- the multiplicative order of this element.  This is the
         minimum multiplicative order of all elements of `\ZZ_p` lifting this

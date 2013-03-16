@@ -406,7 +406,7 @@ cdef class FMElement(pAdicTemplateElement):
 
         - ``absprec`` -- an integer
 
-        OUTPUT::
+        OUTPUT:
 
             - a new element truncated modulo `\pi^{\mbox{absprec}}`.
 
@@ -592,7 +592,7 @@ cdef class FMElement(pAdicTemplateElement):
         - ``lift_mode`` -- ``'simple'``, ``'smallest'`` or ``'teichmuller'``
           (default: ``'simple'``:)
 
-        OUTPUT::
+        OUTPUT:
 
         The list of coefficients of this elements
 

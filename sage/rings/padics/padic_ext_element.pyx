@@ -301,7 +301,7 @@ cdef class pAdicExtElement(pAdicGenericElement):
             - pos -- bint.  If True, all integers will be in the range [0,p-1],
               otherwise they will be in the range [(1-p)/2, p/2].
 
-        OUTPUT::
+        OUTPUT:
 
             - L -- A list of integers or list of lists giving the
               series expansion of self.

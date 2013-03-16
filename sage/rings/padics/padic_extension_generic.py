@@ -273,7 +273,7 @@ class pAdicExtensionGeneric(pAdicGeneric):
             - print_mode -- a dictionary containing print options.
               Defaults to the same options as this ring.
         
-        OUTPUT::
+        OUTPUT:
         
             - the ring of elements of self with nonnegative valuation.
 

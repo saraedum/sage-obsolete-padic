@@ -1392,7 +1392,7 @@ cdef class pAdicZZpXFMElement(pAdicZZpXElement):
 #             - self -- a p-adic element
 #             - prec -- an integer
             
-#         OUTPUT::
+#         OUTPUT:
         
 #             - integer -- the multiplicative order of self
 #         """

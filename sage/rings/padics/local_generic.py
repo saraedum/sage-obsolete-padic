@@ -237,7 +237,7 @@ class LocalGeneric(CommutativeRing):
         - ``self`` -- a local ring
         - ``var`` -- string (default: ``'x'``) the name of the variable
         
-        OUTPUT::
+        OUTPUT:
         
         - polynomial -- the defining polynomial of this ring as an extension over its ground ring
         
@@ -259,7 +259,7 @@ class LocalGeneric(CommutativeRing):
         
         - ``self`` -- a local ring
         
-        OUTPUT::
+        OUTPUT:
         
         - the ground ring of ``self``, i.e., itself
         
@@ -500,7 +500,7 @@ class LocalGeneric(CommutativeRing):
         
         - ``self`` -- a `p`-adic ring
         
-        OUTPUT::
+        OUTPUT:
         
         - boolean -- whether self is finite, i.e., ``False``
         

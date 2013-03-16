@@ -273,7 +273,7 @@ class UnramifiedExtensionGeneric(pAdicExtensionGeneric):
         
             - self -- a p-adic ring
 
-        OUTPUT::
+        OUTPUT:
         
             - boolean -- whether self has primitive $p^{\mbox{th}}$
               root of unity.
@@ -297,7 +297,7 @@ class UnramifiedExtensionGeneric(pAdicExtensionGeneric):
             - self -- a p-adic ring
             - n -- an integer
 
-        OUTPUT::
+        OUTPUT:
         
             - boolean -- whether self has primitive $n^{\mbox{th}}$
               root of unity

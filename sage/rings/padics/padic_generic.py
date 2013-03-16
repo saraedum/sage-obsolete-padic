@@ -184,7 +184,7 @@ class pAdicGeneric(PrincipalIdealDomain, LocalGeneric):
         
             self -- a p-adic field
 
-        OUTPUT::
+        OUTPUT:
         
             string -- self's print mode
         
@@ -207,7 +207,7 @@ class pAdicGeneric(PrincipalIdealDomain, LocalGeneric):
         
             self -- a p-adic parent
 
-        OUTPUT::
+        OUTPUT:
         
             integer -- self's characteristic, i.e., 0
 
@@ -226,7 +226,7 @@ class pAdicGeneric(PrincipalIdealDomain, LocalGeneric):
         
             self -- a p-adic parent
 
-        OUTPUT::
+        OUTPUT:
         
             integer -- the characteristic of the residue field
 
@@ -274,7 +274,7 @@ class pAdicGeneric(PrincipalIdealDomain, LocalGeneric):
         
             self -- a p-adic ring
 
-        OUTPUT::
+        OUTPUT:
         
             integer -- the characteristic of the residue field
 
@@ -294,7 +294,7 @@ class pAdicGeneric(PrincipalIdealDomain, LocalGeneric):
         
             self -- a p-adic ring
 
-        OUTPUT::
+        OUTPUT:
         
             the residue field
             
@@ -316,7 +316,7 @@ class pAdicGeneric(PrincipalIdealDomain, LocalGeneric):
         
             self -- a p-adic ring
 
-        OUTPUT::
+        OUTPUT:
         
             the residue field
             
@@ -337,7 +337,7 @@ class pAdicGeneric(PrincipalIdealDomain, LocalGeneric):
         
             self -- a p-adic ring
 
-        OUTPUT::
+        OUTPUT:
         
             list of elements -- a list of elements representing all the residue classes
             
@@ -358,7 +358,7 @@ class pAdicGeneric(PrincipalIdealDomain, LocalGeneric):
             - self -- a p-adic ring
             - x -- something that can be cast into self
             
-        OUTPUT::
+        OUTPUT:
         
             - element -- the teichmuller lift of x
 
