@@ -218,6 +218,24 @@ class pAdicRingCappedRelative(pAdicRingBaseGeneric, pAdicCappedRelativeRingGener
         EXAMPLES::
 
             sage: R = ZpCR(next_prime(10^60)) #indirect doctest
+            sage: type(R)
+
+        TESTS::
+
+            sage: R = ZpCR(2)
+            sage: TestSuite(R).run()
+            sage: TestSuite(R).run(elements = [R.random_element() for i in range(2^20)], max_runs = 2^24) # long time
+
+            sage: R = ZpCR(3, 1)
+            sage: TestSuite(R).run(elements = [R.random_element() for i in range(3^3)])
+
+            sage: R = ZpCR(3, 2)
+            sage: TestSuite(R).run(elements = [R.random_element() for i in range(3^6)])
+
+            sage: R = ZpCR(next_prime(10^60))
+            sage: TestSuite(R).run()
+            sage: TestSuite(R).run(elements = [R.random_element() for i in range(2^20)], max_runs = 2^24) # long time
+
         """
         pAdicRingBaseGeneric.__init__(self, p, prec, print_mode, names, pAdicCappedRelativeElement)
 
@@ -288,6 +306,24 @@ class pAdicRingCappedAbsolute(pAdicRingBaseGeneric, pAdicCappedAbsoluteRingGener
         EXAMPLES::
 
             sage: R = ZpCA(next_prime(10^60)) #indirect doctest
+            sage: type(R)
+
+        TESTS::
+
+            sage: R = ZpCA(2)
+            sage: TestSuite(R).run()
+            sage: TestSuite(R).run(elements = [R.random_element() for i in range(2^20)], max_runs = 2^24) # long time
+
+            sage: R = ZpCA(3, 1)
+            sage: TestSuite(R).run(elements = [R.random_element() for i in range(3^3)])
+
+            sage: R = ZpCA(3, 2)
+            sage: TestSuite(R).run(elements = [R.random_element() for i in range(3^6)])
+
+            sage: R = ZpCA(next_prime(10^60))
+            sage: TestSuite(R).run()
+            sage: TestSuite(R).run(elements = [R.random_element() for i in range(2^20)], max_runs = 2^24) # long time
+
         """
         pAdicRingBaseGeneric.__init__(self, p, prec, print_mode, names, pAdicCappedAbsoluteElement)
 
@@ -360,6 +396,24 @@ class pAdicRingFixedMod(pAdicRingBaseGeneric, pAdicFixedModRingGeneric):
         EXAMPLES::
 
             sage: R = ZpFM(next_prime(10^60)) #indirect doctest
+            sage: type(R)
+
+        TESTS::
+
+            sage: R = ZpFM(2)
+            sage: TestSuite(R).run()
+            sage: TestSuite(R).run(elements = [R.random_element() for i in range(2^20)], max_runs = 2^24) # long time
+
+            sage: R = ZpFM(3, 1)
+            sage: TestSuite(R).run(elements = [R.random_element() for i in range(3^3)])
+
+            sage: R = ZpFM(3, 2)
+            sage: TestSuite(R).run(elements = [R.random_element() for i in range(3^6)])
+
+            sage: R = ZpFM(next_prime(10^60))
+            sage: TestSuite(R).run()
+            sage: TestSuite(R).run(elements = [R.random_element() for i in range(2^20)], max_runs = 2^24) # long time
+
         """
         pAdicRingBaseGeneric.__init__(self, p, prec, print_mode, names, pAdicFixedModElement)
 
@@ -438,8 +492,8 @@ class pAdicFieldCappedRelative(pAdicFieldBaseGeneric, pAdicCappedRelativeFieldGe
 
     EXAMPLES::
 
-        sage: K = Qp(17, 1000000)
-        sage: K = Qp(next_prime(10^60))
+        sage: K = Qp(101) #indirect doctest
+
     """
 
     def __init__(self, p, prec, print_mode, names):
@@ -455,7 +509,24 @@ class pAdicFieldCappedRelative(pAdicFieldBaseGeneric, pAdicCappedRelativeFieldGe
 
         EXAMPLES::
 
-            sage: K = Qp(101) #indirect doctest
+            sage: K = Qp(next_prime(10^60)) # indirect doctest
+            sage: type(K)
+
+        TESTS::
+
+            sage: R = Qp(2)
+            sage: TestSuite(R).run()
+            sage: TestSuite(R).run(elements = [R.random_element() for i in range(2^20)], max_runs = 2^24) # long time
+
+            sage: R = Qp(3, 1)
+            sage: TestSuite(R).run(elements = [R.random_element() for i in range(3^6)])
+
+            sage: R = Qp(3, 2)
+            sage: TestSuite(R).run(elements = [R.random_element() for i in range(3^9)])
+
+            sage: R = Qp(next_prime(10^60))
+            sage: TestSuite(R).run()
+            sage: TestSuite(R).run(elements = [R.random_element() for i in range(2^20)], max_runs = 2^24) # long time
         """
         pAdicFieldBaseGeneric.__init__(self, p, prec, print_mode, names, pAdicCappedRelativeElement)
 

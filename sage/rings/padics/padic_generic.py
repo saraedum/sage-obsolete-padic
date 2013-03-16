@@ -8,11 +8,14 @@ AUTHORS:
 - David Roe
 - Genya Zaytman: documentation
 - David Harvey: doctests
+- Julian Rueth (2013-03-16): test methods for basic arithmetic
+
 """
 
 #*****************************************************************************
 #       Copyright (C) 2007-2013 David Roe <roed.math@gmail.com>
 #                               William Stein <wstein@gmail.com>
+#                               Julian Rueth <julian.rueth@fsfe.org>
 #
 #  Distributed under the terms of the GNU General Public License (GPL)
 #  as published by the Free Software Foundation; either version 2 of
@@ -486,6 +489,216 @@ class pAdicGeneric(PrincipalIdealDomain, LocalGeneric):
                     else:
                         print_mode[option] = self._printer.dict()[option]
         return ExtensionFactory(base=self, premodulus=modulus, prec=prec, halt=halt, names=names, check = True, **print_mode)
+
+    def _test_add(self, **options):
+        """
+        Test addition of elements of this ring.
+
+        INPUT::
+
+         - ``options`` -- any keyword arguments accepted by :meth:`_tester`.
+
+        EXAMPLES::
+
+            sage: Zp(3)._test_add()
+
+        .. SEEALSO::
+
+            :class:`TestSuite`
+
+        """
+        tester = self._tester(**options)
+        elements = tester.some_elements()
+
+        for x in elements:
+            y = x + self.zero()
+            tester.assertEqual(y,x)
+            tester.assertEqual(y.precision_absolute(),x.precision_absolute())
+            tester.assertEqual(y.precision_relative(),x.precision_relative())
+
+        from sage.combinat.cartesian_product import CartesianProduct
+        elements = CartesianProduct(tester.some_elements(), tester.some_elements())
+        if len(elements) > tester._max_runs:
+            from random import sample
+            elements = sample(elements, tester._max_runs)
+        for x,y in elements:
+            z = x + y
+            tester.assertIs(z.parent(), self)
+            tester.assertLessEqual(z.precision_absolute(), min(x.precision_absolute(), y.precision_absolute()))
+            tester.assertGreaterEqual(z.valuation(), min(x.valuation(),y.valuation()))
+            if x.valuation() != y.valuation():
+                tester.assertEqual(z.valuation(), min(x.valuation(),y.valuation()))
+            tester.assertEqual(z - x, y)
+            tester.assertEqual(z - y, x)
+
+    def _test_sub(self, **options):
+        """
+        Test subtraction on elements of this ring.
+
+        INPUT::
+
+         - ``options`` -- any keyword arguments accepted by :meth:`_tester`.
+
+        EXAMPLES::
+
+            sage: Zp(3)._test_sub()
+
+        .. SEEALSO::
+
+            :class:`TestSuite`
+
+        """
+        tester = self._tester(**options)
+
+        elements = tester.some_elements()
+        for x in elements:
+            y = x - self.zero()
+            tester.assertEqual(y, x)
+            tester.assertEqual(y.precision_absolute(), x.precision_absolute())
+            tester.assertEqual(y.precision_relative(), x.precision_relative())
+
+        from sage.combinat.cartesian_product import CartesianProduct
+        elements = CartesianProduct(tester.some_elements(), tester.some_elements())
+        if len(elements) > tester._max_runs:
+            from random import sample
+            elements = sample(elements, tester._max_runs)
+        for x,y in elements:
+            z = x - y
+            tester.assertIs(z.parent(), self)
+            tester.assertLessEqual(z.precision_absolute(), min(x.precision_absolute(), y.precision_absolute()))
+            tester.assertGreaterEqual(z.valuation(), min(x.valuation(),y.valuation()))
+            if x.valuation() != y.valuation():
+                tester.assertEqual(z.valuation(), min(x.valuation(),y.valuation()))
+            tester.assertEqual(z - x, -y)
+            tester.assertEqual(z + y, x)
+
+    def _test_invert(self, **options):
+        """
+        Test multiplicative inversion of elements of this ring.
+
+        INPUT::
+
+         - ``options`` -- any keyword arguments accepted by :meth:`_tester`.
+
+        EXAMPLES::
+
+            sage: Zp(3)._test_invert()
+
+        .. SEEALSO::
+
+            :class:`TestSuite`
+
+        """
+        tester = self._tester(**options)
+
+        elements = tester.some_elements()
+        for x in elements:
+            if x.is_unit():
+                y = ~x
+                e = y * x
+                tester.assertIs(y.parent(), self.fraction_field())
+                tester.assertTrue(e.is_one())
+                tester.assertGreaterEqual(e.precision_relative(), x.precision_relative())
+                tester.assertEqual(y.valuation(), -x.valuation())
+            else:
+                try:
+                    y = ~x
+                except ZeroDivisionError, TypeError: pass
+                else:
+                    assert not y.parent() is x.parent() and y.parent() is x.parent().fraction_field()
+
+    def _test_mul(self, **options):
+        """
+        Test multiplication of elements of this ring.
+
+        INPUT::
+
+         - ``options`` -- any keyword arguments accepted by :meth:`_tester`.
+
+        EXAMPLES::
+
+            sage: Zp(3)._test_mul()
+
+        .. SEEALSO::
+
+            :class:`TestSuite`
+
+        """
+        tester = self._tester(**options)
+
+        from sage.combinat.cartesian_product import CartesianProduct
+        elements = CartesianProduct(tester.some_elements(), tester.some_elements())
+        if len(elements) > tester._max_runs:
+            from random import sample
+            elements = sample(elements, tester._max_runs)
+        for x,y in elements:
+            z = x * y
+            tester.assertIs(z.parent(), self)
+            tester.assertLessEqual(z.precision_relative(), min(x.precision_relative(), y.precision_relative()))
+            if not z.is_zero():
+                tester.assertEqual(z.valuation(), x.valuation() + y.valuation())
+
+    def _test_div(self, **options):
+        """
+        Test division of elements of this ring.
+
+        INPUT::
+
+         - ``options`` -- any keyword arguments accepted by :meth:`_tester`.
+
+        EXAMPLES::
+
+            sage: Zp(3)._test_div()
+
+        .. SEEALSO::
+
+            :class:`TestSuite`
+
+        """
+        tester = self._tester(**options)
+
+        from sage.combinat.cartesian_product import CartesianProduct
+        elements = CartesianProduct(tester.some_elements(), tester.some_elements())
+        if len(elements) > tester._max_runs:
+            from random import sample
+            elements = sample(elements, tester._max_runs)
+        for x,y in elements:
+            try:
+                z = x / y
+            except ZeroDivisionError:
+                tester.assertTrue(y.is_zero())
+            else:
+                tester.assertFalse(y.is_zero())
+            tester.assertIs(z.parent(), self.fraction_field())
+            tester.assertLessEqual(z.precision_relative(), min(x.precision_relative(), y.precision_relative()))
+            tester.assertEqual(z.valuation(), x.valuation() - y.valuation())
+
+    def _test_neg(self, **options):
+        """
+        Test the negation operator on elements of this ring.
+
+        INPUT::
+
+         - ``options`` -- any keyword arguments accepted by :meth:`_tester`.
+
+        EXAMPLES::
+
+            sage: Zp(3)._test_neg()
+
+        .. SEEALSO::
+
+            :class:`TestSuite`
+        """
+        tester = self._tester(**options)
+        for x in tester.some_elements():
+            y = -x
+            tester.assertIs(y.parent(), self)
+            tester.assertTrue((x+y).is_zero())
+            tester.assertEqual(y.valuation(),x.valuation())
+            tester.assertEqual(x.precision_absolute(),y.precision_absolute())
+            tester.assertEqual(x.precision_relative(),y.precision_relative())
+            tester.assertEqual(x.is_zero(),y.is_zero())
+            tester.assertEqual(x.is_unit(),y.is_unit())
 
 def local_print_mode(obj, print_options, pos = None, ram_name = None):
     r"""

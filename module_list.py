@@ -1596,9 +1596,6 @@ ext_modules = [
         ##
         ################################
 
-    Extension('sage.rings.padics.test',
-              sources = ['sage/rings/padics/test.pyx']),
-
     Extension('sage.rings.padics.common_conversion',
               sources = ['sage/rings/padics/common_conversion.pyx'],
               libraries=['gmp']),

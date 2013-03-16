@@ -116,16 +116,6 @@ cdef class pAdicCappedRelativeElement(CRElement):
 
     # todo: doctests for converting from other types of p-adic rings
 
-    TESTS::
-
-    Run several arithmetic tests on some random elements::
-
-        sage: from sage.rings.padics.test import Arithmetic
-
-        sage: for R in [ZpCR(2), ZpCR(3), ZpCR(1073741827), QpCR(2), QpCR(3), QpCR(1073741827)]:
-        ...       Arithmetic(R, R.some_elements() + [R.random_element().add_bigoh(i%R.precision_cap()) for i in range(100)]).run()
-        ...       Arithmetic(R, R.some_elements() + [R.random_element().add_bigoh(i%R.precision_cap()) for i in range(10000)]).run() # long time
-
     """
     def lift(self):
         """
