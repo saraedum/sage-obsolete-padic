@@ -7,12 +7,14 @@ AUTHORS:
 
 - Jeroen Demeyer (2010-10-03): almost complete rewrite (#9678)
 
+- Jeroen Demeyer (2013-01-11): handle SIGHUP also (#13908)
+
 */
 
 /*****************************************************************************
  *       Copyright (C) 2006 William Stein <wstein@gmail.com>
  *                     2006 Martin Albrecht <malb@informatik.uni-bremen.de>
- *                     2010 Jeroen Demeyer <jdemeyer@cage.ugent.be>
+ *                     2010-2013 Jeroen Demeyer <jdemeyer@cage.ugent.be>
  *
  *  Distributed under the terms of the GNU General Public License (GPL)
  *  as published by the Free Software Foundation; either version 2 of
@@ -23,6 +25,7 @@ AUTHORS:
 #include <stdio.h>
 #include <string.h>
 #include <limits.h>
+#include <sys/time.h>
 /* glibc has a backtrace() command since version 2.1 */
 #ifdef __GLIBC__
 #if (__GLIBC__ > 2) || (__GLIBC__ == 2 && __GLIBC_MINOR__ >= 1)
@@ -34,13 +37,21 @@ AUTHORS:
 #include "interrupt.h"
 
 
+/* Interrupt debug level.  This only works if ENABLE_DEBUG_INTERRUPT
+ * has been set to "1" in c_lib/include/interrupt.h */
+#if ENABLE_DEBUG_INTERRUPT
+int sage_interrupt_debug_level = 2;
+static struct timeval sigtime;  /* Time of signal */
+#endif
+
+
 struct sage_signals_t _signals;
 
 /* The default signal mask during normal operation,
  * initialized by setup_sage_signal_handler(). */
 static sigset_t default_sigmask;
 
-/* default_sigmask with SIGINT and SIGALRM added. */
+/* default_sigmask with SIGHUP, SIGINT, SIGALRM added. */
 static sigset_t sigmask_with_sigint;
 
 /* Does this processor support the x86 EMMS instruction? */
@@ -83,51 +94,46 @@ static inline void reset_CPU()
 }
 
 
-/* Handler for SIGINT */
+/* Handler for SIGHUP, SIGINT */
 void sage_interrupt_handler(int sig)
 {
 #if ENABLE_DEBUG_INTERRUPT
-    fprintf(stderr, "\n*** SIGINT *** %s sig_on\n", (_signals.sig_on_count > 0) ? "inside" : "outside");
-    print_backtrace();
+    if (sage_interrupt_debug_level >= 1) {
+        fprintf(stderr, "\n*** SIG %i *** %s sig_on\n", sig, (_signals.sig_on_count > 0) ? "inside" : "outside");
+        if (sage_interrupt_debug_level >= 3) print_backtrace();
+        fflush(stderr);
+        /* Store time of this signal, unless there is already a
+         * pending signal. */
+        if (!_signals.interrupt_received) gettimeofday(&sigtime, NULL);
+    }
 #endif
 
     if (_signals.sig_on_count > 0)
     {
-        if (_signals.block_sigint)
+        if (!_signals.block_sigint)
         {
-            /* SIGINT is blocked, so simply set _signals.interrupt_received. */
-            _signals.interrupt_received = 1;
-            return;
+            /* Actually raise an exception so Python can see it */
+            sig_raise_exception(sig);
+
+            /* Jump back to sig_on() (the first one if there is a stack) */
+            reset_CPU();
+            siglongjmp(_signals.env, sig);
         }
-
-        /* Raise KeyboardInterrupt */
-        PyErr_SetNone(PyExc_KeyboardInterrupt);
-
-        /* Jump back to sig_on() (the first one if there is a stack) */
-        reset_CPU();
-        siglongjmp(_signals.env, sig);
     }
     else
     {
-        /* Set an internal Python flag that an interrupt has been
-         * raised.  This will not immediately raise an exception, only
-         * on the next call of PyErr_CheckSignals().  We cannot simply
-         * raise an exception here because of Python's "global
-         * interpreter lock" -- Jeroen Demeyer */
+        /* Set the Python interrupt indicator, which will cause the
+         * Python-level interrupt handler in sage/ext/c_lib.pyx to be
+         * called. */
         PyErr_SetInterrupt();
-        _signals.interrupt_received = 1;
     }
+
+    /* If we are here, we cannot handle the interrupt immediately, so
+     * we store the signal number for later use.  But make sure we
+     * don't overwrite a SIGHUP or SIGTERM which we already received. */
+    if (_signals.interrupt_received != SIGHUP && _signals.interrupt_received != SIGTERM)
+        _signals.interrupt_received = sig;
 }
-
-/* Call sage_interrupt_handler() "by hand". */
-void call_sage_interrupt_handler(int sig)
-{
-    /* Block SIGINT, SIGALRM */
-    sigprocmask(SIG_BLOCK, &sigmask_with_sigint, NULL);
-    sage_interrupt_handler(sig);
-}
-
-
 
 /* Handler for SIGILL, SIGABRT, SIGFPE, SIGBUS, SIGSEGV */
 void sage_signal_handler(int sig)
@@ -138,26 +144,17 @@ void sage_signal_handler(int sig)
     if (inside == 0 && _signals.sig_on_count > 0)
     {
         /* We are inside sig_on(), so we can handle the signal! */
-
-        /* Message to be printed in the Python exception */
-        const char* msg = _signals.s;
-
-        if (!msg)
-        {
-            /* Default: a message depending on which signal we got */
-            switch(sig)
-            {
-                case SIGILL:  msg = "Illegal instruction"; break;
-                case SIGABRT: msg = "Aborted"; break;
-                case SIGFPE:  msg = "Floating point exception"; break;
-                case SIGBUS:  msg = "Bus error"; break;
-                case SIGSEGV: msg = "Segmentation fault"; break;
-                default: msg = "";
-            }
+#if ENABLE_DEBUG_INTERRUPT
+        if (sage_interrupt_debug_level >= 1) {
+            fprintf(stderr, "\n*** SIG %i *** inside sig_on\n", sig);
+            if (sage_interrupt_debug_level >= 3) print_backtrace();
+            fflush(stderr);
+            gettimeofday(&sigtime, NULL);
         }
+#endif
 
-        /* Raise RuntimeError */
-        PyErr_SetString(PyExc_RuntimeError, msg);
+        /* Actually raise an exception so Python can see it */
+        sig_raise_exception(sig);
 
         /* Jump back to sig_on() (the first one if there is a stack) */
         reset_CPU();
@@ -169,12 +166,15 @@ void sage_signal_handler(int sig)
 
         /* Reset all signals to their default behaviour and unblock
          * them in case something goes wrong as of now. */
+        signal(SIGHUP, SIG_DFL);
+        signal(SIGINT, SIG_DFL);
         signal(SIGILL, SIG_DFL);
         signal(SIGABRT, SIG_DFL);
         signal(SIGFPE, SIG_DFL);
         signal(SIGBUS, SIG_DFL);
         signal(SIGSEGV, SIG_DFL);
-        sigprocmask(SIG_SETMASK, &sigmask_with_sigint, NULL);
+        signal(SIGTERM, SIG_DFL);
+        sigprocmask(SIG_SETMASK, &default_sigmask, NULL);
 
         if (inside) sigdie(sig, "An error occured during signal handling.");
 
@@ -201,17 +201,74 @@ void sage_signal_handler(int sig)
     }
 }
 
-/* Check whether we received an interrupt before sig_on().
- * Return 0 if there was an interrupt, 1 otherwise. */
-int _sig_on_interrupt_received()
+
+void sig_raise_exception(int sig)
 {
-    _signals.interrupt_received = 0;
-    if (PyErr_CheckSignals())
-    {
-        _signals.sig_on_count = 0;
-        return 0;
+#if ENABLE_DEBUG_INTERRUPT
+    struct timeval raisetime;
+    if (sage_interrupt_debug_level >= 2) {
+        gettimeofday(&raisetime, NULL);
+        long delta_ms = (raisetime.tv_sec - sigtime.tv_sec)*1000L + ((long)raisetime.tv_usec - (long)sigtime.tv_usec)/1000;
+        fprintf(stderr, "sig_raise_exception(sig=%i)\nPyErr_Occurred() = %p\nRaising Python exception %li ms after signal...\n",
+            sig, PyErr_Occurred(), delta_ms);
+        fflush(stderr);
     }
-    return 1;
+#endif
+
+    /* String to be printed in the Python exception */
+    const char* msg = _signals.s;
+
+    switch(sig)
+    {
+        case SIGHUP:
+        case SIGTERM:
+            /* Redirect stdin from /dev/null to close interactive sessions */
+            freopen("/dev/null", "r", stdin);
+
+            /* This causes Python to exit */
+            PyErr_SetNone(PyExc_SystemExit);
+            break;
+        case SIGINT:
+            PyErr_SetNone(PyExc_KeyboardInterrupt);
+            break;
+        case SIGILL:
+            if (!msg) msg = "Illegal instruction";
+            PyErr_SetString(PyExc_RuntimeError, msg);
+            break;
+        case SIGABRT:
+            if (!msg) msg = "Aborted";
+            PyErr_SetString(PyExc_RuntimeError, msg);
+            break;
+        case SIGFPE:
+            if (!msg) msg = "Floating point exception";
+            PyErr_SetString(PyExc_RuntimeError, msg);
+            break;
+        case SIGBUS:
+            if (!msg) msg = "Bus error";
+            PyErr_SetString(PyExc_RuntimeError, msg);
+            break;
+        case SIGSEGV:
+            if (!msg) msg = "Segmentation fault";
+            PyErr_SetString(PyExc_RuntimeError, msg);
+            break;
+        default:
+            PyErr_SetString(PyExc_SystemError, "Unknown signal");
+    }
+}
+
+
+/* Handle an interrupt before sig_on(). */
+void _sig_on_interrupt_received()
+{
+    /* Momentarily block signals to avoid race conditions */
+    sigset_t oldset;
+    sigprocmask(SIG_BLOCK, &sigmask_with_sigint, &oldset);
+
+    sig_raise_exception(_signals.interrupt_received);
+    _signals.interrupt_received = 0;
+    _signals.sig_on_count = 0;
+
+    sigprocmask(SIG_SETMASK, &oldset, NULL);
 }
 
 /* Recover after siglongjmp() */
@@ -219,6 +276,8 @@ void _sig_on_recover()
 {
     _signals.block_sigint = 0;
     _signals.sig_on_count = 0;
+    _signals.interrupt_received = 0;
+
     /* Reset signal mask */
     sigprocmask(SIG_SETMASK, &default_sigmask, NULL);
     _signals.inside_signal_handler = 0;
@@ -247,20 +306,23 @@ void setup_sage_signal_handler()
     /* Save the default signal mask */
     sigprocmask(SIG_BLOCK, NULL, &default_sigmask);
 
-    /* Save the signal mask with SIGINT and SIGALRM */
+    /* Save the signal mask with non-critical signals blocked */
     sigprocmask(SIG_BLOCK, NULL, &sigmask_with_sigint);
+    sigaddset(&sigmask_with_sigint, SIGHUP);
     sigaddset(&sigmask_with_sigint, SIGINT);
     sigaddset(&sigmask_with_sigint, SIGALRM);
 
     /* Install signal handlers */
     struct sigaction sa;
     memset(&sa, 0, sizeof(sa));
-    /* Block SIGINT and SIGALRM during the signal handlers */
+    /* Block non-critical signals during the signal handlers */
     sigemptyset(&sa.sa_mask);
+    sigaddset(&sa.sa_mask, SIGHUP);
     sigaddset(&sa.sa_mask, SIGINT);
     sigaddset(&sa.sa_mask, SIGALRM);
 
     sa.sa_handler = sage_interrupt_handler;
+    if (sigaction(SIGHUP, &sa, NULL)) {perror("sigaction"); exit(1);}
     if (sigaction(SIGINT, &sa, NULL)) {perror("sigaction"); exit(1);}
     sa.sa_handler = sage_signal_handler;
     /* Allow signals during signal handling, we have code to deal with
@@ -303,11 +365,60 @@ void print_backtrace()
 #endif
 }
 
+void print_enhanced_backtrace()
+{
+    /* Flush all buffers before forking */
+    fflush(stdout);
+    fflush(stderr);
+
+    pid_t parent_pid = getpid();
+    pid_t pid = fork();
+
+    if (pid < 0)
+    {
+        /* Failed to fork: no problem, just ignore */
+        perror("fork");
+        return;
+    }
+
+    if (pid == 0) { /* child */
+        /* We deliberately put these variables on the stack to avoid
+         * malloc() calls, the heap might be messed up! */
+        char path[1024];
+        char pid_str[32];
+        char* argv[5];
+
+        snprintf(path, sizeof(path), "%s/bin/sage-CSI", getenv("SAGE_LOCAL"));
+        snprintf(pid_str, sizeof(pid_str), "%i", parent_pid);
+        
+        argv[0] = "sage-CSI";
+        argv[1] = "--no-color";
+        argv[2] = "--pid";
+        argv[3] = pid_str;
+        argv[4] = NULL;
+        execv(path, argv);
+        perror("Failed to execute sage-CSI");
+        exit(2);
+    }
+    /* Wait for sage-CSI to finish */
+    waitpid(pid, NULL, 0);
+}
+
 
 void sigdie(int sig, const char* s)
 {
+    fprintf(stderr, 
+        "------------------------------------------------------------------------\n");
     print_backtrace();
-    fprintf(stderr, "\n"
+
+#ifndef __APPLE__
+    /* See http://trac.sagemath.org/13889 for how Apple screwed this up */
+    fprintf(stderr,
+        "------------------------------------------------------------------------\n");
+    print_enhanced_backtrace();
+#endif
+
+    fprintf(stderr, 
         "------------------------------------------------------------------------\n"
         "%s\n"
         "This probably occurred because a *compiled* component of Sage has a bug\n"

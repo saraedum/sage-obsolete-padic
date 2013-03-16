@@ -1,5 +1,5 @@
 """
-Abstract base class for generators of MPolynomialSystems.
+Abstract base class for generators of polynomial systems.
 
 AUTHOR:
     Martin Albrecht <malb@informatik.uni-bremen.de>
@@ -9,7 +9,7 @@ from sage.structure.sage_object import SageObject
 
 class MPolynomialSystemGenerator(SageObject):
     """
-    Abstract base class for generators of MPolynomialSystems.
+    Abstract base class for generators of polynomial systems.
     """
 
     def __getattr__(self, attr):
@@ -19,9 +19,9 @@ class MPolynomialSystemGenerator(SageObject):
             sage: from sage.crypto.mq.mpolynomialsystemgenerator import MPolynomialSystemGenerator
             sage: msg = MPolynomialSystemGenerator()
             sage: msg.R
-            Traceback (most recent call last):                                                      
+            Traceback (most recent call last):
             ...
-            NotImplementedError    
+            NotImplementedError
         """
         if attr == "R":
             self.R = self.ring()
@@ -47,12 +47,12 @@ class MPolynomialSystemGenerator(SageObject):
             sage: from sage.crypto.mq.mpolynomialsystemgenerator import MPolynomialSystemGenerator
             sage: msg = MPolynomialSystemGenerator()
             sage: msg.varformatstr('K')
-            Traceback (most recent call last):                                                      
+            Traceback (most recent call last):
             ...
-            NotImplementedError    
+            NotImplementedError
         """
         raise NotImplementedError
-        
+
     def varstrs(self, name, round):
         """
         Return a list of variable names given a name 'name' and an
@@ -69,9 +69,9 @@ class MPolynomialSystemGenerator(SageObject):
             sage: from sage.crypto.mq.mpolynomialsystemgenerator import MPolynomialSystemGenerator
             sage: msg = MPolynomialSystemGenerator()
             sage: msg.varstrs('K', i)
-            Traceback (most recent call last):                                                      
+            Traceback (most recent call last):
             ...
-            NotImplementedError    
+            NotImplementedError
         """
         raise NotImplementedError
 
@@ -89,9 +89,9 @@ class MPolynomialSystemGenerator(SageObject):
             sage: from sage.crypto.mq.mpolynomialsystemgenerator import MPolynomialSystemGenerator
             sage: msg = MPolynomialSystemGenerator()
             sage: msg.vars('K',0)
-            Traceback (most recent call last):                                                      
+            Traceback (most recent call last):
             ...
-            NotImplementedError    
+            NotImplementedError
         """
         raise NotImplementedError
 
@@ -104,9 +104,9 @@ class MPolynomialSystemGenerator(SageObject):
             sage: from sage.crypto.mq.mpolynomialsystemgenerator import MPolynomialSystemGenerator
             sage: msg = MPolynomialSystemGenerator()
             sage: msg.ring()
-            Traceback (most recent call last):                                                      
+            Traceback (most recent call last):
             ...
-            NotImplementedError    
+            NotImplementedError
         """
         raise NotImplementedError
 
@@ -120,9 +120,9 @@ class MPolynomialSystemGenerator(SageObject):
             sage: from sage.crypto.mq.mpolynomialsystemgenerator import MPolynomialSystemGenerator
             sage: msg = MPolynomialSystemGenerator()
             sage: msg.block_order()
-            Traceback (most recent call last):                                                      
+            Traceback (most recent call last):
             ...
-            NotImplementedError    
+            NotImplementedError
         """
         raise NotImplementedError
 
@@ -139,9 +139,9 @@ class MPolynomialSystemGenerator(SageObject):
             sage: from sage.crypto.mq.mpolynomialsystemgenerator import MPolynomialSystemGenerator
             sage: msg = MPolynomialSystemGenerator()
             sage: msg(None, None)
-            Traceback (most recent call last):                                                      
+            Traceback (most recent call last):
             ...
-            NotImplementedError    
+            NotImplementedError
         """
         raise NotImplementedError
 
@@ -154,7 +154,7 @@ class MPolynomialSystemGenerator(SageObject):
             sage: from sage.crypto.mq.mpolynomialsystemgenerator import MPolynomialSystemGenerator
             sage: msg = MPolynomialSystemGenerator()
             sage: msg.sbox()
-            Traceback (most recent call last):                                                      
+            Traceback (most recent call last):
             ...
             AttributeError: '<class 'sage.crypto.mq.mpolynomialsystemgenerator.MPolynomialSystemGenerator'>' object has no attribute '_sbox'
         """
@@ -163,9 +163,9 @@ class MPolynomialSystemGenerator(SageObject):
     def polynomial_system(self, P=None, K=None):
         """
         Return a tuple F,s for plaintext P and key K where F is an
-        MPolynomialSystem and s a dictionary which maps key variables
+        polynomial system and s a dictionary which maps key variables
         to their solutions.
-        
+
         INPUT:
             P -- plaintext (vector, list)
             K -- key (vector, list)
@@ -175,9 +175,9 @@ class MPolynomialSystemGenerator(SageObject):
             sage: from sage.crypto.mq.mpolynomialsystemgenerator import MPolynomialSystemGenerator
             sage: msg = MPolynomialSystemGenerator()
             sage: msg.polynomial_system()
-            Traceback (most recent call last):                                                      
+            Traceback (most recent call last):
             ...
-            NotImplementedError    
+            NotImplementedError
         """
         raise NotImplementedError
 
@@ -191,9 +191,9 @@ class MPolynomialSystemGenerator(SageObject):
             sage: from sage.crypto.mq.mpolynomialsystemgenerator import MPolynomialSystemGenerator
             sage: msg = MPolynomialSystemGenerator()
             sage: msg.random_element()
-            Traceback (most recent call last):                                                      
+            Traceback (most recent call last):
             ...
-            NotImplementedError    
+            NotImplementedError
         """
         raise NotImplementedError
 

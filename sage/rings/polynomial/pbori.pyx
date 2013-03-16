@@ -984,7 +984,7 @@ cdef class BooleanPolynomialRing(MPolynomialRing_generic):
         except StandardError:
             try:    # last chance: try Sage's conversions over GF(2), Trac #13284
                 return self._coerce_c_impl(self.cover_ring()(other))
-            except:
+            except StandardError:
                 raise TypeError, "cannot convert %s to BooleanPolynomial"%(type(other))
 
         i = i % 2
@@ -1027,6 +1027,62 @@ cdef class BooleanPolynomialRing(MPolynomialRing_generic):
             v[str(x)] = x
         self._gens_dict = v
         return v
+
+    def remove_var(self, *var, order=None):
+        """
+        Remove a variable or sequence of variables from this ring.
+
+        If ``order`` is not specified, then the subring inherits the
+        term order of the original ring, if possible.
+
+        EXAMPLES::
+
+            sage: R.<x,y,z,w> = BooleanPolynomialRing()
+            sage: R.remove_var(z)
+            Boolean PolynomialRing in x, y, w
+            sage: R.remove_var(z,x)
+            Boolean PolynomialRing in y, w
+            sage: R.remove_var(y,z,x)
+            Boolean PolynomialRing in w
+
+        Removing all variables results in the base ring::
+
+            sage: R.remove_var(y,z,x,w)
+            Finite Field of size 2
+
+        If possible, the term order is kept:
+
+             sage: R.<x,y,z,w> = BooleanPolynomialRing(order='deglex')
+             sage: R.remove_var(y).term_order()
+             Degree lexicographic term order
+
+             sage: R.<x,y,z,w> = BooleanPolynomialRing(order='lex')
+             sage: R.remove_var(y).term_order()
+             Lexicographic term order
+
+        Be careful with block orders when removing variables::
+
+            sage: R.<x,y,z,u,v> = BooleanPolynomialRing(order='deglex(2),deglex(3)')
+            sage: R.remove_var(x,y,z)
+            Traceback (most recent call last):
+            ...
+            ValueError: impossible to use the original term order (most likely because it was a block order). Please specify the term order for the subring
+            sage: R.remove_var(x,y,z, order='deglex')
+            Boolean PolynomialRing in u, v
+
+        """
+        vars = list(self.variable_names())
+        for v in var:
+            vars.remove(str(v))
+        if len(vars) == 0:
+            return self.base_ring()
+        if order is None:
+            try:
+                return BooleanPolynomialRing(names=vars, order=self.term_order())
+            except ValueError:
+                raise ValueError("impossible to use the original term order (most likely because it was a block order). Please specify the term order for the subring")
+        else:
+            return BooleanPolynomialRing(names=vars, order=order)
 
     def ideal(self, *gens, **kwds):
         """
@@ -3246,26 +3302,39 @@ cdef class BooleanPolynomial(MPolynomial):
         """
         return self._pbpoly.deg()
 
-    def degree(self):
+    def degree(self, x=None):
         r"""
-        Return the total degree of ``self``.
-        
+        Return the maximal degree of this polynomial in ``x``, where
+        ``x`` must be one of the generators for the parent of this
+        polynomial.
+
+        If x is not specified (or is ``None``), return the total
+        degree, which is the maximum degree of any monomial.
+
         EXAMPLES::
-        
+
             sage: P.<x,y> = BooleanPolynomialRing(2)
             sage: (x+y).degree()
             1
-        
+
         ::
-        
+
             sage: P(1).degree()
             0
-        
+
         ::
-        
+
             sage: (x*y + x + y + 1).degree()
             2
+
+            sage: (x*y + x + y + 1).degree(x)
+            1
         """
+        if x != None:
+            if self._pbpoly.set().multiplesOf((<BooleanPolynomial>x)._pbpoly.firstTerm()).isZero():
+                return 0
+            else:
+                return 1
         return self._pbpoly.deg()
 
     def lm(BooleanPolynomial self):
@@ -5062,39 +5131,56 @@ class BooleanPolynomialIdeal(MPolynomialIdeal):
 
     def variety(self, **kwds):
         r"""
-        Return the variety of ``self``.
+        Return the variety associated to this boolean ideal.
 
-        EXAMPLE::
+        EXAMPLE:
 
-            sage: R.<x,y,z> = BooleanPolynomialRing()    # Test a simple example
-            sage: I = ideal( [ x*y*z + x*z + y + 1, x+y+z+1 ] )
-            sage: I.variety()
-            [{y: 1, z: 0, x: 0}, {y: 1, z: 1, x: 1}]
+            A Simple example::
 
-            sage: R = BooleanPolynomialRing(6, ['x%d'%(i+1) for i in range(6)], order='lex')
-            sage: R.inject_variables()
-            Defining...
-            sage: polys = [\
-                   x1*x2 + x1*x4 + x1*x5 + x1*x6 + x1 + x2 + x3*x4 + x3*x5 + x3 + x4*x5 + x4*x6 + x4 + x5 + x6, \
-                   x1*x2 + x1*x3 + x1*x4 + x1*x6 + x2*x3 + x2*x6 + x2 + x3*x4 + x5*x6, \
-                   x1*x3 + x1*x4 + x1*x6 + x1 + x2*x5 + x2*x6 + x3*x4 + x3 + x4*x6 + x4 + x5*x6 + x5 + x6, \
-                   x1*x2 + x1*x3 + x1*x4 + x1*x5 + x2 + x3*x5 + x3*x6 + x3 + x5 + x6, \
-                   x1*x2 + x1*x4 + x1*x5 + x1*x6 + x2*x3 + x2*x4 + x2*x5 + x3*x5 + x5*x6 + x5 + x6, \
-                   x1*x2 + x1*x6 + x2*x4 + x2*x5 + x2*x6 + x3*x6 + x4*x6 + x5*x6 + x5]
-            sage: I = R.ideal( polys )
-            sage: V1 = I.variety()    
+                sage: R.<x,y,z> = BooleanPolynomialRing()
+                sage: I = ideal( [ x*y*z + x*z + y + 1, x+y+z+1 ] )
+                sage: I.variety()
+                [{y: 1, z: 0, x: 0}, {y: 1, z: 1, x: 1}]
 
-            sage: R = PolynomialRing(GF(2), 6, ['x%d'%(i+1) for i in range(6)], order='lex')
-            sage: I = R.ideal( polys )
-            sage: V2 = (I + sage.rings.ideal.FieldIdeal(R)).variety()
-            sage: V1 == V2
-            True
+        TESTS:
+
+            BooleanIdeal and regular (quotient) Ideal should coincide::
+
+                 sage: R = BooleanPolynomialRing(6, ['x%d'%(i+1) for i in range(6)], order='lex')
+                 sage: R.inject_variables()
+                 Defining...
+                 sage: polys = [\
+                        x1*x2 + x1*x4 + x1*x5 + x1*x6 + x1 + x2 + x3*x4 + x3*x5 + x3 + x4*x5 + x4*x6 + x4 + x5 + x6, \
+                        x1*x2 + x1*x3 + x1*x4 + x1*x6 + x2*x3 + x2*x6 + x2 + x3*x4 + x5*x6, \
+                        x1*x3 + x1*x4 + x1*x6 + x1 + x2*x5 + x2*x6 + x3*x4 + x3 + x4*x6 + x4 + x5*x6 + x5 + x6, \
+                        x1*x2 + x1*x3 + x1*x4 + x1*x5 + x2 + x3*x5 + x3*x6 + x3 + x5 + x6, \
+                        x1*x2 + x1*x4 + x1*x5 + x1*x6 + x2*x3 + x2*x4 + x2*x5 + x3*x5 + x5*x6 + x5 + x6, \
+                        x1*x2 + x1*x6 + x2*x4 + x2*x5 + x2*x6 + x3*x6 + x4*x6 + x5*x6 + x5]
+                 sage: I = R.ideal( polys )
+                 sage: I.variety()
+                 [{x6: 0, x5: 0, x4: 0, x2: 0, x3: 0, x1: 0}, {x6: 1, x5: 0, x4: 0, x2: 1, x3: 1, x1: 1}]
+
+                 sage: R = PolynomialRing(GF(2), 6, ['x%d'%(i+1) for i in range(6)], order='lex')
+                 sage: I = R.ideal( polys )
+                 sage: (I + sage.rings.ideal.FieldIdeal(R)).variety()
+                 [{x2: 0, x5: 0, x4: 0, x1: 0, x6: 0, x3: 0}, {x2: 1, x5: 0, x4: 0, x1: 1, x6: 1, x3: 1}]
+
+
+            Check that :trac:`13976` is fixed::
+
+                sage: R.<x,y,z> = BooleanPolynomialRing()
+                sage: I = ideal( [ x*y*z + x*z + y + 1, x+y+z+1 ] )
+                sage: sols = I.variety()
+                sage: sols[0][y]
+                1
+
         """
-        R = GF(2)[ self.ring().gens() ]
+        R_bool = self.ring()
+        R = R_bool.cover_ring()
         I = R.ideal( [ R( f ) for f in self.groebner_basis() ] )
         J = FieldIdeal(R)
-        return (I+J).variety(**kwds)
-
+        solutions = (I+J).variety(**kwds)
+        return [ { R_bool(var):val for var,val in s.iteritems() } for s in solutions ]
 
 
     def reduce(self, f):
@@ -5381,7 +5467,7 @@ cdef class BooleSet:
             sage: BS.empty()
             True
         """
-        return self._pbset.size() == 0
+        return self._pbset.isZero()
 
     def navigation(self):
         """
@@ -7487,10 +7573,10 @@ def ll_red_nf_noredsb_single_recursive_call(BooleanPolynomial p, BooleSet reduct
     t = pb_ll_red_nf_noredsb_single_recursive_call(p._pbpoly, reductors._pbset)
     return new_BP_from_PBPoly(p._parent, t)
 
-def mod_mon_set(BooleSet as, BooleSet vs):
+def mod_mon_set(BooleSet a_s, BooleSet v_s):
     cdef PBSet b
-    b = pb_mod_mon_set((<BooleSet>as)._pbset, (<BooleSet>vs)._pbset)
-    return new_BS_from_PBSet(b, as._ring)
+    b = pb_mod_mon_set(a_s._pbset, v_s._pbset)
+    return new_BS_from_PBSet(b, a_s._ring)
 
 
 def parallel_reduce(BooleanPolynomialVector inp, GroebnerStrategy strat, \

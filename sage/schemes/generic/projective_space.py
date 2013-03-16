@@ -60,7 +60,6 @@ two lines.
 #*****************************************************************************
 
 from sage.rings.all import (PolynomialRing,
-                            is_Field,
                             is_FiniteField,
                             is_RationalField,
                             is_Ring,
@@ -68,6 +67,9 @@ from sage.rings.all import (PolynomialRing,
                             is_MPolynomialRing,
                             Integer,
                             ZZ)
+
+from sage.categories.fields import Fields
+_Fields = Fields()
 
 from sage.misc.all import (latex,
                            prod)
@@ -157,7 +159,7 @@ def ProjectiveSpace(n, R=None, names='x'):
         n, R = R, n
     if R is None:
         R = ZZ  # default is the integers
-    if is_Field(R):
+    if R in _Fields:
         if is_FiniteField(R):
             return ProjectiveSpace_finite_field(n, R, names)
         if is_RationalField(R):
@@ -459,7 +461,7 @@ class ProjectiveSpace_ring(AmbientSpace):
             raise TypeError('Unable to find a common ring for all elements')
         try:
             i = pt.index(1)
-        except:
+        except StandardError:
             raise TypeError('At least one component of pt=%s must be equal '
                             'to 1'%pt)
         pt = pt[:i] + pt[i+1:]

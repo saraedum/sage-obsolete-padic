@@ -18,7 +18,7 @@ TESTS:
 Check that argspecs of extension function/methods appear correctly,
 see :trac:`12849`::
     
-    sage: docfilename = os.path.join(SAGE_ROOT, 'devel', 'sage', 'doc', 'output', 'html', 'en', 'reference', 'sage', 'symbolic', 'expression.html')
+    sage: docfilename = os.path.join(SAGE_ROOT, 'devel', 'sage', 'doc', 'output', 'html', 'en', 'reference', 'calculus', 'sage', 'symbolic', 'expression.html')
     sage: for line in open(docfilename):
     ...       if "#sage.symbolic.expression.Expression.N" in line:
     ...           print line
@@ -479,6 +479,9 @@ def format(s, embedded=False):
         <BLANKLINE>
         Definition: identity_matrix(ring, n=0, sparse=False)
         <BLANKLINE>
+        This function is available as identity_matrix(...) and
+        matrix.identity(...).
+        <BLANKLINE>
            Return the n x n identity matrix over the given ring.
         ...
 
@@ -827,11 +830,8 @@ You can build this with 'sage -docbuild %s html'.""" % s
                           extra2, extra3, extra4, extra5] if s])
         print format_search_as_html(title, results, terms)
     else:
-        # hard-code a 25-line screen into the pager; this works around a
-        # problem with doctests: see
-        # http://trac.sagemath.org/sage_trac/ticket/5806#comment:11
-        from IPython.genutils import page
-        page(results, screen_lines = 25)
+        import pager
+        pager.pager()(results)
 
 
 def search_src(string, extra1='', extra2='', extra3='', extra4='',
@@ -1172,7 +1172,7 @@ def my_getsource(obj, is_binary):
 
         sage: from sage.misc.sagedoc import my_getsource
         sage: s = my_getsource(identity_matrix, True)
-        sage: s[:19]
+        sage: s[15:34]
         'def identity_matrix'
     """
     try:

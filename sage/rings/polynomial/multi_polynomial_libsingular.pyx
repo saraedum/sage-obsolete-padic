@@ -172,7 +172,7 @@ from sage.libs.singular.decl cimport ring, poly, ideal, intvec, number, currRing
 
 # singular functions
 from sage.libs.singular.decl cimport (
-    errorreported,
+    errorreported, libfac_interruptflag,
     p_ISet, rChangeCurrRing, p_Copy, p_Init, p_SetCoeff, p_Setm, p_SetExp, p_Add_q,
     p_NSet, p_GetCoeff, p_Delete, p_GetExp, pNext, rRingVar, omAlloc0, omStrDup,
     omFree, pDivide, p_SetCoeff0, n_Init, p_DivisibleBy, pLcm, p_LmDivisibleBy,
@@ -218,7 +218,7 @@ from sage.rings.finite_rings.integer_mod_ring import is_IntegerModRing
 from sage.rings.number_field.number_field_base cimport NumberField
 
 from sage.rings.arith import gcd
-from sage.structure.element import coerce_binop
+from sage.structure.element import coerce_binop, get_coercion_model
 
 from sage.structure.parent cimport Parent
 from sage.structure.parent_base cimport ParentWithBase
@@ -2056,7 +2056,8 @@ cdef class MPolynomial_libsingular(sage.rings.polynomial.multi_polynomial.MPolyn
             raise TypeError, "number of arguments does not match number of variables in parent"
         
         try:
-            x = [parent._coerce_c(e) for e in x]
+            # Attempt evaluation via singular.
+            coerced_x = [parent.coerce(e) for e in x]
         except TypeError:
             # give up, evaluate functional
             y = parent.base_ring()(0) 
@@ -2065,13 +2066,18 @@ cdef class MPolynomial_libsingular(sage.rings.polynomial.multi_polynomial.MPolyn
             return y
 
         cdef poly *res
-        singular_polynomial_call(&res, self._poly, _ring, x, MPolynomial_libsingular_get_element)
+        singular_polynomial_call(&res, self._poly, _ring, coerced_x, MPolynomial_libsingular_get_element)
+        res_parent = get_coercion_model().common_parent(parent._base, *x)
 
         if res == NULL:
-            return parent._base._zero_element
+            return res_parent(0)
         if p_LmIsConstant(res, _ring):
-            return si2sa(p_GetCoeff(res, _ring), _ring, parent._base)
-        return new_MP(parent, res)
+            sage_res = si2sa( p_GetCoeff(res, _ring), _ring, parent._base )
+        else:
+            sage_res = new_MP(parent, res)
+        if parent(sage_res) is not res_parent:
+            sage_res = res_parent(sage_res)
+        return sage_res
 
     # you may have to replicate this boilerplate code in derived classes if you override 
     # __richcmp__.  The python documentation at  http://docs.python.org/api/type-structs.html 
@@ -4080,8 +4086,23 @@ cdef class MPolynomial_libsingular(sage.rings.polynomial.multi_polynomial.MPolyn
             ValueError: polynomial is not in the ideal
             sage: f.lift(I)
             [1, x2]
+
+        TESTS:
+
+        Check that :trac:`13714` is fixed::
+
+            sage: R.<x1,x2> = QQ[]
+            sage: I = R.ideal(x2**2 + x1 - 2, x1**2 - 1)
+            sage: R.one().lift(I)
+            Traceback (most recent call last):
+            ...
+            ValueError: polynomial is not in the ideal
+            sage: foo = I.complete_primary_decomposition() # indirect doctest
+            sage: foo[0][0]
+            Ideal (x2 - 1, x1 - 1) of Multivariate Polynomial Ring in x1, x2 over Rational Field
+
         """
-        global errorreported
+        global errorreported, libfac_interruptflag
         if not self._parent._base.is_field():
             raise NotImplementedError, "Lifting of multivariate polynomials over non-fields is not implemented."
 
@@ -4115,9 +4136,10 @@ cdef class MPolynomial_libsingular(sage.rings.polynomial.multi_polynomial.MPolyn
 
         if r!=currRing: rChangeCurrRing(r)  # idLift
         res = idLift(_I, fI, NULL, 0, 0, 0)
-        if errorreported != 0:
+        if errorreported != 0 or libfac_interruptflag != 0:
             errorcode = errorreported
             errorreported = 0
+            libfac_interruptflag = 0
             if errorcode == 1:
                 raise ValueError("polynomial is not in the ideal")
             raise RuntimeError
@@ -4641,7 +4663,16 @@ cdef class MPolynomial_libsingular(sage.rings.polynomial.multi_polynomial.MPolyn
             sage: f = 57 * a^2*b + 43 * c + 1
             sage: f == loads(dumps(f))
             True
+            
+        TESTS:
+        
+        Verify that :trac:`9220` is fixed.
 
+            sage: R=QQ['x'] 
+            sage: S=QQ['x','y'] 
+            sage: h=S.0^2 
+            sage: parent(h(R.0,0)) 
+            Univariate Polynomial Ring in x over Rational Field
         """
         return sage.rings.polynomial.multi_polynomial_libsingular.unpickle_MPolynomial_libsingular, ( self._parent, self.dict() )
 

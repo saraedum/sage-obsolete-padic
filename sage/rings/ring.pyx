@@ -73,6 +73,7 @@ import re
 from types import GeneratorType
 
 from sage.misc.lazy_attribute import lazy_class_attribute
+from sage.misc.superseded import deprecation
 from sage.structure.parent_gens cimport ParentWithGens
 from sage.structure.parent cimport Parent
 from sage.structure.category_object import check_default_category
@@ -111,6 +112,7 @@ cdef class Ring(ParentWithGens):
           Running the test suite of self.an_element()
           running ._test_category() . . . pass
           running ._test_eq() . . . pass
+          running ._test_nonzero_equal() . . . pass
           running ._test_not_implemented_methods() . . . pass
           running ._test_pickling() . . . pass
           pass
@@ -137,6 +139,14 @@ cdef class Ring(ParentWithGens):
         sage: PolynomialRing(SteenrodAlgebra(2),'x').category()
         Category of algebras over mod 2 Steenrod algebra, milnor basis
 
+     TESTS::
+
+         sage: Zp(7)._repr_option('element_is_atomic')
+         False
+         sage: QQ._repr_option('element_is_atomic')
+         True
+         sage: CDF._repr_option('element_is_atomic')
+         False
      """
     def __init__(self, base, names=None, normalize=True, category = None):
         # Unfortunately, ParentWithGens inherits from sage.structure.parent_old.Parent.
@@ -839,23 +849,6 @@ cdef class Ring(ParentWithGens):
         return self._one_element
 
     one = one_element # Transitional
-
-    def is_atomic_repr(self):
-        """
-        True if the elements have atomic string representations, in the sense
-        that they print if they print at s, then -s means the negative of s.
-        For example, integers are atomic but polynomials are not.
-
-        EXAMPLES::
-
-            sage: Zp(7).is_atomic_repr()
-            False
-            sage: QQ.is_atomic_repr()
-            True
-            sage: CDF.is_atomic_repr()
-            False
-        """
-        return False
 
     def is_zero(self):
         """
@@ -1871,7 +1864,7 @@ cdef class PrincipalIdealDomain(IntegralDomain):
         EXAMPLES::
 
             sage: QQ.class_group()
-            Trivial Abelian Group
+            Trivial Abelian group
         """
         from sage.groups.abelian_gps.abelian_group import AbelianGroup
         return AbelianGroup([])
@@ -2007,38 +2000,59 @@ cdef class EuclideanDomain(PrincipalIdealDomain):
        """
         raise NotImplementedError
 
-cdef dict _is_Field_cache = {}
-
-def is_Field(x):
+cpdef bint _is_Field(x) except -2:
     """
     Return True if x is a field.
 
     EXAMPLES::
 
-        sage: from sage.rings.ring import is_Field
-        sage: is_Field(QQ)
+        sage: from sage.rings.ring import _is_Field
+        sage: _is_Field(QQ)
         True
-        sage: is_Field(ZZ)
+        sage: _is_Field(ZZ)
         False
-        sage: is_Field(pAdicField(2))
+        sage: _is_Field(pAdicField(2))
         True
-        sage: is_Field(5)
+        sage: _is_Field(5)
         False
+
+    NOTE:
+
+    ``_is_Field(R)`` is of internal use. It is better (and faster) to
+    use ``R in Fields()`` instead.
     """
-    try:
-        result = _is_Field_cache[x]
-    except (TypeError,KeyError):
-        pass
-    # The cached result is not immediately returned, since otherwise
-    # a non-unique parent's category would be refined only once.
+    # The result is not immediately returned, since we want to refine
+    # x's category, so that calling x in Fields() will be faster next time.
     try:
         result = isinstance(x, Field) or x.is_field()
     except AttributeError:
         result = False
-    _is_Field_cache[x] = result
     if result:
         x._refine_category_(_Fields)
     return result
+
+def is_Field(x):
+    """
+    Deprecated test of an object being a field.
+
+    NOTE:
+
+    For testing whether ``R`` is a field, use ``R in Fields()``,
+    not ``is_Field(R)``. See :trac:`13370`.
+
+    TESTS::
+
+        sage: from sage.rings.ring import is_Field
+        sage: is_Field(ZZ)
+        doctest:...: DeprecationWarning: use 'R in Fields()', not 'is_Field(R)'
+        See http://trac.sagemath.org/13370 for details.
+        False
+        sage: is_Field(ZZ.quotient(5))
+        True
+
+    """
+    deprecation(13370, "use 'R in Fields()', not 'is_Field(R)'")
+    return _is_Field(x)
 
 # This imports is_Field, so must be executed after is_Field is defined.
 from sage.categories.algebras import Algebras
@@ -2050,7 +2064,7 @@ cdef class Field(PrincipalIdealDomain):
     """
     Generic field
     """
-    _default_category = Fields()
+    _default_category = _Fields
 
     def fraction_field(self):
         """

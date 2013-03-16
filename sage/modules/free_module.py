@@ -181,6 +181,7 @@ import sage.rings.infinity
 import sage.rings.integer
 import sage.structure.parent_gens as gens
 from sage.categories.principal_ideal_domains import PrincipalIdealDomains
+from sage.categories.commutative_rings import CommutativeRings
 from sage.misc.randstate import current_randstate
 from sage.structure.sequence import Sequence
 
@@ -5817,7 +5818,7 @@ class FreeModule_submodule_with_basis_pid(FreeModule_generic_pid):
     
     def echelon_coordinate_vector(self, v, check=True):
         """
-        Write `v` in terms of the user basis for self.
+        Write `v` in terms of the echelonized basis for self.
         
         INPUT:
         

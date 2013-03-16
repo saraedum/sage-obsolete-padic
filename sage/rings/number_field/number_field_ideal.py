@@ -206,7 +206,7 @@ class NumberFieldIdeal(Ideal_generic):
         return self._hash
         
     def _latex_(self):
-        """
+        r"""
         EXAMPLES::
 
             sage: K.<a> = NumberField(x^2 + 23)
@@ -299,6 +299,39 @@ class NumberFieldIdeal(Ideal_generic):
         # We can now assume that both have the same parent,
         # even if originally cmp(,) was called.
         return cmp(self.pari_hnf(), other.pari_hnf())
+
+    def _mul_(self, other):
+        """
+        Returns the product of self and other.
+
+        This is implemented by just calling pari to do the multiplication.
+
+        EXAMPLES::
+
+            sage: K.<I>=QQ[i]
+            sage: A = K.ideal([5, 2 + I])
+            sage: B = K.ideal([13, 5 + 12*I])
+            sage: A*B
+            Fractional ideal (-4*I + 7)
+            sage: (K.ideal(3 + I) * K.ideal(7 + I)).gens()
+            (10*I + 20,)
+
+        TESTS:
+
+        Make sure that :trac:`13958` is fixed::
+
+            sage: I = QuadraticField(-5).ideal(2).factor()[0][0]
+            sage: I = I * I * I; I.ngens() == 2
+            True
+            sage: I = I^301; I.ngens() == 2
+            True
+        """
+        if self.ngens() == 1 and other.ngens() == 1:
+            return self.ring().ideal(self.gen(0) * other.gen(0))
+
+        K=self.ring()
+        K_pari=K.pari_nf()
+        return K.ideal(K_pari.idealmul(self._pari_(), other._pari_()))
 
     def coordinates(self, x):
         r"""
@@ -2162,7 +2195,7 @@ class NumberFieldFractionalIdeal(NumberFieldIdeal):
         G = self.idealstar(2)
     
         invs = G.invariants()
-        g = G.gens()
+        g = G.gens_values()
         n = G.ngens()
     
         from sage.matrix.all import Matrix, diagonal_matrix
@@ -2452,12 +2485,23 @@ class NumberFieldFractionalIdeal(NumberFieldIdeal):
             sage: k.<a> = NumberField(x^3 - 11)
             sage: A = k.ideal(5)
             sage: G = A.idealstar(); G
-            Multiplicative Abelian Group isomorphic to C24 x C4
+            Multiplicative Abelian group isomorphic to C24 x C4
             sage: G.gens()
             (f0, f1)
+
             sage: G = A.idealstar(2)
-            sage: all([G.gens()[i] in k for i in range(G.ngens())])
+            sage: G.gens()
+            (f0, f1)
+            sage: G.gens_values()   # random output
+            (2*a^2 - 1, 2*a^2 + 2*a - 2)
+            sage: all([G.gen(i).value() in k for i in range(G.ngens())])
             True
+
+        TESTS::
+
+            sage: k.<a> = NumberField(x^2 + 1)
+            sage: k.ideal(a+1).idealstar(2)
+            Trivial Abelian group
 
         ALGORITHM: Uses Pari function ``idealstar``
         """
@@ -2468,11 +2512,13 @@ class NumberFieldFractionalIdeal(NumberFieldIdeal):
             G = self._pari_bid_(flag)
         inv = [ZZ(c) for c in G.bid_get_cyc()]
 
-        from sage.groups.abelian_gps.abelian_group import AbelianGroup
-        AG = AbelianGroup(len(inv), inv)
         if flag == 2 or flag == 0:
+            from sage.groups.abelian_gps.values import AbelianGroupWithValues
             g = G.bid_get_gen()
-            AG._gens = tuple(map(k, g))
+            AG = AbelianGroupWithValues(tuple(map(k, g)), inv, values_group=k)
+        else:
+            from sage.groups.abelian_gps.abelian_group import AbelianGroup
+            AG = AbelianGroup(inv)
         return AG
 
     def ideallog(self, x, gens=None, check=True):
@@ -2512,7 +2558,7 @@ class NumberFieldFractionalIdeal(NumberFieldIdeal):
             sage: A = k.ideal(5)
             sage: G = A.idealstar(2)
             sage: l = A.ideallog(a^2 +3)
-            sage: r = prod([G.gens()[i]**l[i] for i in range(len(l))])
+            sage: r = G(l).value()
             sage: (a^2 + 3) - r in A
             True
             sage: A.small_residue(r) # random

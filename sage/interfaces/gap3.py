@@ -490,8 +490,8 @@ class Gap3(Gap_generic):
         # merge the help text into one string and print it.
         helptext = "".join(helptext).strip()
         if pager is True:
-            import IPython.genutils
-            IPython.genutils.page(helptext)
+            import sage.misc.pager
+            pager.pager()(helptext)
         else:
             print helptext
 
@@ -685,6 +685,7 @@ class GAP3Element(GapElement_generic):
         super(GAP3Element, self).__init__(parent, value, is_name, name)
 
         # check for a GAP record; if so then change the class
+        parent._synchronize()
         if parent.eval("IsRec(%s)" % self._name) == "true":
             self.__class__ = GAP3Record
 

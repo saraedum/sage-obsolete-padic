@@ -19,7 +19,6 @@ AUTHORS:
 #                  http://www.gnu.org/licenses/
 #*****************************************************************************
 
-from sage.categories.commutative_rings import CommutativeRings
 from sage.rings.ring import CommutativeRing
 from sage.structure.parent import Parent
 from sage.rings.integer import Integer
@@ -34,11 +33,22 @@ class LocalGeneric(CommutativeRing):
             sage: R = Zp(5) #indirect doctest
             sage: R.precision_cap()
             20
+
+        In :trac:`14084`, the category framework has been implemented for p-adic rings::
+
+            sage: TestSuite(R).run()
+            sage: K = Qp(7)
+            sage: TestSuite(K).run()
+
+        TESTS::
+
+            sage: R = Zp(5, 5, 'fixed-mod')
+            sage: R._repr_option('element_is_atomic')
+            False
         """
         self._prec = prec
-        if category is None:
-            category = CommutativeRings()
-        Parent.__init__(self, base, element_constructor=element_class, names=(names,), normalize=False, category=category)
+        self.Element = element_class
+        Parent.__init__(self, base, names=(names,), normalize=False, category=getattr(self,'_default_category',None))
 
     def is_capped_relative(self):
         """
@@ -180,27 +190,6 @@ class LocalGeneric(CommutativeRing):
             initial precision to which elements are computed.
         """
         return self._prec
-
-    def is_atomic_repr(self):
-        r"""
-        Return False, since we want `p`-adics to be printed with
-        parentheses around them when they are coefficients, e.g., in a
-        polynomial.
-        
-        INPUT:
-        
-        - ``self`` -- a `p`-adic ring
-        
-        OUTPUT:
-        
-        - boolean -- whether ``self``'s representation is atomic, i.e., ``False``
-        
-        EXAMPLES::
-        
-            sage: R = Zp(5, 5, 'fixed-mod'); R.is_atomic_repr()
-            False
-            """
-        return False
 
     def is_exact(self):
         r"""

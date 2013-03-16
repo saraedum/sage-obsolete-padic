@@ -3072,31 +3072,31 @@ def CRT_vectors(X, moduli):
 def binomial(x, m, **kwds):
     r"""
     Return the binomial coefficient
-    
+
     .. math::
-    
+
                 \binom{x}{m} = x (x-1) \cdots (x-m+1) / m!
 
 
     which is defined for `m \in \ZZ` and any
     `x`. We extend this definition to include cases when
     `x-m` is an integer but `m` is not by
-    
+
     .. math::
-    
+
         \binom{x}{m}= \binom{x}{x-m}
 
     If `m < 0`, return `0`.
-    
+
     INPUT:
-        
+
     -  ``x``, ``m`` - numbers or symbolic expressions. Either ``m``
        or ``x-m`` must be an integer.
-        
+
     OUTPUT: number or symbolic expression (if input is symbolic)
-    
+
     EXAMPLES::
-    
+
         sage: binomial(5,2)
         10
         sage: binomial(2,0)
@@ -3138,29 +3138,36 @@ def binomial(x, m, **kwds):
     TESTS:
 
     We test that certain binomials are very fast (this should be
-    instant) -- see trac 3309::
-    
-        sage: a = binomial(RR(1140000.78), 42000000)
+    instant) -- see :trac:`3309`::
 
-    We test conversion of arguments to Integers -- see trac 6870::
+        sage: a = binomial(RR(1140000.78), 23310000)
+
+    We test conversion of arguments to Integers -- see :trac:`6870`::
 
         sage: binomial(1/2,1/1)
         1/2
         sage: binomial(10^20+1/1,10^20)
         100000000000000000001
-        sage: binomial(SR(10**7),10**7) 
+        sage: binomial(SR(10**7),10**7)
         1
         sage: binomial(3/2,SR(1/1))
         3/2
 
-    Some floating point cases -- see trac 7562 and trac 9633::
+    Some floating point cases -- see :trac:`7562`, :trac:`9633`, and
+    :trac:`12448`::
 
-        sage: binomial(1.,3) 
+        sage: binomial(1.,3)
         0.000000000000000
         sage: binomial(-2.,3)
         -4.00000000000000
         sage: binomial(0.5r, 5)
         0.02734375
+        sage: a = binomial(float(1001), float(1)); a
+        1001.0
+        sage: type(a)
+        <type 'float'>
+        sage: binomial(float(1000), 1001)
+        0.0
 
     Test symbolic and uni/multivariate polynomials::
 
@@ -3199,23 +3206,19 @@ def binomial(x, m, **kwds):
                 return x.binomial(m)
             except AttributeError:
                 pass
-            raise TypeError, 'Either m or x-m must be an integer'
-    # a (hopefully) temporary fix for #3309; eventually Pari should do
-    # this for us.
+            raise TypeError('Either m or x-m must be an integer')
     if isinstance(x, (float, sage.rings.real_mpfr.RealNumber,
                       sage.rings.real_mpfr.RealLiteral)):
         P = parent(x)
+        # Try to convert x to an integer if it *is* an integer but of type
+        # float. Otherwise, pari fails below in the case m > x.
+        try:
+            x = ZZ(x)
+        except TypeError:
+            pass
         if m < 0:
             return P(0)
-        from sage.functions.all import gamma
-        if x > -1/2:
-            a = gamma(x-m+1)
-            if a:
-                return gamma(x+1)/gamma(P(m+1))/a
-            else:
-                return P(0)
-        else:
-            return (-1)**m*gamma(m-x)/gamma(P(m+1))/gamma(-x)
+        return P(pari(x).binomial(m))
     if isinstance(x,sage.symbolic.expression.Expression):
         try:
             x=x.pyobject()
@@ -3237,7 +3240,7 @@ def binomial(x, m, **kwds):
             if m > s:
                 raise ValueError("binomial not implemented for "
                         "m > " + str(s) + ".\nThis is probably OK, "
-                        "since the answer would have " 
+                        "since the answer would have "
                         "billions of digits.")
 
         return x.binomial(m, **kwds)

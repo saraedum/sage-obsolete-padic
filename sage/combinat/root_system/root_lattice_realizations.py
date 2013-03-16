@@ -20,15 +20,16 @@ Root lattice realizations
 
 from sage.misc.abstract_method import abstract_method, AbstractMethod
 from sage.misc.all import attrcall
-from sage.misc.cachefunc import cached_method
+from sage.misc.cachefunc import cached_method, cached_in_parent_method
 from sage.misc.lazy_attribute import lazy_attribute
+from sage.categories.coxeter_groups import CoxeterGroups
 from sage.categories.category_types import Category_over_base_ring
 from sage.categories.modules_with_basis import ModulesWithBasis
 from sage.sets.family import Family
 from sage.rings.all import ZZ, QQ
-from sage.combinat.backtrack import TransitiveIdeal
+from sage.combinat.backtrack import TransitiveIdeal, TransitiveIdealGraded
 from sage.misc.superseded import deprecated_function_alias
-from copy import copy
+from sage.structure.element import Element
 
 class RootLatticeRealizations(Category_over_base_ring):
     r"""
@@ -173,7 +174,7 @@ class RootLatticeRealizations(Category_over_base_ring):
                 sage: L(alpha[2])
                 -Lambda[1] + 2*Lambda[2] - Lambda[3]
 
-            .. note::
+            .. NOTE::
 
                 More examples are given in :class:`RootLatticeRealizations`;
                 The embeddings are systematically tested in
@@ -194,6 +195,8 @@ class RootLatticeRealizations(Category_over_base_ring):
                 domain.module_morphism(self.simple_root,
                                        codomain = self
                                        ).register_as_coercion()
+            if self.cartan_type().is_affine():
+                self._to_classical.register_as_conversion()
 
         def cartan_type(self):
             """
@@ -293,6 +296,7 @@ class RootLatticeRealizations(Category_over_base_ring):
             tester = self._tester(**options)
             alpha = self.simple_roots()
             alphacheck = self.simple_coroots()
+            R = self.base_ring()
             tester.assertEqual(alpha     .keys(), self.index_set())
             tester.assertEqual(alphacheck.keys(), self.index_set())
 
@@ -302,7 +306,7 @@ class RootLatticeRealizations(Category_over_base_ring):
 
             # Check the embeddings from the root lattice and the root space over the same base ring
             root_lattice = self.root_system.root_lattice()
-            root_space   = self.root_system.root_space  (self.base_ring())
+            root_space   = self.root_system.root_space  (R)
             tester.assert_(self.coerce_map_from(root_lattice) is not None)
             tester.assert_(self.coerce_map_from(root_space  ) is not None)
             for i in self.index_set():
@@ -314,7 +318,7 @@ class RootLatticeRealizations(Category_over_base_ring):
             dynkin_diagram = self.dynkin_diagram()
             for i in self.index_set():
                 for j in self.index_set():
-                    tester.assertEqual(alpha[j].scalar(alphacheck[i]), dynkin_diagram[i,j])
+                    tester.assertEqual(alpha[j].scalar(alphacheck[i]), R(dynkin_diagram[i,j]))
 
             # Check associated_coroot, if it is implemented
             if not isinstance(self.element_class.associated_coroot, AbstractMethod):
@@ -326,9 +330,16 @@ class RootLatticeRealizations(Category_over_base_ring):
                 # and similarly for the null coroot
                 nullroot = self.null_root()
                 nullcoroot = self.null_coroot()
-                for k in alpha.keys():
-                    assert (nullroot.scalar(alphacheck[k])).is_zero()
-                    assert (alpha[k].scalar(nullcoroot)).is_zero()
+                special_node = self.cartan_type().special_node()
+                for i in alpha.keys():
+                    tester.assert_(nullroot.scalar(alphacheck[i]).is_zero())
+                    tester.assert_(alpha[i].scalar(nullcoroot).is_zero())
+                # Check the projection on the classical space
+                classical = self.classical()
+                alpha_classical = classical.alpha()
+                for i in alpha.keys():
+                    if i != special_node or self.cartan_type().is_untwisted_affine():
+                        tester.assertEqual(classical(alpha[i]), alpha_classical[i])
 
             # Todo: add tests of highest root, roots, has_descent, ...
 
@@ -350,8 +361,10 @@ class RootLatticeRealizations(Category_over_base_ring):
                 Lambda[2]
 
             """
-            assert(self.root_system.is_finite())
-            assert(self.root_system.is_irreducible())
+            if not self.root_system.is_finite():
+                raise ValueError, "The root system of %s is not of finite Cartan type"%self
+            if not self.root_system.is_irreducible():
+                raise ValueError, "The root system of %s is reducible"%self
             return self.a_long_simple_root().to_dominant_chamber()
 
         @cached_method
@@ -502,8 +515,148 @@ class RootLatticeRealizations(Category_over_base_ring):
             Algorithm: generate them from the simple roots by applying
             successive reflections toward the positive chamber.
             """
-            assert self.cartan_type().is_finite()
-            return TransitiveIdeal(attrcall('pred'), self.simple_roots())
+            if not self.cartan_type().is_finite():
+                raise NotImplementedError, "Only implemented for finite Cartan type"
+            return TransitiveIdealGraded(attrcall('pred'), self.simple_roots())
+
+        @cached_method
+        def positive_roots_by_height(self, increasing = True):
+            r"""
+            Returns a list of positive roots in increasing order by height.
+
+            If ``increasing`` is False, returns them in decreasing order.
+
+            .. warning::
+
+                Returns an error unless the Cartan type is finite.
+
+            EXAMPLES::
+
+                sage: RootSystem(['C',2]).root_lattice().positive_roots_by_height()
+                [alpha[1], alpha[2], alpha[1] + alpha[2], 2*alpha[1] + alpha[2]]
+                sage: RootSystem(['C',2]).root_lattice().positive_roots_by_height(increasing = False)
+                [2*alpha[1] + alpha[2], alpha[1] + alpha[2], alpha[1], alpha[2]]
+                sage: RootSystem(['A',2,1]).root_lattice().positive_roots_by_height()
+                Traceback (most recent call last):
+                ...
+                NotImplementedError: Only implemented for finite Cartan type
+
+            """
+
+            if not self.cartan_type().is_finite():
+                raise NotImplementedError, "Only implemented for finite Cartan type"
+            ranks = self.root_poset().level_sets()
+            if not increasing:
+                ranks.reverse()
+            roots = []
+            for x in ranks:
+                roots += x
+            return [x.element for x in roots]
+
+        @cached_method
+        def positive_roots_parabolic(self, index_set = None):
+            r"""
+            Returns the set of positive roots for the parabolic subsystem with Dynkin node set ``index_set``.
+
+            INPUT:
+
+            - ``index_set`` -- (default:None) the Dynkin node set of the parabolic subsystem. It should be a tuple. The default value implies the entire Dynkin node set
+
+            EXAMPLES::
+
+                sage: lattice =  RootSystem(['A',3]).root_lattice()
+                sage: PhiP = lattice.positive_roots_parabolic((1,3))
+                sage: [x for x in PhiP]
+                [alpha[1], alpha[3]]
+                sage: PhiP = lattice.positive_roots_parabolic((2,3))
+                sage: [x for x in PhiP]
+                [alpha[2], alpha[3], alpha[2] + alpha[3]]
+                sage: PhiP = lattice.positive_roots_parabolic()
+                sage: [x for x in PhiP]
+                [alpha[1], alpha[2], alpha[3], alpha[1] + alpha[2], alpha[2] + alpha[3], alpha[1] + alpha[2] + alpha[3]]
+
+            warning::
+
+                This returns an error if the cartan type is not finite.
+
+            """
+            if not self.cartan_type().is_finite():
+                raise NotImplementedError, "Only implemented for finite Cartan type"
+            if index_set is None:
+                index_set = tuple(self.cartan_type().index_set())
+
+            def parabolic_covers(alpha):
+                return [x for x in alpha.pred() if x.is_parabolic_root(index_set)]
+
+            generators = [x for x in self.simple_roots() if x.is_parabolic_root(index_set)]
+            return TransitiveIdealGraded(parabolic_covers, generators)
+
+        @cached_method
+        def positive_roots_nonparabolic(self, index_set = None):
+            r"""
+            Returns the set of positive roots outside the parabolic subsystem with Dynkin node set ``index_set``.
+
+            INPUT:
+
+            - ``index_set`` -- (default:None) the Dynkin node set of the parabolic subsystem. It should be a tuple. The default value implies the entire Dynkin node set
+
+            EXAMPLES::
+
+                sage: lattice =  RootSystem(['A',3]).root_lattice()
+                sage: lattice.positive_roots_nonparabolic((1,3))
+                [alpha[2], alpha[1] + alpha[2], alpha[2] + alpha[3], alpha[1] + alpha[2] + alpha[3]]
+                sage: lattice.positive_roots_nonparabolic((2,3))
+                [alpha[1], alpha[1] + alpha[2], alpha[1] + alpha[2] + alpha[3]]
+                sage: lattice.positive_roots_nonparabolic()
+                []
+                sage: lattice.positive_roots_nonparabolic((1,2,3))
+                []
+
+            warning::
+
+                This returns an error if the cartan type is not finite.
+
+            """
+            if not self.cartan_type().is_finite():
+                raise NotImplementedError, "Only implemented for finite Cartan type"
+            if index_set is None:
+                index_set = tuple(self.cartan_type().index_set())
+            return [x for x in self.positive_roots() if not x.is_parabolic_root(index_set)]
+
+        @cached_method
+        def positive_roots_nonparabolic_sum(self, index_set = None):
+            r"""
+            Returns the sum of positive roots outside the parabolic subsystem with Dynkin node set ``index_set``.
+
+            INPUT:
+
+            - ``index_set`` -- (default:None) the Dynkin node set of the parabolic subsystem. It should be a tuple. The default value implies the entire Dynkin node set
+
+            EXAMPLES::
+
+                sage: lattice =  RootSystem(['A',3]).root_lattice()
+                sage: lattice.positive_roots_nonparabolic_sum((1,3))
+                2*alpha[1] + 4*alpha[2] + 2*alpha[3]
+                sage: lattice.positive_roots_nonparabolic_sum((2,3))
+                3*alpha[1] + 2*alpha[2] + alpha[3]
+                sage: lattice.positive_roots_nonparabolic_sum(())
+                3*alpha[1] + 4*alpha[2] + 3*alpha[3]
+                sage: lattice.positive_roots_nonparabolic_sum()
+                0
+                sage: lattice.positive_roots_nonparabolic_sum((1,2,3))
+                0
+
+            warning::
+
+                This returns an error if the cartan type is not finite.
+
+            """
+
+            if not self.cartan_type().is_finite():
+                raise ValueError, "Cartan type %s is not finite"%(self.cartan_type())
+            if index_set is None or index_set == tuple(self.cartan_type().index_set()):
+                return self.zero()
+            return sum(self.positive_roots_nonparabolic(index_set))
 
         def root_poset(self, restricted=False, facade=False):
             r"""
@@ -567,7 +720,8 @@ class RootLatticeRealizations(Category_over_base_ring):
                 sage: L.almost_positive_roots()
                 [-alpha[1], alpha[1], alpha[1] + alpha[2], -alpha[2], alpha[2]]
             """
-            assert self.cartan_type().is_finite()
+            if not self.cartan_type().is_finite():
+                raise ValueError, "%s is not a finite Cartan type"%(self.cartan_type())
             return sorted([ -beta for beta in self.simple_roots() ] + list(self.positive_roots()))
 
         def negative_roots(self):
@@ -583,7 +737,8 @@ class RootLatticeRealizations(Category_over_base_ring):
             Algorithm: negate the positive roots
 
             """
-            assert self.cartan_type().is_finite()
+            if not self.cartan_type().is_finite():
+                raise ValueError, "%s is not a finite Cartan type"%(self.cartan_type())
             from sage.combinat.combinat import MapCombinatorialClass
             return MapCombinatorialClass(self.positive_roots(), attrcall('__neg__'), "The negative roots of %s"%self)
             # Todo: use this instead once TransitiveIdeal will be a proper enumerated set
@@ -750,9 +905,92 @@ class RootLatticeRealizations(Category_over_base_ring):
                 sage: RootSystem(['F',4,1]).root_lattice().null_coroot()
                 alphacheck[0] + 2*alphacheck[1] + 3*alphacheck[2] + 2*alphacheck[3] + alphacheck[4]
             """
-            assert(self.cartan_type().is_affine())
+            if not self.cartan_type().is_affine():
+                raise ValueError, "%s is not an affine Cartan type"%(self.cartan_type())
             coef = self.cartan_type().acheck()
             return sum(coef[k]*self.simple_coroots()[k] for k in coef.keys())
+
+
+        ##########################################################################
+        # fundamental weights
+        ##########################################################################
+
+        def fundamental_weights_from_simple_roots(self):
+            r"""
+            Return the fundamental weights.
+
+            This is computed from the simple roots by using the
+            inverse of the Cartan matrix. This method is therefore
+            only valid for finite types and if this realization of the
+            root lattice is large enough to contain them.
+
+            EXAMPLES:
+
+            In the root space, we retrieve the inverse of the Cartan matrix::
+
+                sage: L = RootSystem(["B",3]).root_space()
+                sage: L.fundamental_weights_from_simple_roots()
+                Finite family {1:     alpha[1] +   alpha[2] +     alpha[3],
+                               2:     alpha[1] + 2*alpha[2] +   2*alpha[3],
+                               3: 1/2*alpha[1] +   alpha[2] + 3/2*alpha[3]}
+                sage: ~L.cartan_type().cartan_matrix()
+                [  1   1 1/2]
+                [  1   2   1]
+                [  1   2 3/2]
+
+            In the weight lattice and the ambient space, we retrieve
+            the fundamental weights::
+
+                sage: L = RootSystem(["B",3]).weight_lattice()
+                sage: L.fundamental_weights_from_simple_roots()
+                Finite family {1: Lambda[1], 2: Lambda[2], 3: Lambda[3]}
+
+                sage: L = RootSystem(["B",3]).ambient_space()
+                sage: L.fundamental_weights()
+                Finite family {1: (1, 0, 0), 2: (1, 1, 0), 3: (1/2, 1/2, 1/2)}
+                sage: L.fundamental_weights_from_simple_roots()
+                Finite family {1: (1, 0, 0), 2: (1, 1, 0), 3: (1/2, 1/2, 1/2)}
+
+            However the fundamental weights do not belong to the root
+            lattice::
+
+                sage: L = RootSystem(["B",3]).root_lattice()
+                sage: L.fundamental_weights_from_simple_roots()
+                Traceback (most recent call last):
+                ...
+                ValueError: The fundamental weights do not live in this realization of the root lattice
+
+            Beware of the usual `GL_n` vs `SL_n` catch in type `A`::
+
+                sage: L = RootSystem(["A",3]).ambient_space()
+                sage: L.fundamental_weights()
+                Finite family {1: (1, 0, 0, 0), 2: (1, 1, 0, 0), 3: (1, 1, 1, 0)}
+                sage: L.fundamental_weights_from_simple_roots()
+                Finite family {1: (3/4, -1/4, -1/4, -1/4), 2: (1/2, 1/2, -1/2, -1/2), 3: (1/4, 1/4, 1/4, -3/4)}
+
+                sage: L = RootSystem(["A",3]).ambient_lattice()
+                sage: L.fundamental_weights_from_simple_roots()
+                Traceback (most recent call last):
+                ...
+                ValueError: The fundamental weights do not live in this realization of the root lattice
+            """
+            # We first scale the inverse of the Cartan matrix to be
+            # with integer coefficients; then the linear combination
+            # of the simple roots is guaranteed to live in this space,
+            # and then we rely on division by d to fail gracefuly.
+            M = self.cartan_type().cartan_matrix()
+            d = M.det()
+            if not d:
+                raise TypeError("The Cartan matrix is not invertible")
+            M = d*~M
+            fundamental_weights = [self.linear_combination(zip(self.simple_roots(), column))
+                                   for column in M.columns()]
+            try:
+                fundamental_weights = [x/d for x in fundamental_weights]
+            except ValueError:
+                raise ValueError("The fundamental weights do not live in this realization of the root lattice")
+            return Family(dict(zip(self.index_set(),fundamental_weights)))
+
 
         ##########################################################################
         # reflections
@@ -909,7 +1147,8 @@ class RootLatticeRealizations(Category_over_base_ring):
                 sage: pi
                 pi
             """
-            assert to_negative == True # Not implemented otherwise!!!!!
+            if to_negative is not True:
+                raise NotImplementedError, "only implemented when 'to_negative' is True"
             res = self.alpha().zip(self.projection, self.alphacheck())
             # Should this use rename to set a nice name for this family?
             res.rename("pi")
@@ -1161,12 +1400,94 @@ class RootLatticeRealizations(Category_over_base_ring):
                 orbits.append(orbit)
             return orbits
 
+
+        ##########################################################################
+        # Methods for affine root lattice realizations
+        # Should eventually go in an Affine nested class
+        ##########################################################################
+
+        @cached_method
+        def classical(self):
+            """
+            Return the corresponding root/weight/ambient lattice/space.
+
+            EXAMPLES::
+
+                sage: RootSystem(["A",4,1]).root_lattice().classical()
+                Root lattice of the Root system of type ['A', 4]
+                sage: RootSystem(["A",4,1]).weight_lattice().classical()
+                Weight lattice of the Root system of type ['A', 4]
+                sage: RootSystem(["A",4,1]).ambient_space().classical()
+                Ambient space of the Root system of type ['A', 4]
+            """
+            from root_space import RootSpace
+            from weight_space import WeightSpace
+            R = self.cartan_type().classical().root_system()
+            if isinstance(self, RootSpace):
+                return R.root_space(self.base_ring())
+            elif isinstance(self, WeightSpace):
+                return R.weight_space(self.base_ring())
+            else:
+                return R.ambient_space(self.base_ring())
+
+        @lazy_attribute
+        def _to_classical(self):
+            r"""
+            The projection onto the classical ambient space.
+
+            EXAMPLES::
+
+                sage: L = RootSystem(["A",2,1]).ambient_space()
+                sage: e = L.basis()
+                sage: L._to_classical(e["delta"])
+                (0, 0, 0)
+                sage: L._to_classical(e["deltacheck"])
+                (0, 0, 0)
+                sage: L._to_classical(e[0])
+                (1, 0, 0)
+                sage: L._to_classical(e[1])
+                (0, 1, 0)
+                sage: L._to_classical(e[2])
+                (0, 0, 1)
+            """
+            return self.module_morphism(self._to_classical_on_basis, codomain = self.classical())
+
+        def _classical_alpha_0(self):
+            """
+            Return the projection of `\alpha_0` in the classical space.
+
+            EXAMPLES:
+
+            This is the opposite of the highest root in the untwisted case::
+
+                sage: L = RootSystem(["B",3,1]).root_space()
+                sage: L._to_classical_on_basis(0)
+                -alpha[1] - 2*alpha[2] - 2*alpha[3]
+                sage: L.classical().highest_root()
+                alpha[1] + 2*alpha[2] + 2*alpha[3]
+
+            But not in the other cases::
+
+                sage: L = RootSystem(CartanType(["B",3,1]).dual()).root_space()
+                sage: L._to_classical_on_basis(0)
+                -alpha[1] - 2*alpha[2] - alpha[3]
+                sage: L.classical().highest_root()
+                2*alpha[1] + 2*alpha[2] + alpha[3]
+            """
+            cartan_type  = self.cartan_type()
+            special_node = cartan_type.special_node()
+            a = self.cartan_type().col_annihilator()
+            classical = self.classical()
+            return -classical.sum(a[i] * self.simple_root(i)
+                                  for i in self.index_set() if i != special_node) \
+                                  / a[special_node]
+
     class ElementMethods:
 
         @abstract_method
         def scalar(self, lambdacheck):
             """
-            The natural pairing with the coroot lattice
+            Implement the natural pairing with the coroot lattice.
 
             INPUT:
 
@@ -1378,7 +1699,7 @@ class RootLatticeRealizations(Category_over_base_ring):
                 index_set=self.parent().index_set()
             return [ i for i in index_set if self.has_descent(i, positive) ]
 
-        def to_dominant_chamber(self, index_set = None, positive = True, get_direction = False):
+        def to_dominant_chamber(self, index_set = None, positive = True, reduced_word = False):
             r"""
             Returns the unique dominant element in the Weyl group orbit of the vector ``self``.
 
@@ -1387,7 +1708,7 @@ class RootLatticeRealizations(Category_over_base_ring):
             With the ``index_set`` optional parameter, this is done with
             respect to the corresponding parabolic subgroup.
 
-            If ``get_direction`` is True, returns the 2-tuple (``weight``, ``direction``)
+            If ``reduced_word`` is True, returns the 2-tuple (``weight``, ``direction``)
             where ``weight`` is the (anti)dominant orbit element and ``direction`` is a reduced word
             for the Weyl group element sending ``weight`` to ``self``.
 
@@ -1396,10 +1717,10 @@ class RootLatticeRealizations(Category_over_base_ring):
                 In infinite type, an orbit may not contain a dominant element.
                 In this case the function may go into an infinite loop.
 
-                For affine root systems, assertion errors are generated if
+                For affine root systems, errors are generated if
                 the orbit does not contain the requested kind of representative.
-                If the input vector is of positive (resp. negative) 
-                level, then there is a dominant (resp. antidominant) element in its orbit 
+                If the input vector is of positive (resp. negative)
+                level, then there is a dominant (resp. antidominant) element in its orbit
                 but not an antidominant (resp. dominant) one. If the vector is of level zero,
                 then there are neither dominant nor antidominant orbit representatives, except
                 for multiples of the null root, which are themselves both dominant and antidominant
@@ -1415,66 +1736,76 @@ class RootLatticeRealizations(Category_over_base_ring):
                 Lambda[1] + Lambda[2] - Lambda[3]
                 sage: wl=RootSystem(['A',2,1]).weight_lattice(extended=True)
                 sage: mu=wl.from_vector(vector([1,-3,0]))
-                sage: mu.to_dominant_chamber(positive=False, get_direction = True)
+                sage: mu.to_dominant_chamber(positive=False, reduced_word = True)
                 (-Lambda[1] - Lambda[2] - delta, [0, 2])
 
                 sage: R = RootSystem(['A',1,1])
                 sage: rl = R.root_lattice()
+                sage: nu = rl.zero()
+                sage: nu.to_dominant_chamber()
+                0
+                sage: nu.to_dominant_chamber(positive=False)
+                0
                 sage: mu = rl.from_vector(vector([0,1]))
                 sage: mu.to_dominant_chamber()
                 Traceback (most recent call last):
                 ...
-                AssertionError: This element is not in the orbit of the fundamental chamber
-
+                ValueError: alpha[1] is not in the orbit of the fundamental chamber
+                sage: mu.to_dominant_chamber(positive=False)
+                Traceback (most recent call last):
+                ...
+                ValueError: alpha[1] is not in the orbit of the negative of the fundamental chamber
             """
 
             if index_set is None:
                 # default index set is the entire Dynkin node set
                 index_set = self.parent().index_set()
             cartan_type = self.parent().cartan_type()
-            # generate assertion errors for infinite loop cases in affine type
+            # generate errors for infinite loop cases in affine type
             if cartan_type.is_affine():
                 if index_set == self.parent().index_set():
                     # If the full affine Weyl group is being used
                     level = self.level()
                     if level > 0:
-                        assert positive, "This element is not in the orbit of the fundamental chamber"
+                        if not positive:
+                            raise ValueError, "%s is not in the orbit of the fundamental chamber"%(self)
                     elif level < 0:
-                        assert not positive, "This element is not in the orbit of the negative of the fundamental chamber"
-                    else:
-                        # level zero
                         if positive:
-                            assert self.is_dominant(), "This element is not in the orbit of the fundamental chamber"
+                            raise ValueError, "%s is not in the orbit of the negative of the fundamental chamber"%(self)
+                    elif not (self == self.parent().zero()):
+                        # nonzero level zero weight
+                        if positive:
+                            raise ValueError, "%s is not in the orbit of the fundamental chamber"%(self)
                         else:
-                            assert self.is_dominant(), "This element is not in the orbit of the negative of the fundamental chamber"
-            if get_direction:
+                            raise ValueError, "%s is not in the orbit of the negative of the fundamental chamber"%(self)
+            if reduced_word:
                 direction = []
             while True:
                 # The first index where it is *not* yet on the positive side
                 i = self.first_descent(index_set, positive=(not positive))
                 if i is None:
-                    if get_direction:
+                    if reduced_word:
                         return self, direction
                     else:
                         return self
                 else:
-                    if get_direction:
+                    if reduced_word:
                         direction.append(i)
                     self = self.simple_reflection(i)
- 
+
         to_positive_chamber = deprecated_function_alias(12667, to_dominant_chamber)
 
         def reduced_word(self, index_set = None, positive = True):
             r"""
             Returns a reduced word for the inverse of the shortest Weyl group element that sends the vector ``self`` into the dominant chamber.
- 
+
             With the ``index_set`` optional parameter, this is done with
             respect to the corresponding parabolic subgroup.
 
             If ``positive`` is False, use the antidominant chamber instead.
 
             EXAMPLES::
- 
+
                 sage: space=RootSystem(['A',5]).weight_space()
                 sage: alpha=RootSystem(['A',5]).weight_space().simple_roots()
                 sage: alpha[1].reduced_word()
@@ -1483,7 +1814,7 @@ class RootLatticeRealizations(Category_over_base_ring):
                 [2]
 
             """
-            return self.to_dominant_chamber(index_set=index_set,positive=positive,get_direction = True)[1]
+            return self.to_dominant_chamber(index_set=index_set,positive=positive,reduced_word = True)[1]
 
 
         def is_dominant(self, index_set = None, positive = True):
@@ -1643,9 +1974,111 @@ class RootLatticeRealizations(Category_over_base_ring):
                 sage: L.rho().level()
                 3
             """
-            assert(self.parent().cartan_type().is_affine())
+            if not self.parent().cartan_type().is_affine():
+                raise ValueError, "%s does not belong to a lattice of affine Cartan type"%self
             return self.scalar(self.parent().null_coroot())
 
+        @cached_in_parent_method
+        def to_simple_root(self, reduced_word=False):
+            r"""
+            Return (the index of) a simple root in the orbit of the positive root ``self``.
+
+            INPUT:
+
+            - ``self`` -- a positive root
+            - ``reduced_word`` -- a boolean (default: ``False``)
+
+            OUTPUT:
+
+            - The index `i` of a simple root `\alpha_i`.
+              If ``reduced_word`` is True, this returns instead a pair
+              ``(i, word)``, where word is a sequence of reflections
+              mapping `\alpha_i` up the root poset to ``self``.
+
+            EXAMPLES::
+
+                sage: L = RootSystem(["A",3]).root_lattice()
+                sage: for alpha in L.positive_roots():
+                ...       print alpha, alpha.to_simple_root()
+                alpha[1] 1
+                alpha[2] 2
+                alpha[3] 3
+                alpha[1] + alpha[2] 2
+                alpha[2] + alpha[3] 3
+                alpha[1] + alpha[2] + alpha[3] 3
+                sage: for alpha in L.positive_roots():
+                ...        print alpha, alpha.to_simple_root(reduced_word=True)
+                alpha[1] (1, ())
+                alpha[2] (2, ())
+                alpha[3] (3, ())
+                alpha[1] + alpha[2] (2, (1,))
+                alpha[2] + alpha[3] (3, (2,))
+                alpha[1] + alpha[2] + alpha[3] (3, (1, 2))
+
+            ALGORITHM:
+
+            This method walks from ``self`` down to the antidominant
+            chamber by applying successively the simple reflection
+            given by the first descent. Since ``self`` is a positive
+            root, each step goes down the root poset, and one must
+            eventually cross a simple root `\alpha_i`.
+
+            .. SEEALSO::
+
+                - :meth:`first_descent`
+                - :meth:`to_dominant_chamber`
+
+            .. WARNING::
+
+                The behavior is not specified if the input is not a
+                positive root. For a finite root system, this is
+                currently caught (albeit with a not perfect message)::
+
+                    sage: alpha = L.simple_roots()
+                    sage: (2*alpha[1]).to_simple_root()
+                    Traceback (most recent call last):
+                    ...
+                    ValueError: -2*alpha[1] - 2*alpha[2] - 2*alpha[3] is not a positive root
+
+                For an infinite root systems, this method may run into
+                an infinite reccursion if the input is not a positive
+                root.
+            """
+            F = self.parent().simple_roots().inverse_family()
+            try:
+                j = F[self]
+                if reduced_word:
+                    return (j, ())
+                else:
+                    return j
+            except KeyError:
+                pass
+            j = self.first_descent(positive=True)
+            if j is None:
+                raise ValueError, "%s is not a positive root"%self
+            result = self.simple_reflection(j).to_simple_root(reduced_word=reduced_word)
+            if reduced_word:
+                return (result[0], (j,) + result[1])
+            else:
+                return result
+
+        @cached_in_parent_method
+        def associated_reflection(self):
+            r"""
+            Given a positive root ``self``, returns a reduced word for the reflection orthogonal to ``self``.
+
+            Since the answer is cached, it is a tuple instead of a list.
+
+            EXAMPLES::
+
+                sage: RootSystem(['C',3]).root_lattice().simple_root(3).weyl_action([1,2]).associated_reflection()
+                (1, 2, 3, 2, 1)
+                sage: RootSystem(['C',3]).root_lattice().simple_root(2).associated_reflection()
+                (2,)
+
+            """
+            i, reduced_word = self.to_simple_root(reduced_word=True)
+            return reduced_word + (i,) + tuple(reversed(reduced_word))
 
         def translation(self, x):
             """
@@ -1687,43 +2120,82 @@ class RootLatticeRealizations(Category_over_base_ring):
                 sage: f(Lambda[1])
                 -Lambda[0] + 2*Lambda[2]
             """
-            assert self.level().is_zero()
+            if not self.level().is_zero():
+                raise ValueError, "%s is not of level zero"%(self)
             return x + x.level() * self
 
-        def weyl_action(self, w = None, reduced_word = None, inverse = False):
+        def weyl_action(self, element, inverse = False):
             r"""
-            Acts on ``self`` by a Weyl group element.
-    
+            Acts on ``self`` by an element of the Coxeter or Weyl group.
+
             INPUT:
-            - If ``w`` is not None, use it to act.
-            - If ``reduced_word`` is not None, use it to act.
-            - Exactly one of ``w`` and ``reduced_word`` should not be None.
-            - If ``inverse`` is True, act by the inverse element.
+
+            - ``element`` -- an element of a Coxeter or Weyl group
+              of the same Cartan type, or a tuple or a list (such as a
+              reduced word) of elements from the index set.
+
+            - ``inverse`` -- a boolean (default: False); whether to act by the inverse element.
 
             EXAMPLES::
-            
-                sage: wl = RootSystem(['A',2,1]).weight_lattice(extended = True)
-                sage: mu = wl.from_vector(vector([1,-3,0]))
+
+                sage: wl = RootSystem(['A',3]).weight_lattice()
+                sage: mu = wl.from_vector(vector([1,0,-2]))
                 sage: mu
-                Lambda[0] - 3*Lambda[1]
-                sage: mudom, rw = mu.to_dominant_chamber(positive=False, get_direction = True)
+                Lambda[1] - 2*Lambda[3]
+                sage: mudom, rw = mu.to_dominant_chamber(positive=False, reduced_word = True)
                 sage: mudom, rw
-                (-Lambda[1] - Lambda[2] - delta, [0, 2])
-                sage: mudom.weyl_action(reduced_word = rw)
-                Lambda[0] - 3*Lambda[1]
-                sage: mu.weyl_action(reduced_word = rw, inverse = True)
-                -Lambda[1] - Lambda[2] - delta
+                (-Lambda[2] - Lambda[3], [1, 2])
+
+            Acting by a (reduced) word::
+
+                sage: mudom.weyl_action(rw)
+                Lambda[1] - 2*Lambda[3]
+                sage: mu.weyl_action(rw, inverse = True)
+                -Lambda[2] - Lambda[3]
+
+            Acting by an element of the Coxeter or Weyl group on a vector in its own
+            lattice of definition (implemented by matrix multiplication on a vector)::
+
+                sage: w = wl.weyl_group().from_reduced_word([1, 2])
+                sage: mudom.weyl_action(w)
+                Lambda[1] - 2*Lambda[3]
+
+            Acting by an element of an isomorphic Coxeter or Weyl group (implemented by the
+            action of a corresponding reduced word)::
+
+                sage: W = WeylGroup(['A',3], prefix="s")
+                sage: w = W.from_reduced_word([1, 2])
+                sage: wl.weyl_group() == W
+                False
+                sage: mudom.weyl_action(w)
+                Lambda[1] - 2*Lambda[3]
 
             """
-    
-            if w is None:
-                assert reduced_word is not None
-                rw = copy(reduced_word)
+
+            # TODO, some day: accept an iterator
+            if isinstance(element, (tuple, list)):
+                # Action by a (reduced) word
+                the_word = [x for x in element]
+                I = self.parent().index_set()
+                if not all(i in I for i in the_word):
+                    raise ValueError, "Not all members of %s are in the index set of the %s"%(element, self.parent())
             else:
-                rw = w.reduced_word()
-            if not inverse:
-                rw.reverse()
-            for i in rw:
+                if not isinstance(element, Element):
+                    raise TypeError, "%s should be an element of a Coxeter group"%(element)
+                W = element.parent()
+                if W is self.parent().weyl_group():
+                    # Action by an element of the Coxeter or Weyl group of ``self``
+                    if inverse is True:
+                        element = element.inverse()
+                    return element.action(self)
+                else:
+                    # Action by an element of an isomorphic Coxeter or Weyl group
+                    if not (W in CoxeterGroups() and W.cartan_type() == self.parent().cartan_type()):
+                        raise TypeError, "%s should be an element of a Coxeter group of type %s"%(element, self.parent().cartan_type())
+                    the_word = element.reduced_word()
+            if inverse is False:
+                the_word.reverse()
+            for i in the_word:
                 self = self.simple_reflection(i)
             return self
 
@@ -1754,3 +2226,30 @@ class RootLatticeRealizations(Category_over_base_ring):
                 index_set = self.parent().cartan_type().index_set()
             alphavee = self.parent().coroot_lattice().basis()
             return [i for i in index_set if self.scalar(alphavee[i]) == 0]
+
+        def is_parabolic_root(self, index_set):
+            r"""
+            Supposing that ``self`` is a root, is it in the parabolic subsystem with Dynkin nodes ``index_set``?
+
+            INPUT:
+
+            - ``index_set`` -- the Dynkin node set of the parabolic subsystem.
+
+            .. TODO:: This implementation is only valid in the root or weight lattice
+
+            EXAMPLES::
+
+                sage: alpha = RootSystem(['A',3]).root_lattice().from_vector(vector([1,1,0]))
+                sage: alpha.is_parabolic_root([1,3])
+                False
+                sage: alpha.is_parabolic_root([1,2])
+                True
+                sage: alpha.is_parabolic_root([2])
+                False
+
+            """
+            for i in self.support():
+                if i not in index_set:
+                    return False
+            return True
+

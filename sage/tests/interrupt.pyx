@@ -18,13 +18,6 @@ AUTHORS:
 
 import signal
 
-cdef extern from 'stdlib.h':
-    void abort()
-
-cdef extern from 'signal.h':
-    int SIGHUP, SIGINT, SIGQUIT, SIGILL, SIGABRT, SIGFPE, SIGKILL, \
-        SIGSEGV, SIGPIPE, SIGALRM, SIGTERM, SIGBUS
-
 cdef extern from '../tests/c_lib.h':
     void ms_sleep(long ms)
     void signal_after_delay(int signum, long ms)
@@ -34,6 +27,7 @@ cdef extern from *:
     ctypedef int volatile_int "volatile int"
 
 
+include '../ext/signals.pxi'
 include '../ext/interrupt.pxi'
 include '../ext/stdsage.pxi'
 
@@ -67,32 +61,30 @@ cdef void dereference_null_pointer():
 ########################################################################
 # Python helper functions                                              #
 ########################################################################
-def raise_KeyboardInterrupt():
+class return_exception:
     """
-    Raise a KeyboardInterrupt.
+    Decorator class which makes a function *return* an exception which
+    is raised, to simplify doctests raising exceptions.  This can be
+    used to work around a bug in the doctesting script where a
+    ``KeyboardInterrupt`` always causes the doctester to stop, even if
+    the expected output of a doctest is a ``KeyboardInterrupt``.
 
-    TESTS::
-
-        sage: from sage.tests.interrupt import raise_KeyboardInterrupt
-    """
-    raise KeyboardInterrupt, "raise test"
-
-def try_sigint(f):
-    """
-    Calls the Python function ``f`` and catch any KeyboardInterrupts.
-    This function is needed because the doctest program stops whenever
-    it sees a KeyboardInterrupt.
-    
     EXAMPLES::
-        
-        sage: from sage.tests.interrupt import *
-        sage: try_sigint(raise_KeyboardInterrupt)
-        KeyboardInterrupt: raise test
+
+        sage: from sage.tests.interrupt import return_exception
+        sage: @return_exception
+        ... def raise_interrupt():
+        ...     raise KeyboardInterrupt("just testing")
+        sage: raise_interrupt()
+        KeyboardInterrupt('just testing',)
     """
-    try:
-        f()
-    except KeyboardInterrupt, err:
-        print "KeyboardInterrupt:", err
+    def __init__ (self, func):
+        self.func = func
+    def __call__ (self, *args):
+        try:
+            return self.func(*args)
+        except BaseException as e:
+            return e
 
 def interrupt_after_delay(ms_delay = 500):
     """
@@ -134,13 +126,14 @@ def test_sig_off():
     sig_on()
     sig_off()
 
+@return_exception
 def test_sig_on(long delay = DEFAULT_DELAY):
     """
     TESTS::
         
         sage: from sage.tests.interrupt import *
-        sage: try_sigint(test_sig_on)
-        KeyboardInterrupt:
+        sage: test_sig_on()
+        KeyboardInterrupt()
     """
     signal_after_delay(SIGINT, delay)
     sig_on()
@@ -164,13 +157,14 @@ cdef c_test_sig_on_cython():
     sig_on()
     infinite_loop()
 
+@return_exception
 def test_sig_on_cython(long delay = DEFAULT_DELAY):
     """
     TESTS::
         
         sage: from sage.tests.interrupt import *
-        sage: try_sigint(test_sig_on_cython)
-        KeyboardInterrupt:
+        sage: test_sig_on_cython()
+        KeyboardInterrupt()
     """
     signal_after_delay(SIGINT, delay)
     c_test_sig_on_cython()
@@ -179,13 +173,14 @@ cdef int c_test_sig_on_cython_except() except 42:
     sig_on()
     infinite_loop()
 
+@return_exception
 def test_sig_on_cython_except(long delay = DEFAULT_DELAY):
     """
     TESTS::
         
         sage: from sage.tests.interrupt import *
-        sage: try_sigint(test_sig_on_cython_except)
-        KeyboardInterrupt:
+        sage: test_sig_on_cython_except()
+        KeyboardInterrupt()
     """
     signal_after_delay(SIGINT, delay)
     c_test_sig_on_cython_except()
@@ -194,36 +189,39 @@ cdef void c_test_sig_on_cython_except_all() except *:
     sig_on()
     infinite_loop()
 
+@return_exception
 def test_sig_on_cython_except_all(long delay = DEFAULT_DELAY):
     """
     TESTS::
         
         sage: from sage.tests.interrupt import *
-        sage: try_sigint(test_sig_on_cython_except_all)
-        KeyboardInterrupt:
+        sage: test_sig_on_cython_except_all()
+        KeyboardInterrupt()
     """
     signal_after_delay(SIGINT, delay)
     c_test_sig_on_cython_except_all()
 
+@return_exception
 def test_sig_check(long delay = DEFAULT_DELAY):
     """
     TESTS::
 
         sage: from sage.tests.interrupt import *
-        sage: try_sigint(test_sig_check)
-        KeyboardInterrupt:
+        sage: test_sig_check()
+        KeyboardInterrupt()
     """
     signal_after_delay(SIGINT, delay)
     while True:
         sig_check()
 
+@return_exception
 def test_sig_check_inside_sig_on(long delay = DEFAULT_DELAY):
     """
     TESTS::
 
         sage: from sage.tests.interrupt import *
-        sage: try_sigint(test_sig_check_inside_sig_on)
-        KeyboardInterrupt:
+        sage: test_sig_check_inside_sig_on()
+        KeyboardInterrupt()
     """
     signal_after_delay(SIGINT, delay)
     sig_on()
@@ -247,13 +245,14 @@ def test_sig_retry():
     sig_off()
     return v
 
+@return_exception
 def test_sig_retry_and_signal(long delay = DEFAULT_DELAY):
     """
     TESTS::
 
         sage: from sage.tests.interrupt import *
-        sage: try_sigint(test_sig_retry_and_signal)
-        KeyboardInterrupt:
+        sage: test_sig_retry_and_signal()
+        KeyboardInterrupt()
     """
     cdef volatile_int v = 0
 
@@ -317,14 +316,14 @@ def test_sig_str_no_except(long delay = DEFAULT_DELAY):
     signal_after_delay(SIGABRT, delay)
     infinite_loop()
 
-
+@return_exception
 def test_sig_check_no_except(long delay = DEFAULT_DELAY):
     """
     TESTS::
 
         sage: from sage.tests.interrupt import *
-        sage: try_sigint(test_sig_check_no_except)
-        KeyboardInterrupt:
+        sage: test_sig_check_no_except()
+        KeyboardInterrupt()
     """
     signal_after_delay(SIGINT, delay)
     while True:
@@ -346,13 +345,14 @@ def test_old_sig_off():
     _sig_on
     _sig_off
 
+@return_exception
 def test_old_sig_on(long delay = DEFAULT_DELAY):
     """
     TESTS::
         
         sage: from sage.tests.interrupt import *
-        sage: try_sigint(test_old_sig_on)
-        KeyboardInterrupt:
+        sage: test_old_sig_on()
+        KeyboardInterrupt()
     """
     signal_after_delay(SIGINT, delay)
     _sig_on
@@ -484,7 +484,6 @@ def unguarded_dereference_null_pointer():
         want to run Sage under gdb with 'sage -gdb' to debug this.
         Sage will now terminate.
         ------------------------------------------------------------------------
-        ...
     """
     dereference_null_pointer()
 
@@ -518,7 +517,6 @@ def unguarded_abort():
         want to run Sage under gdb with 'sage -gdb' to debug this.
         Sage will now terminate.
         ------------------------------------------------------------------------
-        ...
     """
     abort()
 
@@ -539,7 +537,6 @@ def test_bad_str(long delay = DEFAULT_DELAY):
         want to run Sage under gdb with 'sage -gdb' to debug this.
         Sage will now terminate.
         ------------------------------------------------------------------------
-        ...
     """
     cdef char* s = <char*>(16)
     sig_str(s)
@@ -550,13 +547,14 @@ def test_bad_str(long delay = DEFAULT_DELAY):
 ########################################################################
 # Test various usage scenarios for sig_on()/sig_off()                  #
 ########################################################################
+@return_exception
 def test_sig_on_cython_after_delay(long delay = DEFAULT_DELAY):
     """
     TESTS::
         
         sage: from sage.tests.interrupt import *
-        sage: try_sigint(test_sig_on_cython_after_delay)
-        KeyboardInterrupt:
+        sage: test_sig_on_cython_after_delay()
+        KeyboardInterrupt()
     """
     signal_after_delay(SIGINT, delay)
     ms_sleep(delay * 2)  # We get signaled during this sleep
@@ -753,3 +751,115 @@ def test_signal_during_malloc(long delay = DEFAULT_DELAY):
     except KeyboardInterrupt:
         pass
 
+
+########################################################################
+# Benchmarking functions                                               #
+########################################################################
+def sig_on_bench():
+    """
+    Call ``sig_on()`` and ``sig_off()`` 1 million times.
+
+    TESTS::
+
+        sage: from sage.tests.interrupt import *
+        sage: sig_on_bench()
+    """
+    cdef int i
+    for i in range(1000000):
+        sig_on()
+        sig_off()
+
+def sig_check_bench():
+    """
+    Call ``sig_check()`` 1 million times.
+
+    TESTS::
+
+        sage: from sage.tests.interrupt import *
+        sage: sig_check_bench()
+    """
+    cdef int i
+    for i in range(1000000):
+        sig_check()
+
+
+########################################################################
+# Test SIGHUP                                                          #
+########################################################################
+@return_exception
+def test_sighup(long delay = DEFAULT_DELAY):
+    """
+    Test a basic SIGHUP signal, which would normally exit Sage by
+    raising ``SystemExit``.
+
+    TESTS::
+
+        sage: from sage.tests.interrupt import *
+        sage: test_sighup()
+        SystemExit()
+    """
+    signal_after_delay(SIGHUP, delay)
+    while True:
+        sig_check()
+
+@return_exception
+def test_sigterm_and_sigint(long delay = DEFAULT_DELAY):
+    """
+    Test a SIGHUP and a SIGINT arriving at essentially the same time.
+    The SIGINT should be ignored and we should get a ``SystemExit``.
+
+    TESTS::
+
+        sage: from sage.tests.interrupt import *
+        sage: test_sigterm_and_sigint()
+        SystemExit()
+    """
+    sig_on()
+    sig_block()
+    signal_after_delay(SIGHUP, delay)
+    signal_after_delay(SIGINT, delay)
+    # 3 sleeps to ensure both signals arrive
+    ms_sleep(delay)
+    ms_sleep(delay)
+    ms_sleep(delay)
+    sig_unblock()
+    sig_off()
+
+def test_graceful_exit():
+    r"""
+    TESTS:
+
+    Start a Sage subprocess, spawn a child PARI/GP process and kill the
+    Sage process.  The PARI/GP process should exit by itself. ::
+
+        sage: from subprocess import *
+        sage: from signal import *
+        sage: P = Popen(['sage-ipython'], stdin=PIPE, stdout=PIPE, stderr=PIPE)  # long time
+        sage: P.stdin.write('from sage.tests.interrupt import *\n')  # long time
+        sage: P.stdin.write('test_graceful_exit()\n')  # long time
+
+    Now read from the child until we read ``"GO"``.  This ensures that
+    the child Sage process has properly started before we terminate it::
+
+        sage: while "GO" not in P.stdout.readline(): pass  # long time
+        sage: os.kill(P.pid, SIGHUP)  # long time
+        sage: P.stdout.read()  # long time
+        '...Exiting spawned PARI/GP interpreter process...'
+        sage: P.wait()  # long time
+        0
+    """
+    # This code is executed in the subprocess
+    import os, sys
+    from sage.interfaces.gp import gp
+
+    # Keep PARI/GP busy
+    gp(0)  # Ensure PARI/GP is started
+    gp._expect.sendline("factor(2^1000-3);")
+
+    # Print something to synchronize with the parent
+    print("GO")
+    sys.stdout.flush()
+
+    # Wait to be killed...
+    sig_on()
+    infinite_loop()

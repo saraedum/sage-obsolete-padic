@@ -484,7 +484,7 @@ class PolynomialQuotientRing_generic(sage.rings.commutative_ring.CommutativeRing
             try:
                 if not self.__polynomial.divides(R.modulus()):
                     return False
-            except AttributeError:
+            except (ZeroDivisionError,ArithmeticError):
                 return False
             return self.__ring.has_coerce_map_from(R.polynomial_ring())
 
@@ -972,7 +972,7 @@ class PolynomialQuotientRing_generic(sage.rings.commutative_ring.CommutativeRing
             sage: S.S_class_group([K.ideal(2, a+1)])
             []
             sage: S.S_class_group([K.ideal(a)])
-            [((2, -a + 1, 1/2*xbar + 1/2, -1/2*a*xbar + 1/2*a + 1), 6, 1/2*xbar - 3/2)] # 32-bit
+            [((2, -a + 1, 1/2*xbar + 1/2, -1/2*a*xbar + 1/2*a + 1), 6, -1/2*xbar + 3/2)] # 32-bit
             [((2, -a + 1, 1/2*xbar + 1/2, -1/2*a*xbar + 1/2*a + 1), 6, -1/2*xbar + 3/2)] # 64-bit
 
         Now we take an example over a nontrivial base with two factors, each
@@ -1187,7 +1187,9 @@ class PolynomialQuotientRing_generic(sage.rings.commutative_ring.CommutativeRing
             sage: L.<b> = K.extension(y^3 + 5)
             sage: L.unit_group()
             Unit group with structure C6 x Z x Z of Number Field in b with defining polynomial x^3 + 5 over its base field
-            sage: L.unit_group().gens()
+            sage: L.unit_group().gens()    # abstract generators
+            (u0, u1, u2)
+            sage: L.unit_group().gens_values()
             [-1/2*a + 1/2, (-1/3*a + 1)*b^2 - 4/3*a*b - 4/3*a - 3, 2/3*a*b^2 + (2/3*a + 2)*b - 4/3*a + 3]
 
         Note that all the returned values live where we expect them to::

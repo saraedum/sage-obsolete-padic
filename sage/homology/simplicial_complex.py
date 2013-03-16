@@ -16,6 +16,9 @@ AUTHORS:
 
 - Christian Stump (2011-06) - implementation of is_cohen_macaulay
 
+- Travis Scrimshaw (2013-02-16): Allowed :class:`SimplicialComplex` to make
+  mutable copies.
+
 This module implements the basic structure of finite simplicial
 complexes. Given a set `V` of "vertices", a simplicial complex on `V`
 is a collection `K` of subsets of `V` satisfying the condition that if
@@ -34,7 +37,7 @@ simplices of `K`.  Frequently, one abuses notation and uses `K` to
 denote both the simplicial complex and the associated topological
 space.
 
-.. image:: ../../media/homology/simplices.png
+.. image:: ../../media/simplices.png
 
 For any simplicial complex `K` and any commutative ring `R` there is
 an associated chain complex, with differential of degree `-1`.  The
@@ -121,12 +124,22 @@ Mutability (see :trac:`12587`)::
     Traceback (most recent call last):
     ...
     ValueError: This simplicial complex is not mutable
-    sage: hash(S)
-    264071120            # 32-bit
-    -3244381654768326704 # 64-bit
+    sage: hash(S) == hash(S)
+    True
 
     sage: S2 = SimplicialComplex([[1,4], [2,4]], is_mutable=False)
     sage: hash(S2) == hash(S)
+    True
+
+We can also make mutable copies of an immutable simplicial complex
+(see :trac:`14142`)::
+
+    sage: S = SimplicialComplex([[1,4], [2,4]])
+    sage: S.set_immutable()
+    sage: T = copy(S)
+    sage: T.is_mutable()
+    True
+    sage: S == T
     True
 """
 
@@ -743,12 +756,22 @@ class SimplicialComplex(GenericCellComplex):
         sage: Ts.homology()
         {0: 0, 1: Z x Z, 2: Z}
 
-    TESTS::
+    TESTS:
 
-        sage: S = SimplicialComplex((('a', 'b'), ('a', 'c'), ('b', 'c')))
-        sage: S == loads(dumps(S))
+    Check that we can make mutable copies (see :trac:`14142`)::
+
+        sage: S = SimplicialComplex([[0,2], [0,3]], is_mutable=False)
+        sage: S.is_mutable()
+        False
+        sage: C = copy(S)
+        sage: C.is_mutable()
+        True
+        sage: SimplicialComplex(S, is_mutable=True).is_mutable()
+        True
+        sage: SimplicialComplex(S, is_immutable=False).is_mutable()
         True
         """
+
     def __init__(self, vertex_set=None, maximal_faces=None, **kwds):
         """
         Define a simplicial complex.  See ``SimplicialComplex`` for more
@@ -773,6 +796,10 @@ class SimplicialComplex(GenericCellComplex):
             True
             sage: S3 = SimplicialComplex(maximal_faces=[[1,4], [2,4]])
             sage: S == S3
+            True
+
+            sage: S = SimplicialComplex((('a', 'b'), ('a', 'c'), ('b', 'c')))
+            sage: S == loads(dumps(S))
             True
 
             sage: Y = SimplicialComplex([1,2,3,4], [[1,2], [2,3], [3,4]])
@@ -827,7 +854,7 @@ class SimplicialComplex(GenericCellComplex):
             self._graph = copy(C._graph)
             self._numeric = C._numeric
             self._numeric_translation = copy(C._numeric_translation)
-            self._is_mutable = C._is_mutable
+            self._is_mutable = True
             return
 
         if sort_facets:
@@ -842,12 +869,12 @@ class SimplicialComplex(GenericCellComplex):
             if name_check:
                 try:
                     if int(v) < 0:
-                        raise ValueError, "The vertex %s does not have an appropriate name."%v
+                        raise ValueError("The vertex %s does not have an appropriate name."%v)
                 except ValueError:  # v is not an integer
                     try:
                         normalize_names(1, v)
                     except ValueError:
-                        raise ValueError, "The vertex %s does not have an appropriate name."%v
+                        raise ValueError("The vertex %s does not have an appropriate name."%v)
             # build dictionary of generator names
             try:
                 gen_dict[v] = 'x%s'%int(v)
@@ -964,6 +991,28 @@ class SimplicialComplex(GenericCellComplex):
             return 0
         else:
             return -1
+
+    def __copy__(self):
+        """
+        Return a mutable copy of ``self``.
+
+        EXAMPLES::
+
+            sage: S = SimplicialComplex([[0,2], [0,3]], is_mutable=False)
+            sage: S.is_mutable()
+            False
+            sage: C = copy(S)
+            sage: C.is_mutable()
+            True
+            sage: C == S
+            True
+            sage: S.is_mutable()
+            False
+            sage: T = copy(C)
+            sage: T == C
+            True
+        """
+        return SimplicialComplex(self, is_mutable=True)
 
     def vertices(self):
         """
@@ -2164,15 +2213,6 @@ class SimplicialComplex(GenericCellComplex):
         statement that the Stanley-Reisner ring of ``self`` is
         Cohen-Macaulay.
 
-        .. NOTE ::
-
-            This method, especially when it returns ``False``, may
-            print a message like ::
-
-                Exception OSError: (10, 'No child processes') in <generator object __call__ at 0x10c8e3af0>     ignored
-
-            This may be ignored.
-
         EXAMPLES:
 
         Spheres are Cohen-Macaulay::
@@ -2457,7 +2497,7 @@ class SimplicialComplex(GenericCellComplex):
             Simplicial complex with vertex set (0, 1, 2, 3, 4) and facets {(0, 1, 2, 3, 4)}
             sage: Y.add_face([0,1,2,3,4])
             sage: Y.stanley_reisner_ring(base_ring=QQ)
-            Quotient of Multivariate Polynomial Ring in x0, x1, x2, x3, x4 over Rational Field by the ideal (0)            
+            Multivariate Polynomial Ring in x0, x1, x2, x3, x4 over Rational Field
         """
         R = self._stanley_reisner_base_ring(base_ring)
         products = []
@@ -2537,20 +2577,10 @@ class SimplicialComplex(GenericCellComplex):
             Graph on 4 vertices
             sage: G.edges()
             [(0, 1, None), (0, 2, None), (0, 3, None), (1, 2, None), (1, 3, None), (2, 3, None)]
-
-            sage: S = SimplicialComplex([[1,2,3],[1]],maximality_check=False)
-            sage: G = S.graph()
-            sage: G.is_connected()
-            False
-            sage: G.vertices() #random order
-            [1, 2, 3, (1,)]
-            sage: G.edges()
-            [(1, 2, None), (1, 3, None), (2, 3, None)]
-
         """
         if self._graph is None:
             edges = self.n_faces(1)
-            vertices = filter(lambda f: f.dimension() == 0, self._facets)
+            vertices = map(min, filter(lambda f: f.dimension() == 0, self._facets))
             used_vertices = []  # vertices which are in an edge
             d = {}
             for e in edges:
@@ -2632,7 +2662,6 @@ class SimplicialComplex(GenericCellComplex):
         
            This may give the wrong answer if the simplicial complex
            was constructed with ``maximality_check`` set to ``False``.
-           See the final example.
 
         EXAMPLES::
 
@@ -2655,10 +2684,6 @@ class SimplicialComplex(GenericCellComplex):
             True
 
             sage: S = SimplicialComplex([[0,1],[2,3]])
-            sage: S.is_connected()
-            False
-
-            sage: S = SimplicialComplex([[0,1],[1],[0]],maximality_check=False)
             sage: S.is_connected()
             False
         """
@@ -2879,9 +2904,156 @@ class SimplicialComplex(GenericCellComplex):
                 cubes.append(cube)
         return CubicalComplex(cubes)
 
+    def connected_component(self, simplex=None):
+        """
+        Return the connected component of this simplicial complex
+        containing ``simplex``. If ``simplex`` is omitted, then return
+        the connected component containing the zeroth vertex in the
+        vertex list. (If the simplicial complex is empty, raise an
+        error.)
+
+        EXAMPLES::
+
+            sage: S1 = simplicial_complexes.Sphere(1)
+            sage: S1 == S1.connected_component()
+            True
+            sage: X = S1.disjoint_union(S1)
+            sage: X == X.connected_component()
+            False
+            sage: v0 = X.vertices()[0]
+            sage: v1 = X.vertices()[-1]
+            sage: X.connected_component(Simplex([v0])) == X.connected_component(Simplex([v1]))
+            False
+
+            sage: S0 = simplicial_complexes.Sphere(0)
+            sage: S0.vertices()
+            (0, 1)
+            sage: S0.connected_component()
+            Simplicial complex with vertex set (0,) and facets {(0,)}
+            sage: S0.connected_component(Simplex((1,)))
+            Simplicial complex with vertex set (1,) and facets {(1,)}
+
+            sage: SimplicialComplex([[]]).connected_component()
+            Traceback (most recent call last):
+            ...
+            ValueError: the empty simplicial complex has no connected components.
+        """
+        if self.dimension() == -1:
+            raise ValueError("the empty simplicial complex has no connected components.")
+        if simplex is None:
+            v = self.vertices()[0]
+        else:
+            v = simplex[0]
+        vertices = self.graph().connected_component_containing_vertex(v)
+        facets = [f for f in self.facets() if f.is_face(Simplex(vertices))]
+        return SimplicialComplex(facets)
+
+    def fundamental_group(self, base_point=None, simplify=True):
+        r"""
+        Return the fundamental group of this simplicial complex.
+
+        INPUT:
+
+        - ``base_point`` (optional, default None) -- if this complex is
+          not path-connected, then specify a vertex; the fundamental
+          group is computed with that vertex as a base point. If the
+          complex is path-connected, then you may specify a vertex or
+          leave this as its default setting of ``None``. (If this
+          complex is path-connected, then this argument is ignored.)
+
+        - ``simplify`` (bool, optional True) -- if False, then return a
+          presentation of the group in terms of generators and
+          relations. If True, the default, simplify as much as GAP is
+          able to.
+
+        Algorithm: we compute the edge-path group -- see
+        :wikipedia:`Fundamental_group`. Choose a spanning tree for the
+        1-skeleton, and then the group's generators are given by the
+        edges in the 1-skeleton; there are two types of relations:
+        `e=1` if `e` is in the spanning tree, and for every 2-simplex,
+        if its edges are `e_0`, `e_1`, and `e_2`, then we impose the
+        relation `e_0 e_1^{-1} e_2 = 1`.
+
+        EXAMPLES::
+
+            sage: S1 = simplicial_complexes.Sphere(1)
+            sage: S1.fundamental_group()
+            Finitely presented group < e |  >
+
+        If we pass the argument ``simplify=False``, we get generators and
+        relations in a form which is not usually very helpful. Here is the
+        cyclic group of order 2, for instance::
+
+            sage: RP2 = simplicial_complexes.RealProjectiveSpace(2)
+            sage: C2 = RP2.fundamental_group(simplify=False)
+            sage: C2
+            Finitely presented group < e0, e1, e2, e3, e4, e5, e6, e7, e8, e9 | e6, e5, e3, e9, e4*e7^-1*e6, e9*e7^-1*e0, e0*e1^-1*e2, e5*e1^-1*e8, e4*e3^-1*e8, e2 >
+            sage: C2.simplified()
+            Finitely presented group < e0 | e0^2 >
+
+        This is the same answer given if the argument ``simplify`` is True
+        (the default)::
+
+            sage: RP2.fundamental_group()
+            Finitely presented group < e0 | e0^2 >
+
+        You must specify a base point to compute the fundamental group
+        of a non-connected complex::
+
+            sage: K = S1.disjoint_union(RP2)
+            sage: K.fundamental_group()
+            Traceback (most recent call last):
+            ...
+            ValueError: this complex is not connected, so you must specify a base point.
+            sage: v0 = list(K.vertices())[0]
+            sage: K.fundamental_group(base_point=v0)
+            Finitely presented group < e |  >
+            sage: v1 = list(K.vertices())[-1]
+            sage: K.fundamental_group(base_point=v1)
+            Finitely presented group < e0 | e0^2 >
+
+        Some other examples::
+
+            sage: S1.wedge(S1).fundamental_group()
+            Finitely presented group < e0, e1 | >
+            sage: simplicial_complexes.Torus().fundamental_group()
+            Finitely presented group < e0, e3 | e0*e3^-1*e0^-1*e3 >
+            sage: simplicial_complexes.MooreSpace(5).fundamental_group()
+            Finitely presented group < e1 | e1^5 >
+        """
+        if not self.is_connected():
+            if base_point is None:
+                raise ValueError("this complex is not connected, so you must specify a base point.")
+            return self.connected_component(Simplex([base_point])).fundamental_group(simplify=simplify)
+
+        from sage.groups.free_group import FreeGroup
+        from sage.interfaces.gap import gap
+        spanning_tree = [e[:2] for e in self.graph().min_spanning_tree()]
+        gens = [tuple(e) for e in self.n_cells(1) if tuple(e) not in spanning_tree]
+
+        if len(gens) == 0:
+            return gap.TrivialGroup()
+
+        gens_dict = dict(zip(gens, range(len(gens))))
+        FG = FreeGroup(len(gens), 'e')
+        rels = []
+        for f in self.n_cells(2):
+            bdry = [tuple(e) for e in f.faces()]
+            z = dict()
+            for i in range(3):
+                if bdry[i] in spanning_tree:
+                    z[i] = FG.one()
+                else:
+                    z[i] = FG.gen(gens_dict[bdry[i]])
+            rels.append(z[0]*z[1].inverse()*z[2])
+        if simplify:
+            return FG.quotient(rels).simplified()
+        else:
+            return FG.quotient(rels)
+
     def category(self):
         """
-        Return the category to which this chain complex belongs: the
+        Return the category to which this simplicial complex belongs: the
         category of all simplicial complexes.
         
         EXAMPLES::
@@ -2891,6 +3063,109 @@ class SimplicialComplex(GenericCellComplex):
         """
         import sage.categories.all
         return sage.categories.all.SimplicialComplexes()
+
+    def is_isomorphic(self,other, certify = False):
+        r"""
+        Checks whether two simplicial complexes are isomorphic
+
+        INPUT:
+
+        - ``certify`` - if ``True``, then output is ``(a,b)``, where ``a``
+          is a boolean and ``b`` is either a map or ``None``.
+
+        This is done by creating two graphs and checking whether they
+        are isomorphic.
+
+        EXAMPLES::
+
+            sage: Z1 = SimplicialComplex([[0,1],[1,2],[2,3,4],[4,5]])
+            sage: Z2 = SimplicialComplex([['a','b'],['b','c'],['c','d','e'],['e','f']])
+            sage: Z3 = SimplicialComplex([[1,2,3]])
+            sage: Z1.is_isomorphic(Z2)
+            True
+            sage: Z1.is_isomorphic(Z2, certify=True)
+            (True, {0: 'a', 1: 'b', 2: 'c', 3: 'd', 4: 'e', 5: 'f'})
+            sage: Z3.is_isomorphic(Z2)
+            False
+        """
+        g1 = Graph()
+        g2 = Graph()
+        g1.add_edges((v,f) for f in self.facets() for v in f)
+        g2.add_edges((v,f) for f in other.facets() for v in f)
+        g1.add_edges(("fake_vertex",v,"special_edge") for v in self.vertices())
+        g2.add_edges(("fake_vertex",v,"special_edge") for v in other.vertices())
+        if not certify:
+            return g1.is_isomorphic(g2)
+        isisom, tr = g1.is_isomorphic(g2, certify = True)
+
+        if isisom:
+            for f in self.facets():
+                tr.pop(f)
+            tr.pop("fake_vertex")
+
+        return isisom,tr
+
+    def automorphism_group(self,translation=False):
+        r"""
+        Returns the automorphism group of the simplicial complex
+
+        This is done by creating a bipartite graph, whose vertices are
+        vertices and facets of the simplicial complex, and computing
+        its automorphism group.
+
+        INPUT:
+
+        - ``translation`` (boolean, default: ``False``) whether to return
+          a dictionary associating the vertices of the simplicial
+          complex to elements of the set on which the group acts
+
+        OUTPUT:
+
+        - a permutation group if ``translation`` is ``False``
+        - a permutation group and a dictionary if ``translation`` is ``True``
+
+        .. NOTE::
+
+            The group is returned as a permutation group acting on
+            integers from ``1`` to the number of vertices. The bijection
+            with vertices is provided if ``translation`` is ``True``.
+
+        EXAMPLES::
+
+            sage: S = simplicial_complexes.Simplex(3)
+            sage: S.automorphism_group().is_isomorphic(SymmetricGroup(4))
+            True
+
+            sage: P = simplicial_complexes.RealProjectivePlane()
+            sage: P.automorphism_group().is_isomorphic(AlternatingGroup(5))
+            True
+
+            sage: Z = SimplicialComplex([[1,2],[2,3,'a']])
+            sage: Z.automorphism_group().is_isomorphic(CyclicPermutationGroup(2))
+            True
+            sage: group, dict = Z.automorphism_group(translation=True)
+            sage: Set([dict[s] for s in Z.vertices()])
+            {1, 2, 3, 4}
+        """
+        from sage.groups.perm_gps.permgroup import PermutationGroup
+        from sage.combinat.permutation import Permutation
+        G = Graph()
+        G.add_vertices(self.vertices())
+        G.add_edges((f.tuple(),v) for f in self.facets() for v in f)
+        groupe, simpl_to_gap = G.automorphism_group(translation=True,
+                                           partition=[list(self.vertices()),
+                                                      [f.tuple() for f in self.facets()]])
+        gap_to_simpl = {x_gap:x for x,x_gap in simpl_to_gap.iteritems()} # reverse dictionary
+        gap_to_range = {simpl_to_gap[x]:(i+1) for i,x in enumerate(self.vertices())}
+        permgroup = PermutationGroup([
+                    Permutation([tuple([gap_to_range[x] for x in c])
+                                 for c in g.cycle_tuples()
+                                 if not isinstance(gap_to_simpl[c[0]],tuple)])
+                    for g in groupe.gens()])
+        if translation:
+            return permgroup, {f:gap_to_range[simpl_to_gap[f]] for f in self.vertices()}
+        else:
+            return permgroup
 
     def _Hom_(self, other, category=None):
         """

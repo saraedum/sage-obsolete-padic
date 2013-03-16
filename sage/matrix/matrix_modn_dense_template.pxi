@@ -94,13 +94,9 @@ cimport sage.rings.fast_arith
 cdef sage.rings.fast_arith.arith_int ArithIntObj
 ArithIntObj  = sage.rings.fast_arith.arith_int()
 
-# for copying
-cdef extern from *:
-    void* memcpy(void* dst, void* src, long n)
-
-# for pickling
-cdef extern from "stdio.h":
-    int snprintf(char *str, size_t size, char *format, ...)
+# for copying/pickling
+from libc.string cimport memcpy
+from libc.stdio cimport snprintf
 
 from sage.modules.vector_modn_dense cimport Vector_modn_dense
 
@@ -194,6 +190,12 @@ cdef inline linbox_echelonize(celement modulus, celement* entries, Py_ssize_t nr
     return r, pivots
 
 cdef inline linbox_echelonize_efd(celement modulus, celement* entries, Py_ssize_t nrows, Py_ssize_t ncols):
+    # See trac #13878: This is to avoid sending invalid data to linbox,
+    # which would yield a segfault in Sage's debug version. TODO: Fix
+    # that bug upstream.
+    if nrows == 0 or ncols == 0:
+        return 0,[]
+
     cdef ModField *F = new ModField(<long>modulus)
     cdef EchelonFormDomain *EF = new EchelonFormDomain(F[0])
     cdef BlasMatrix *A = new BlasMatrix(F[0], <uint64_t>nrows, <uint64_t>ncols)

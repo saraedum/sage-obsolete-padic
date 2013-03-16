@@ -98,8 +98,19 @@ cdef class Matrix(sage.structure.element.Matrix):
     """
     def __init__(self, parent):
         """
+        The initialization routine of the Matrix base class ensures that it sets
+        the attributes self._parent, self._base_ring, self._nrows, self._ncols.
+        It sets the latter ones by accessing the relevant information on parent,
+        which is often slower than what a more specific subclass can do.
+
+        Subclasses of Matrix can safely skip calling Matrix.__init__ provided they
+        take care of initializing these attributes themselves.
+
+        The private attributes self._is_immutable and self._cache are implicitly
+        initialized to valid values upon memory allocation.
+
         EXAMPLES::
-        
+
             sage: import sage.matrix.matrix0
             sage: A = sage.matrix.matrix0.Matrix(MatrixSpace(QQ,2))
             sage: type(A)
@@ -109,9 +120,7 @@ cdef class Matrix(sage.structure.element.Matrix):
         self._base_ring = parent.base_ring()
         self._nrows = parent.nrows()
         self._ncols = parent.ncols()
-        self._mutability = Mutability(False)
-        self._cache = {}
-        
+
     def copy(self):
         """
         Make a copy of self. If self is immutable, the copy will be
@@ -393,6 +402,8 @@ cdef class Matrix(sage.structure.element.Matrix):
             {}
             
         """
+        if self._cache is None:
+            self._cache = {}
         return self._cache
 
     ###########################################################
@@ -417,10 +428,10 @@ cdef class Matrix(sage.structure.element.Matrix):
         
         If self is mutable, the cache of results about self is deleted.
         """
-        if self._mutability._is_immutable:
+        if self._is_immutable:
             raise ValueError("matrix is immutable; please change a copy instead (i.e., use copy(M) to change a copy of M).")
         else:
-            self._cache = {}            
+            self._cache = None           
 
     cdef check_bounds_and_mutability(self, Py_ssize_t i, Py_ssize_t j):
         """
@@ -433,10 +444,10 @@ cdef class Matrix(sage.structure.element.Matrix):
         
         If self is mutable, the cache of results about self is deleted.
         """
-        if self._mutability._is_immutable:
+        if self._is_immutable:
             raise ValueError("matrix is immutable; please change a copy instead (i.e., use copy(M) to change a copy of M).")
         else:
-            self._cache = {}
+            self._cache = None
             
         if i<0 or i >= self._nrows or j<0 or j >= self._ncols:
             raise IndexError("matrix index out of range")
@@ -493,7 +504,7 @@ cdef class Matrix(sage.structure.element.Matrix):
             {[10  1]
              [ 2  3]: 1}
         """
-        self._mutability.set_immutable()
+        self._is_immutable = True
 
     def is_immutable(self):
         """
@@ -511,7 +522,7 @@ cdef class Matrix(sage.structure.element.Matrix):
             sage: A.is_immutable()
             True
         """
-        return self._mutability._is_immutable
+        return self._is_immutable
 
     def is_mutable(self):
         """
@@ -529,7 +540,7 @@ cdef class Matrix(sage.structure.element.Matrix):
             sage: A.is_mutable()
             False
         """
-        return self._mutability.is_mutable()
+        return not(self._is_immutable)
 
     ###########################################################
     # Entry access
@@ -829,6 +840,14 @@ cdef class Matrix(sage.structure.element.Matrix):
             sage: A[1:3].is_immutable()
             True
 
+        Slices that result in zero rows or zero columns are supported too::
+
+            sage: m = identity_matrix(QQ, 4)[4:,:]
+            sage: m.nrows(), m.ncols()
+            (0, 4)
+            sage: m * vector(QQ, 4)
+            ()
+
         TESTS:
 
         If we're given lists as arguments, we should throw an
@@ -969,7 +988,7 @@ cdef class Matrix(sage.structure.element.Matrix):
                 col_list = [col]
 
             if len(row_list) == 0 or len(col_list) == 0:
-                return self.new_matrix(nrows=0,ncols=0)
+                return self.new_matrix(nrows=len(row_list), ncols=len(col_list))
 
             return self.matrix_from_rows_and_columns(row_list,col_list)
 
@@ -1532,7 +1551,7 @@ cdef class Matrix(sage.structure.element.Matrix):
             True
         """
         data, version = self._pickle()
-        return unpickle, (self.__class__, self._parent, self._mutability,
+        return unpickle, (self.__class__, self._parent, self._is_immutable,
                                           self._cache, data, version)
 
     def _pickle(self):
@@ -1612,7 +1631,7 @@ cdef class Matrix(sage.structure.element.Matrix):
             raise TypeError("ring must be a ring")
         
         if ring is self._base_ring:
-            if self._mutability._is_immutable:
+            if self._is_immutable:
                 return self
             return self.__copy__()
 
@@ -2130,18 +2149,18 @@ cdef class Matrix(sage.structure.element.Matrix):
     # with_ versions of these methods for this situation
     ###################################################
     cdef check_row_bounds_and_mutability(self, Py_ssize_t r1, Py_ssize_t r2):
-        if self._mutability._is_immutable:
+        if self._is_immutable:
             raise ValueError("matrix is immutable; please change a copy instead (i.e., use copy(M) to change a copy of M).")
         else:
-            self._cache = {}
+            self._cache = None
         if r1<0 or r1 >= self._nrows or r2<0 or r2 >= self._nrows:
             raise IndexError("matrix row index out of range")
 
     cdef check_column_bounds_and_mutability(self, Py_ssize_t c1, Py_ssize_t c2):        
-        if self._mutability._is_immutable:
+        if self._is_immutable:
             raise ValueError("matrix is immutable; please change a copy instead (i.e., use copy(M) to change a copy of M).")
         else:
-            self._cache = {}
+            self._cache = None
         if c1<0 or c1 >= self._ncols or c2<0 or c2 >= self._ncols:
             raise IndexError("matrix column index out of range")
 
@@ -4833,7 +4852,7 @@ cdef class Matrix(sage.structure.element.Matrix):
 # Unpickling
 #######################
 
-def unpickle(cls, parent, mutability, cache, data, version):
+def unpickle(cls, parent, immutability, cache, data, version):
     r"""
     Unpickle a matrix. This is only used internally by Sage. Users
     should never call this function directly.
@@ -4859,7 +4878,7 @@ def unpickle(cls, parent, mutability, cache, data, version):
     A._parent = parent  # make sure -- __new__ doesn't have to set it, but unpickle may need to know.
     A._nrows = parent.nrows()
     A._ncols = parent.ncols()
-    A._mutability = mutability
+    A._is_immutable = immutability
     A._base_ring = parent.base_ring()
     A._cache = cache
     if version >= 0:
