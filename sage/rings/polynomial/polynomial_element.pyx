@@ -161,7 +161,6 @@ cdef void late_import():
     import sage.rings.complex_interval_field
     is_ComplexIntervalField = sage.rings.complex_interval_field.is_ComplexIntervalField
 
-
 cdef class Polynomial(CommutativeAlgebraElement):
     """
     A polynomial.
@@ -1490,7 +1489,7 @@ cdef class Polynomial(CommutativeAlgebraElement):
         m = self.degree() + 1
         if name is None:
             name = self.parent().variable_name()
-        atomic_repr = self.parent().base_ring().is_atomic_repr()
+        atomic_repr = self.parent().base_ring()._repr_option('element_is_atomic')
         coeffs = self.list()
         for n in reversed(xrange(m)):
             x = coeffs[n]
@@ -1569,7 +1568,7 @@ cdef class Polynomial(CommutativeAlgebraElement):
         m = len(coeffs)
         if name is None:
             name = self.parent().latex_variable_names()[0]
-        atomic_repr = self.parent().base_ring().is_atomic_repr()
+        atomic_repr = self.parent().base_ring()._repr_option('element_is_atomic')
         for n in reversed(xrange(m)):
             x = coeffs[n]
             x = y = latex(x)
@@ -1976,7 +1975,6 @@ cdef class Polynomial(CommutativeAlgebraElement):
         R = self.parent().base_ring()[var]
         return R(self.list())
         
-
     def change_ring(self, R):
         """
         Return a copy of this polynomial but with coefficients in R, if at
@@ -2041,7 +2039,6 @@ cdef class Polynomial(CommutativeAlgebraElement):
                 D[i + j] = a
                 
         return D
-            
     
     def __copy__(self):
         """
@@ -2292,7 +2289,6 @@ cdef class Polynomial(CommutativeAlgebraElement):
             4*t^3*x^3 + 3*t^2*x^2
         """
         return multi_derivative(self, args)
-
         
     def _derivative(self, var=None):
         r"""
@@ -2368,7 +2364,6 @@ cdef class Polynomial(CommutativeAlgebraElement):
             return self.parent().zero_element()
         coeffs = self.list()
         return self._parent([n*coeffs[n] for n from 1 <= n <= degree])
-    
 
     def integral(self):
         """
@@ -3807,7 +3802,6 @@ cdef class Polynomial(CommutativeAlgebraElement):
         else:
             return a*self
 
-
     def coefficients(self):
         """
         Return the coefficients of the monomials appearing in self.
@@ -4041,7 +4035,6 @@ cdef class Polynomial(CommutativeAlgebraElement):
         f = self._pari_()
         v = list(f.newtonpoly(p))
         return [sage.rings.rational.Rational(x) for x in v]
-
 
     #####################################################################
     # Conversions to other systems
@@ -4332,15 +4325,23 @@ cdef class Polynomial(CommutativeAlgebraElement):
             sage: h.parent() is R
             True
 
+        Check that :trac:`13672` is fixed::
+
+            sage: R.<t> = GF(2)[]
+            sage: S.<x> = R[]
+            sage: f = (t^2 + t)*x + t^2 + t
+            sage: g = (t + 1)*x + t^2
+            sage: f.resultant(g)
+            t^4 + t
         """
-        variable = self.parent().gen()
-        if str(variable)<>'x' and self.parent()._mpoly_base_ring()<>self.parent().base_ring():
-          bigring = sage.rings.polynomial.multi_polynomial.PolynomialRing(self.parent()._mpoly_base_ring(),list(self.parent().variable_names_recursive()))
-          newself = bigring(self)
-          newother = bigring(other)
-          return self.parent().base_ring()(newself.resultant(newother,bigring(variable)))
-        # The 0 flag tells PARI to use exact arithmetic        
-        res = self._pari_().polresultant(other._pari_(), variable._pari_(), 0)
+        variable = self.variable_name()
+        if variable != 'x' and self.parent()._mpoly_base_ring() != self.parent().base_ring():
+            bigring = sage.rings.polynomial.multi_polynomial.PolynomialRing(self.parent()._mpoly_base_ring(),list(self.parent().variable_names_recursive()))
+            newself = bigring(self)
+            newother = bigring(other)
+            return self.parent().base_ring()(newself.resultant(newother,bigring(self.parent().gen())))
+        # Main variable is "x": we can use PARI to compute the resultant
+        res = self._pari_with_name().polresultant(other._pari_with_name(), variable)
         return self.parent().base_ring()(res)
 
     def discriminant(self):
@@ -4421,9 +4422,17 @@ cdef class Polynomial(CommutativeAlgebraElement):
             sage: f = x^2 + a
             sage: f.discriminant()
             1
-        
-        The following examples show that #11782 has been fixed::
-        
+
+        Check that :trac:`13672` is fixed::
+
+            sage: R.<t> = GF(5)[]
+            sage: S.<x> = R[]
+            sage: f = x^10 + 2*x^6 + 2*x^5 + x + 2
+            sage: (f-t).discriminant()
+            4*t^5
+
+        The following examples show that :trac:`11782` has been fixed::
+
             sage: ZZ.quo(81)[x](3*x^2 + 3*x + 3).discriminant()
             54
             sage: ZZ.quo(9)[x](2*x^3 + x^2 + x).discriminant()
@@ -5276,7 +5285,6 @@ cdef class Polynomial(CommutativeAlgebraElement):
 
         return self.roots(ring=CC, multiplicities=False)
 
-
     def variable_name(self):
         """
         Return name of variable used in this polynomial as a string.
@@ -5448,7 +5456,6 @@ cdef class Polynomial(CommutativeAlgebraElement):
         from sage.misc.superseded import deprecation
         deprecation(4522, "This function is deprecated. It will be removed in a future release of Sage. Please use the .variable_name() function instead.")
         return self.parent().variable_name()
-
 
     def _xgcd(self, other):
         r"""
@@ -5967,7 +5974,6 @@ cdef class Polynomial(CommutativeAlgebraElement):
 # ----------------- inner functions -------------
 # Cython can't handle function definitions inside other function
     
-
 cdef _karatsuba_sum(v,w):
     if len(v)>=len(w):
         x = list(v)
@@ -6024,7 +6030,6 @@ cpdef Polynomial_generic_dense _new_constant_dense_poly(list coeffs, Parent P, s
     f._parent = P
     f.__coeffs = coeffs
     return f
-
 
 cdef class Polynomial_generic_dense(Polynomial):
     """
@@ -6454,6 +6459,60 @@ cdef class Polynomial_generic_dense(Polynomial):
             else:
                 return self._new_c(self.__coeffs[-int(n):], self._parent)
     
+    @coerce_binop
+    def quo_rem(self, other):
+        """
+        Returns the quotient and remainder of the Euclidean division of
+        ``self`` and ``other``.
+
+        Raises ZerodivisionError if ``other`` is zero. Raises ArithmeticError if ``other`` has
+        a nonunit leading coefficient.
+
+        EXAMPLES::
+
+            sage: P.<x> = QQ[]
+            sage: R.<y> = P[]
+            sage: f = R.random_element(10)
+            sage: g = y^5+R.random_element(4)
+            sage: q,r = f.quo_rem(g)
+            sage: f == q*g + r
+            True
+            sage: g = x*y^5
+            sage: f.quo_rem(g)
+            Traceback (most recent call last):
+            ...
+            ArithmeticError: Nonunit leading coefficient
+            sage: g = 0
+            sage: f.quo_rem(g)
+            Traceback (most recent call last):
+            ...
+            ZeroDivisionError: Division by zero polynomial
+        """
+        if other.is_zero():
+            raise ZeroDivisionError("Division by zero polynomial")
+        if not other.leading_coefficient().is_unit():
+            raise ArithmeticError("Nonunit leading coefficient")
+        if self.is_zero():
+            return self, self
+
+        R = self.parent().base_ring()
+        x = (<Polynomial_generic_dense>self).__coeffs[:] # make a copy
+        y = (<Polynomial_generic_dense>other).__coeffs
+        m = len(x)  # deg(self)=m-1
+        n = len(y)  # deg(other)=n-1
+        if m < n:
+            return self.parent()(0), self
+
+        quo = list()
+        for k from m-n >= k >= 0:
+            q = x[n+k-1]/y[n-1]
+            x[n+k-1] = R.zero_element()
+            for j from n+k-2 >= j >= k:
+                x[j] -= q * y[j-k]
+            quo.insert(0,q)
+
+        return self._new_c(quo,self._parent), self._new_c(x,self._parent)._inplace_truncate(n-1)
+
     cpdef Polynomial truncate(self, long n):
         r"""
         Returns the polynomial of degree ` < n` which is equivalent
@@ -6490,15 +6549,13 @@ cdef class Polynomial_generic_dense(Polynomial):
 
     cdef _inplace_truncate(self, long n):
         if n < len(self.__coeffs):
-            while n > 0 and not self.__coeffs[n]:
+            while n > 0 and not self.__coeffs[n-1]:
                 n -= 1
         self.__coeffs = self.__coeffs[:n]
         return self
-    
         
 def make_generic_polynomial(parent, coeffs):
     return parent(coeffs)
-
 
 cdef class ConstantPolynomialSection(Map):
     """

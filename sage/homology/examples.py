@@ -27,6 +27,8 @@ All of these examples are accessible by typing
 You can get a list by typing ``simplicial_complexes.`` and hitting the
 TAB key::
 
+   simplicial_complexes.BarnetteSphere
+   simplicial_complexes.BrucknerGrunbaumSphere
    simplicial_complexes.ChessboardComplex
    simplicial_complexes.ComplexProjectivePlane
    simplicial_complexes.K3Surface
@@ -35,6 +37,7 @@ TAB key::
    simplicial_complexes.MooreSpace
    simplicial_complexes.NotIConnectedGraphs
    simplicial_complexes.PoincareHomologyThreeSphere
+   simplicial_complexes.PseudoQuaternionicProjectivePlane
    simplicial_complexes.RandomComplex
    simplicial_complexes.RealProjectivePlane
    simplicial_complexes.RealProjectiveSpace
@@ -158,6 +161,8 @@ class SimplicialComplexExamples():
     Here are the available examples; you can also type
     ``simplicial_complexes.``  and hit tab to get a list:
 
+    - :meth:`BarnetteSphere`
+    - :meth:`BrucknerGrunbaumSphere`
     - :meth:`ChessboardComplex`
     - :meth:`ComplexProjectivePlane`
     - :meth:`K3Surface`
@@ -166,6 +171,7 @@ class SimplicialComplexExamples():
     - :meth:`MooreSpace`
     - :meth:`NotIConnectedGraphs`
     - :meth:`PoincareHomologyThreeSphere`
+    - :meth:`PseudoQuaternionicProjectivePlane`
     - :meth:`RandomComplex`
     - :meth:`RealProjectivePlane`
     - :meth:`RealProjectiveSpace`
@@ -432,14 +438,74 @@ class SimplicialComplexExamples():
              [9, 7, 2, 3, 6], [7, 8, 3, 1, 4], [8, 9, 1, 2, 5]],
             is_mutable=False)
 
+    def PseudoQuaternionicProjectivePlane(self):
+        r"""
+        Returns a pure simplicial complex of dimension 8 with 490 facets.
+
+        .. WARNING::
+
+            This is expected to be a triangulation of the projective plane
+            `HP^2` over the ring of quaternions, but this has not been
+            proved yet.
+
+        This simplicial complex has the same homology as `HP^2`. Its
+        automorphism group is isomorphic to the alternating group `A_5`
+        and acts transitively on vertices.
+
+        This is defined here using the description in [BrK92]_. This
+        article deals with three different triangulations. This procedure
+        returns the only one which has a transitive group of
+        automorphisms.
+
+        EXAMPLES::
+
+            sage: HP2 = simplicial_complexes.PseudoQuaternionicProjectivePlane() ; HP2
+            Simplicial complex with 15 vertices and 490 facets
+            sage: HP2.f_vector()
+            [1, 15, 105, 455, 1365, 3003, 4515, 4230, 2205, 490]
+
+        Checking its automorphism group::
+
+            sage: HP2.automorphism_group().is_isomorphic(AlternatingGroup(5))
+            True
+
+        REFERENCES:
+
+        .. [BrK92] Brehm U., Kuhnel W., "15-vertex triangulations of an
+                   8-manifold", Math. Annalen 294 (1992), no. 1, 167-193.
+        """
+        from sage.groups.perm_gps.permgroup import PermutationGroup
+        P = [(1,2,3,4,5),(6,7,8,9,10),(11,12,13,14,15)]
+        S = [(1,6,11),(2,15,14),(3,13,8),(4,7,5),(9,12,10)]
+        start_list = [
+            (1,2,3,6,8,11,13,14,15),    # A
+            (1,3,6,8,9,10,11,12,13),    # B
+            (1,2,6,9,10,11,12,14,15),   # C
+            (1,2,3,4,7,9,12,14,15),     # D
+            (1,2,4,7,9,10,12,13,14),    # E
+            (1,2,6,8,9,10,11,14,15),    # F
+            (1,2,3,4,5,6,9,11,13),      # G
+            (1,3,5,6,8,9,10,11,12),     # H
+            (1,3,5,6,7,8,9,10,11),      # I
+            (1,2,3,4,5,7,10,12,15),     # J
+            (1,2,3,7,8,10,12,13,14),    # K
+            (2,5,6,7,8,9,10,13,14),     # M
+
+            (3,4,6,7,11,12,13,14,15),   # L
+            (3,4,6,7,10,12,13,14,15)]   # N
+        return SimplicialComplex([ [g(index) for index in tuple]
+                for tuple in start_list
+                for g in PermutationGroup([P,S]) ])
+
     def PoincareHomologyThreeSphere(self):
         """
         A triangulation of the Poincare homology 3-sphere.
 
         This is a manifold whose integral homology is identical to the
-        ordinary 3-sphere, but it is not simply connected.  The
-        triangulation given here has 16 vertices and is due to Björner
-        and Lutz [BL2000]_.
+        ordinary 3-sphere, but it is not simply connected. In particular,
+        its fundamental group is the binary icosahedral group, which has
+        order 120. The triangulation given here has 16 vertices and is
+        due to Björner and Lutz [BL2000]_.
 
         REFERENCES:
 
@@ -454,15 +520,17 @@ class SimplicialComplexExamples():
             sage: Sigma3 = simplicial_complexes.PoincareHomologyThreeSphere()
             sage: S3.homology() == Sigma3.homology()
             True
+            sage: Sigma3.fundamental_group().cardinality() # long time
+            120
         """
         return SimplicialComplex(
-            [[1, 2, 4, 9], [1, 2, 4, 15], [1, 2, 6, 14], [1, 2, 6, 15], 
-             [1, 2, 9, 14], [1, 3, 4, 12], [1, 3, 4, 15], [1, 3, 7, 10], 
-             [1, 3, 7, 12], [1, 3, 10, 15], [1, 4, 9, 12], [1, 5, 6, 13], 
+            [[1, 2, 4, 9], [1, 2, 4, 15], [1, 2, 6, 14], [1, 2, 6, 15],
+             [1, 2, 9, 14], [1, 3, 4, 12], [1, 3, 4, 15], [1, 3, 7, 10],
+             [1, 3, 7, 12], [1, 3, 10, 15], [1, 4, 9, 12], [1, 5, 6, 13],
              [1, 5, 6, 14], [1, 5, 8, 11], [1, 5, 8, 13], [1, 5, 11, 14],
              [1, 6, 13, 15], [1, 7, 8, 10], [1, 7, 8, 11], [1, 7, 11, 12],
              [1, 8, 10, 13], [1, 9, 11, 12], [1, 9, 11, 14], [1, 10, 13, 15],
-             [2, 3, 5, 10], [2, 3, 5, 11], [2, 3, 7, 10], [2, 3, 7, 13], 
+             [2, 3, 5, 10], [2, 3, 5, 11], [2, 3, 7, 10], [2, 3, 7, 13],
              [2, 3, 11, 13], [2, 4, 9, 13], [2, 4, 11, 13], [2, 4, 11, 15],
              [2, 5, 8, 11], [2, 5, 8, 12], [2, 5, 10, 12], [2, 6, 10, 12],
              [2, 6, 10, 14], [2, 6, 12, 15], [2, 7, 9, 13], [2, 7, 9, 14],
@@ -814,6 +882,94 @@ class SimplicialComplexExamples():
                 (6, 7, 11, 14, 16), (1, 4, 9, 11, 16), (1, 4, 12, 15, 16),
                 (1, 2, 4, 7, 15), (2, 3, 7, 8, 16), (1, 4, 5, 6, 10)],
              is_mutable=False)
+
+    def BarnetteSphere(self):
+        r"""
+        Returns Barnette's triangulation of the 3-sphere.
+
+        This is a pure simplicial complex of dimension 3 with 8
+        vertices and 19 facets, which is a non-polytopal triangulation
+        of the 3-sphere. It was constructed by Barnette in
+        [B1970]_. The construction here uses the labeling from De
+        Loera, Rambau and Santos [DLRS2010]_. Another reference is chapter
+        III.4 of Ewald [E1996]_.
+
+        EXAMPLES::
+
+            sage: BS = simplicial_complexes.BarnetteSphere() ; BS
+            Simplicial complex with vertex set (1, 2, 3, 4, 5, 6, 7, 8) and 19 facets
+            sage: BS.f_vector()
+            [1, 8, 27, 38, 19]
+
+        TESTS:
+
+        Checks that this is indeed the same Barnette Sphere as the one
+        given on page 87 of [E1996]_.::
+
+            sage: BS2 = SimplicialComplex([[1,2,3,4],[3,4,5,6],[1,2,5,6],
+            ...                            [1,2,4,7],[1,3,4,7],[3,4,6,7],
+            ...                            [3,5,6,7],[1,2,5,7],[2,5,6,7],
+            ...                            [2,4,6,7],[1,2,3,8],[2,3,4,8],
+            ...                            [3,4,5,8],[4,5,6,8],[1,2,6,8],
+            ...                            [1,5,6,8],[1,3,5,8],[2,4,6,8],
+            ...                            [1,3,5,7]])
+            sage: BS.is_isomorphic(BS2)
+            True
+
+        REFERENCES:
+
+        .. [B1970] Barnette, "Diagrams and Schlegel diagrams", in
+           Combinatorial Structures and Their Applications, Proc. Calgary
+           Internat. Conference 1969, New York, 1970, Gordon and Breach.
+
+        .. [DLRS2010] De Loera, Rambau and Santos, "Triangulations:
+           Structures for Algorithms and Applications", Algorithms and
+           Computation in Mathematics, Volume 25, Springer, 2011.
+
+        .. [E1996] Ewald, "Combinatorial Convexity and Algebraic Geometry",
+           vol. 168 of Graduate Texts in Mathematics, Springer, 1996
+
+        """
+        return SimplicialComplex([
+                (1,2,4,5),(2,3,5,6),(1,3,4,6),(1,2,3,7),(4,5,6,7),(1,2,4,7),
+                (2,4,5,7),(2,3,5,7),(3,5,6,7),(3,1,6,7),(1,6,4,7),(1,2,3,8),
+                (4,5,6,8),(1,2,5,8),(1,4,5,8),(2,3,6,8),(2,5,6,8),(3,1,4,8),
+                (3,6,4,8)])
+
+    def BrucknerGrunbaumSphere(self):
+        r"""
+        Returns Bruckner and Grunbaum's triangulation of the 3-sphere.
+
+        This is a pure simplicial complex of dimension 3 with 8
+        vertices and 20 facets, which is a non-polytopal triangulation
+        of the 3-sphere. It appeared first in [Br1910]_ and was studied in
+        [GrS1967]_.
+
+        It is defined here as the link of any vertex in the unique minimal
+        triangulation of the complex projective plane, see chapter 4 of
+        [Ku1995]_.
+
+        EXAMPLES::
+
+            sage: BGS = simplicial_complexes.BrucknerGrunbaumSphere() ; BGS
+            Simplicial complex with vertex set (1, 2, 3, 4, 5, 6, 7, 8) and 20 facets
+            sage: BGS.f_vector()
+            [1, 8, 28, 40, 20]
+
+        REFERENCES:
+
+        .. [Br1910] Bruckner, "Uber die Ableitung der allgemeinen
+           Polytope und die nach Isomorphismus verschiedenen Typen der
+           allgemeinen Achtzelle (Oktatope)", Verhand. Konik. Akad. Wetenschap,
+           Erste Sectie, 10 (1910)
+
+        .. [GrS1967] Grunbaum and Sreedharan, "An enumeration of simplicial
+           4-polytopes with 8 vertices", J. Comb. Th. 2, 437-465 (1967)
+
+        .. [Ku1995] Kuhnel, "Tight Polyhedral Submanifolds and Tight Triangulations"
+           Lecture Notes in Mathematics Volume 1612, 1995
+        """
+        return simplicial_complexes.ComplexProjectivePlane().link([9])
 
     ###############################################################
     # examples from graph theory:

@@ -2365,19 +2365,19 @@ class MPolynomialIdeal_singular_repr(
     @require_field
     def variety(self, ring=None):
         r"""
-        Return the variety of ``self``.
-        
+        Return the variety of this ideal.
+
         Given a zero-dimensional ideal `I` (== ``self``) of a
-        polynomial ring P whose order is lexicographic, return the
-        variety of I as a list of dictionaries with (variable, value)
+        polynomial ring `P` whose order is lexicographic, return the
+        variety of `I` as a list of dictionaries with ``(variable, value)``
         pairs. By default, the variety of the ideal over its
         coefficient field `K` is returned; ``ring`` can be specified
         to find the variety over a different ring.
-        
+
         These dictionaries have cardinality equal to the number of
-        variables in P and represent assignments of values to these
-        variables such that all polynomials in I vanish.
-        
+        variables in `P` and represent assignments of values to these
+        variables such that all polynomials in `I` vanish.
+
         If ``ring`` is specified, then a triangular decomposition of
         ``self`` is found over the original coefficient field `K`;
         then the triangular systems are solved using root-finding over
@@ -2386,21 +2386,21 @@ class MPolynomialIdeal_singular_repr(
         decomposition) and ``ring`` is ``RR``, ``AA``, ``CC``, or
         ``QQbar`` (to compute the whole real or complex variety of the
         ideal).
-        
-        Note that with ``ring``=``RR`` or ``CC``, computation is done
+
+        Note that with ``ring=RR`` or ``CC``, computation is done
         numerically and potentially inaccurately; in particular, the
         number of points in the real variety may be miscomputed. With
-        ``ring``=``AA`` or ``QQbar``, computation is done exactly
+        ``ring=AA`` or ``QQbar``, computation is done exactly
         (which may be much slower, of course).
-        
+
         INPUT:
-        
+
         - ``ring`` - return roots in the ``ring`` instead of the base
           ring of this ideal (default: ``None``)
         - ``proof`` - return a provably correct result (default: ``True``)
 
         EXAMPLE::
-        
+
             sage: K.<w> = GF(27) # this example is from the MAGMA handbook
             sage: P.<x, y> = PolynomialRing(K, 2, order='lex')
             sage: I = Ideal([ x^8 + y + 2, y^6 + x*y^5 + x^2 ])
@@ -2413,46 +2413,46 @@ class MPolynomialIdeal_singular_repr(
             - y^36 - y^33 + y^32 - y^29 + y^28 - y^25 + y^24 + y^2 + y
             + 1) of Multivariate Polynomial Ring in x, y over Finite
             Field in w of size 3^3
-        
+
             sage: V = I.variety(); V
             [{y: w^2 + 2, x: 2*w}, {y: w^2 + w, x: 2*w + 1}, {y: w^2 + 2*w, x: 2*w + 2}]
-        
+
             sage: [f.subs(v) for f in I.gens() for v in V] # check that all polynomials vanish
             [0, 0, 0, 0, 0, 0]
             sage: [I.subs(v).is_zero() for v in V] # same test, but nicer syntax
             [True, True, True]
-        
+
         However, we only account for solutions in the ground field and not
         in the algebraic closure::
-        
-            sage: I.vector_space_dimension() 
+
+            sage: I.vector_space_dimension()
             48
-        
+
         Here we compute the points of intersection of a hyperbola and a
         circle, in several fields::
-        
+
             sage: K.<x, y> = PolynomialRing(QQ, 2, order='lex')
             sage: I = Ideal([ x*y - 1, (x-2)^2 + (y-1)^2 - 1])
             sage: I = Ideal(I.groebner_basis()); I
             Ideal (x + y^3 - 2*y^2 + 4*y - 4, y^4 - 2*y^3 + 4*y^2 - 4*y + 1)
             of Multivariate Polynomial Ring in x, y over Rational Field
-        
+
         These two curves have one rational intersection::
-        
+
             sage: I.variety()
             [{y: 1, x: 1}]
-        
+
         There are two real intersections::
-        
+
             sage: I.variety(ring=RR)
             [{y: 0.361103080528647, x: 2.76929235423863},
              {y: 1.00000000000000, x: 1.00000000000000}]
             sage: I.variety(ring=AA)
-            [{x: 2.769292354238632?, y: 0.3611030805286474?}, 
+            [{x: 2.769292354238632?, y: 0.3611030805286474?},
              {x: 1, y: 1}]
-        
+
         and a total of four intersections::
-        
+
             sage: I.variety(ring=CC)
             [{y: 0.31944845973567... - 1.6331702409152...*I,
               x: 0.11535382288068... + 0.58974280502220...*I},
@@ -2461,24 +2461,24 @@ class MPolynomialIdeal_singular_repr(
              {y: 0.36110308052864..., x: 2.7692923542386...},
              {y: 1.00000000000000, x: 1.00000000000000}]
             sage: I.variety(ring=QQbar)
-            [{y: 0.3194484597356763? - 1.633170240915238?*I, 
+            [{y: 0.3194484597356763? - 1.633170240915238?*I,
               x: 0.11535382288068429? + 0.5897428050222055?*I},
-             {y: 0.3194484597356763? + 1.633170240915238?*I, 
-              x: 0.11535382288068429? - 0.5897428050222055?*I}, 
-             {y: 0.3611030805286474?, x: 2.769292354238632?}, 
+             {y: 0.3194484597356763? + 1.633170240915238?*I,
+              x: 0.11535382288068429? - 0.5897428050222055?*I},
+             {y: 0.3611030805286474?, x: 2.769292354238632?},
              {y: 1, x: 1}]
-        
+
         Computation over floating point numbers may compute only a partial solution,
         or even none at all. Notice that x values are missing from the following variety::
-        
+
             sage: R.<x,y> = CC[]
             sage: I = ideal([x^2+y^2-1,x*y-1])
             sage: I.variety()
             verbose 0 (...: multi_polynomial_ideal.py, variety) Warning: computations in the complex field are inexact; variety may be computed partially or incorrectly.
             verbose 0 (...: multi_polynomial_ideal.py, variety) Warning: falling back to very slow toy implementation.
-            [{y: -0.86602540378443... - 0.500000000000000*I}, 
-             {y: -0.86602540378443... + 0.500000000000000*I}, 
-             {y: 0.86602540378443... - 0.500000000000000*I}, 
+            [{y: -0.86602540378443... - 0.500000000000000*I},
+             {y: -0.86602540378443... + 0.500000000000000*I},
+             {y: 0.86602540378443... - 0.500000000000000*I},
              {y: 0.86602540378443... + 0.500000000000000*I}]
 
         This is due to precision error,
@@ -2497,29 +2497,25 @@ class MPolynomialIdeal_singular_repr(
             [{y: 0, x: 0}]
 
         TESTS::
-        
+
             sage: K.<w> = GF(27)
             sage: P.<x, y> = PolynomialRing(K, 2, order='lex')
             sage: I = Ideal([ x^8 + y + 2, y^6 + x*y^5 + x^2 ])
-        
-        Testing the robustness of the Singular interface
-        
-        ::
-        
+
+        Testing the robustness of the Singular interface::
+
             sage: T = I.triangular_decomposition('singular:triangLfak')
             sage: I.variety()
             [{y: w^2 + 2, x: 2*w}, {y: w^2 + w, x: 2*w + 1}, {y: w^2 + 2*w, x: 2*w + 2}]
 
-        Testing that a bug is indeed fixed.
-
-        ::        
+        Testing that a bug is indeed fixed ::
 
             sage: R = PolynomialRing(GF(2), 30, ['x%d'%(i+1) for i in range(30)], order='lex')
             sage: R.inject_variables()
             Defining...
             sage: I = Ideal([x1 + 1, x2, x3 + 1, x5*x10 + x10 + x18, x5*x11 + x11, \
                              x5*x18, x6, x7 + 1, x9, x10*x11 + x10 + x18, x10*x18 + x18, \
-                             x11*x18, x12, x13, x14, x15, x16 + 1, x17 + x18 + 1, x19, x20, \ 
+                             x11*x18, x12, x13, x14, x15, x16 + 1, x17 + x18 + 1, x19, x20, \
                              x21 + 1, x22, x23, x24, x25 + 1, x28 + 1, x29 + 1, x30, x8, \
                              x26, x1^2 + x1, x2^2 + x2, x3^2 + x3, x4^2 + x4, x5^2 + x5, \
                              x6^2 + x6, x7^2 + x7, x8^2 + x8, x9^2 + x9, x10^2 + x10, \
@@ -2551,7 +2547,7 @@ class MPolynomialIdeal_singular_repr(
             {x14: 0, x24: 0, x16: 1, x1: 1, x3: 1, x2: 0, x5: 0, x4: 0, x19: 0, x18: 1, x7: 1, x6: 0, x10: 1, x30: 0, x28: 1, x29: 1, x13: 0, x27: 1, x11: 0, x25: 1, x9: 0, x8: 0, x20: 0, x17: 0, x23: 0, x26: 0, x15: 0, x21: 1, x12: 0, x22: 0}
             {x14: 0, x24: 0, x16: 1, x1: 1, x3: 1, x2: 0, x5: 0, x4: 1, x19: 0, x18: 1, x7: 1, x6: 0, x10: 1, x30: 0, x28: 1, x29: 1, x13: 0, x27: 1, x11: 0, x25: 1, x9: 0, x8: 0, x20: 0, x17: 0, x23: 0, x26: 0, x15: 0, x21: 1, x12: 0, x22: 0}
 
-        Check that the issue at trac 7425 is fixed::
+        Check that the issue at :trac:`7425` is fixed::
 
             sage: R.<x, y, z> = QQ[]
             sage: I = R.ideal([x^2-y^3*z, x+y*z])
@@ -2562,15 +2558,22 @@ class MPolynomialIdeal_singular_repr(
             ...
             ValueError: The dimension of the ideal is 1, but it should be 0
 
-        Check that the issue at trac 7425 is fixed::
-        
+        Check that the issue at :trac:`7425` is fixed::
+
             sage: S.<t>=PolynomialRing(QQ)
             sage: F.<q>=QQ.extension(t^4+1)
             sage: R.<x,y>=PolynomialRing(F)
             sage: I=R.ideal(x,y^4+1)
             sage: I.variety()
             [...{y: -q^3, x: 0}...]
-        
+
+        Check that computing the variety of the ``[1]`` ideal is allowed (:trac:`13977`)::
+
+            sage: R.<x,y> = QQ[]
+            sage: I = R.ideal(1)
+            sage: I.variety()
+            []
+
         ALGORITHM:
 
         Uses triangular decomposition.
@@ -2602,8 +2605,10 @@ class MPolynomialIdeal_singular_repr(
             return V
 
         d = self.dimension()
-        if d <> 0:
+        if d > 0:
             raise ValueError, "The dimension of the ideal is %s, but it should be 0"%d
+        if d == -1:
+            return []
 
         import sage.rings.complex_field as CCmod
         if isinstance(self.base_ring(), CCmod.ComplexField_class):

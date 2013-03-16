@@ -84,6 +84,10 @@ include "../ext/stdsage.pxi"
 include "../ext/gmp.pxi"
 include "../ext/random.pxi"
 
+cdef extern from "math.h":
+    double log(double x)
+    double ldexp(double x, int exp)
+
 ctypedef unsigned int uint
 
 from sage.ext.multi_modular import MultiModularBasis
@@ -208,7 +212,8 @@ cdef class Matrix_integer_dense(matrix_dense.Matrix_dense):   # dense or sparse
            This is for internal use only, or if you really know what
            you're doing.
         """
-        matrix_dense.Matrix_dense.__init__(self, parent)
+        self._parent = parent
+        self._base_ring = ZZ
         self._nrows = parent.nrows()
         self._ncols = parent.ncols()
         self._pivots = None
@@ -1166,24 +1171,64 @@ cdef class Matrix_integer_dense(matrix_dense.Matrix_dense):   # dense or sparse
         cdef mpz_t x, h
         cdef Py_ssize_t i
 
+        sig_on()
         mpz_init_set_si(h, 0)
         mpz_init(x)
-        
-        sig_on()
         
         for i from 0 <= i < self._nrows * self._ncols:
             mpz_abs(x, self._entries[i])
             if mpz_cmp(h, x) < 0:
                 mpz_set(h, x)
 
-        sig_off()
-        
         mpz_init_set(height, h)
         mpz_clear(h)
         mpz_clear(x)
+        sig_off()
         
         return 0   # no error occurred.
         
+    cpdef double _log_avg_sq1(self) except -1.0:
+        """
+        Return the logarithm of the average of `x^2 + 1`, where `x`
+        ranges over the matrix entries.
+
+        This is used to determine which determinant algorithm to use.
+
+        TESTS::
+
+            sage: M = random_matrix(ZZ,100)
+            sage: L1 = M._log_avg_sq1()
+            sage: L2 = log(RR(sum([i*i+1 for i in M.list()])/10000))
+            sage: abs(L1 - L2) < 1e-13
+            True
+            sage: matrix(ZZ,10)._log_avg_sq1()
+            0.0
+        """
+        cdef Py_ssize_t i
+        cdef Py_ssize_t N = self._nrows * self._ncols
+
+        # wsq * 4^wsq_e = sum of entries squared plus number of entries
+        cdef double wsq = N
+        cdef long wsq_e = 0
+
+        cdef double d
+        cdef long e
+
+        sig_on()
+        for i in range(N):
+            d = mpz_get_d_2exp(&e, self._entries[i])
+            if (e > wsq_e):
+                wsq = ldexp(wsq, 2*(wsq_e - e))
+                wsq_e = e
+            elif (e < wsq_e):
+                d = ldexp(d, e - wsq_e)
+            wsq += d*d
+        sig_off()
+
+        # Compute log(wsq * 4^wsq_e / N) =
+        # log(wsq * 4^wsq_e / N) = log(wsq/N) + wsq_e * log(4)
+        return log(wsq/N) + wsq_e * log(4.0)
+
     def _multiply_multi_modular(left, Matrix_integer_dense right):
         """
         Multiply this matrix by ``left`` using a multi modular algorithm.
@@ -3202,8 +3247,8 @@ cdef class Matrix_integer_dense(matrix_dense.Matrix_dense):   # dense or sparse
 
         - ``algorithm``
 
-          - ``'default'`` -- use 'pari' when number of rows less than 50;
-                             otherwise, use 'padic'
+          - ``'default'`` -- automatically determine which algorithm
+                             to use depending on the matrix.
         
           - ``'padic'`` -  uses a p-adic / multimodular
             algorithm that relies on code in IML and linbox
@@ -3211,7 +3256,7 @@ cdef class Matrix_integer_dense(matrix_dense.Matrix_dense):   # dense or sparse
           - ``'linbox'`` - calls linbox det (you *must* set
             proof=False to use this!)
         
-          -  ``'ntl'`` - calls NTL's det function
+          - ``'ntl'`` - calls NTL's det function
 
           - ``'pari'`` - uses PARI
         
@@ -3258,6 +3303,12 @@ cdef class Matrix_integer_dense(matrix_dense.Matrix_dense):   # dense or sparse
             sage: D2 = A.determinant(algorithm='ntl')
             sage: D1 == D2
             True
+
+        We have a special-case algorithm for 4 x 4 determinants::
+
+            sage: A = matrix(ZZ,4,[1,2,3,4,4,3,2,1,0,5,0,1,9,1,2,3])
+            sage: A.determinant()
+            270
         
         Next we try the Linbox det. Note that we must have proof=False.
         
@@ -3281,31 +3332,62 @@ cdef class Matrix_integer_dense(matrix_dense.Matrix_dense):   # dense or sparse
             sage: A._clear_cache()
             sage: A.determinant(algorithm='linbox',proof=False) == d
             True
+
+        TESTS:
+
+        This shows that we can compute determinants for all sizes up to
+        80.  The check that the determinant of a squared matrix is a
+        square is a sanity check that the result is probably correct::
+
+            sage: for s in [1..80]:  # long time (6s on sage.math, 2013)
+            ...       M = random_matrix(ZZ, s)
+            ...       d = (M*M).determinant()
+            ...       assert d.is_square()
         """
         d = self.fetch('det')
-        if not d is None:
+        if d is not None:
             return d
         if not self.is_square():
             raise ValueError("self must be a square matrix")
-        n = self.nrows()
 
-        if n <= 3:
-            # use generic special cased code.
-            return matrix_dense.Matrix_dense.determinant(self)
-        elif n == 4:
-            return self._det_4x4_unsafe()
+        cdef Py_ssize_t n = self.nrows()
 
+        cdef Integer det4x4
+        if n <= 4:
+            if n <= 3:
+                # Use generic special cased code.
+                return matrix_dense.Matrix_dense.determinant(self)
+            else:
+                det4x4 = ZZ(0)
+                four_dim_det(det4x4.value, self._entries)
+                return det4x4
+
+        proof = get_proof_flag(proof, "linear_algebra")
+
+        cdef double difficulty
         if algorithm == 'default':
-            if n <= 50 and self.height().ndigits() <= 100:
+            # These heuristics are by Jeroen Demeyer (#14007).  There
+            # is no mathematics behind this, it was experimentally
+            # observed to work well.  I tried various estimates for
+            # the "difficulty" of a matrix, and this one worked best.
+            # I tested matrices with entries uniformly distributed in
+            # [0,n] as well as random_matrix(ZZ,s).
+            #
+            # linbox works sometimes better for large matrices with
+            # mostly small entries, but it is never much faster than
+            # padic (and it only works with proof=False), so we never
+            # default to using linbox.
+            difficulty = (self._log_avg_sq1() + 2.0) * (n * n)
+            if difficulty <= 800:
                 algorithm = 'pari'
+            elif n <= 48 or (proof and n <= 72) or (proof and n <= 400 and difficulty <= 600000):
+                algorithm = 'ntl'
             else:
                 algorithm = 'padic'
-        
-        proof = get_proof_flag(proof, "linear_algebra")
 
         if algorithm == 'padic':
             import matrix_integer_dense_hnf
-            return matrix_integer_dense_hnf.det_padic(self, proof=proof, stabilize=stabilize)
+            d = matrix_integer_dense_hnf.det_padic(self, proof=proof, stabilize=stabilize)
         elif algorithm == 'linbox':
             if proof:
                 raise RuntimeError("you must pass the proof=False option to the determinant command to use LinBox's det algorithm")
@@ -3329,23 +3411,6 @@ cdef class Matrix_integer_dense(matrix_dense.Matrix_dense):   # dense or sparse
         d = linbox.det()
         sig_off()
         return Integer(d)
-
-    cdef _det_4x4_unsafe(self):
-        """
-        Compute the determinant of this matrix using a special
-        formulation for 4x4 matrices.
-
-        TESTS::
-
-            sage: A = matrix(ZZ,4,[1,2,3,4,4,3,2,1,0,5,0,1,9,1,2,3])
-            sage: A.determinant()     # indirect doctest
-            270
-        """
-        cdef Integer d = ZZ(0)
-        sig_on()
-        four_dim_det(d.value,self._entries)
-        sig_off()
-        return d
 
     def _det_ntl(self):
         """
@@ -5164,7 +5229,7 @@ def tune_multiplication(k, nmin=10, nmax=200, bitmin=2,bitmax=64):
 # 4x4 determinant is really really really fast.
 ##############################################################
 
-cdef void four_dim_det(mpz_t r,mpz_t *x):
+cdef int four_dim_det(mpz_t r,mpz_t *x) except -1:
     """
     Internal function used in computing determinants of 4x4 matrices. 
     
@@ -5175,6 +5240,8 @@ cdef void four_dim_det(mpz_t r,mpz_t *x):
         25
     """
     cdef mpz_t a,b
+
+    sig_on()
     mpz_init(a)
     mpz_init(b)
 
@@ -5199,6 +5266,8 @@ cdef void four_dim_det(mpz_t r,mpz_t *x):
 
     mpz_clear(a)
     mpz_clear(b)
+    sig_off()
+    return 0
 
 #The above was generated by the following Sage code:
 #def idx(x):
