@@ -63,6 +63,8 @@ class pAdicGeneric(PrincipalIdealDomain, LocalGeneric):
         EXAMPLES::
 
             sage: Zp(2).some_elements()
+            [0, 1 + O(2^20), 2 + O(2^21)]
+
         """
         return [self.zero(), self.one(), self(self.prime())]
 
@@ -320,7 +322,7 @@ class pAdicGeneric(PrincipalIdealDomain, LocalGeneric):
             sage: R = Zp(3,5,'fixed-mod')
             sage: k = R.residue_field()
             sage: k
-            Finite Field of size 3        
+            Finite Field of size 3
         """
         return self.residue_class_field()
 
