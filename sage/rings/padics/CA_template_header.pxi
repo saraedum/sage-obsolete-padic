@@ -1,6 +1,6 @@
 """
-This file provides the declaration for the CAElement and the morphisms
-to and from ZZ and QQ.
+This file provides the declaration for ``CAElement`` and the morphisms to
+the integers and rationals.
 
 It is included in the .pxd files associated to gluing files, such as
 padic_capped_absolute_element.pxd.

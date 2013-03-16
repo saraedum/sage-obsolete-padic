@@ -13,7 +13,8 @@ The gluing file does the following:
 - ctypedef's celement to be the appropriate type (e.g. mpz_t)
 - includes the linkage file
 - includes this template
-- defines a concrete class inheriting from CRElement, and implements any desired extra methods
+- defines a concrete class inheriting from ``CRElement``, and implements
+  any desired extra methods
 
 AUTHORS:
 
@@ -54,7 +55,7 @@ cdef inline int check_ordp_mpz(mpz_t ordp) except -1:
 
     There is another variant, :meth:`check_ordp`, for long input.
 
-    If overflow is detected, raises an OverflowError.
+    If overflow is detected, raises an ``OverflowError``.
     """
     if mpz_fits_slong_p(ordp) == 0 or mpz_cmp_si(ordp, maxordp) > 0 or mpz_cmp_si(ordp, minusmaxordp) < 0:
         raise OverflowError("valuation overflow")
@@ -146,7 +147,7 @@ cdef class CRElement(pAdicTemplateElement):
 
     cdef int _set_exact_zero(self) except -1:
         """
-        Sets self as an exact zero.
+        Sets ``self`` as an exact zero.
 
         TESTS::
 
@@ -159,7 +160,7 @@ cdef class CRElement(pAdicTemplateElement):
 
     cdef int _set_inexact_zero(self, long absprec) except -1:
         """
-        Sets self as an inexact zero with precision absprec
+        Sets ``self`` as an inexact zero with precision ``absprec``.
 
         TESTS::
 
@@ -203,7 +204,7 @@ cdef class CRElement(pAdicTemplateElement):
 
     def __copy__(self):
         """
-        Returns a copy of self.
+        Return a copy of this element.
 
         EXAMPLES::
 
@@ -221,7 +222,7 @@ cdef class CRElement(pAdicTemplateElement):
 
     cdef int _normalize(self) except -1:
         """
-        Normalizes self, so that self.ordp is correct.
+        Normalizes this element, so that ``self.ordp`` is correct.
 
         TESTS::
 
@@ -244,7 +245,7 @@ cdef class CRElement(pAdicTemplateElement):
 
     def __dealloc__(self):
         """
-        Deallocation.
+        Deallocate the underlying data structure.
 
         TESTS::
 
@@ -256,7 +257,8 @@ cdef class CRElement(pAdicTemplateElement):
 
     def __reduce__(self):
         """
-        Pickling.
+        Return a tuple of a function and data that can be used to unpickle this
+        element.
 
         TESTS::
 
@@ -270,7 +272,7 @@ cdef class CRElement(pAdicTemplateElement):
 
     def __richcmp__(self, right, int op):
         """
-        Comparison.
+        Compare this element to ``right`` using the comparison operator ``op``.
 
         TESTS::
 
@@ -286,7 +288,7 @@ cdef class CRElement(pAdicTemplateElement):
 
     cpdef ModuleElement _neg_(self):
         """
-        Negation.
+        Return the additive inverse of this element.
 
         EXAMPLES::
 
@@ -309,7 +311,7 @@ cdef class CRElement(pAdicTemplateElement):
 
     cpdef ModuleElement _add_(self, ModuleElement _right):
         """
-        Adds self and right.
+        Return the sum of this element and ``_right``.
 
         EXAMPLES::
 
@@ -349,7 +351,7 @@ cdef class CRElement(pAdicTemplateElement):
 
     cpdef ModuleElement _sub_(self, ModuleElement _right):
         """
-        Subtraction.
+        Return the difference of this element and ``_right``.
 
         EXAMPLES::
 
@@ -394,7 +396,7 @@ cdef class CRElement(pAdicTemplateElement):
 
     def __invert__(self):
         r"""
-        Returns the multiplicative inverse of self.
+        Returns the multiplicative inverse of this element.
 
         .. NOTE::
 
@@ -420,7 +422,7 @@ cdef class CRElement(pAdicTemplateElement):
 
     cpdef RingElement _mul_(self, RingElement _right):
         r"""
-        Multiplies self by right.
+        Return the product of this element and ``_right``.
 
         EXAMPLES::
 
@@ -451,7 +453,7 @@ cdef class CRElement(pAdicTemplateElement):
 
     cpdef RingElement _div_(self, RingElement _right):
         """
-        Divides self by right.
+        Return the quotient of this element and ``right``.
 
         .. NOTE::
 
@@ -820,7 +822,7 @@ cdef class CRElement(pAdicTemplateElement):
     def add_bigoh(self, absprec):
         """
         Returns a new element with absolute precision decreased to
-        absprec.
+        ``absprec``.
 
         INPUT:
 
@@ -828,8 +830,8 @@ cdef class CRElement(pAdicTemplateElement):
 
         OUTPUT:
 
-        - an equal element with precision set to the minimum of self's
-          precision and ``absprec``
+	an equal element with precision set to the minimum of ``self's``
+	precision and ``absprec``
 
         EXAMPLE::
 
@@ -929,7 +931,7 @@ cdef class CRElement(pAdicTemplateElement):
 
         INPUT:
 
-        - ``absprec`` -- an integer, infinity or None
+        - ``absprec`` -- an integer, infinity, or ``None``
 
         EXAMPLES::
 
@@ -991,7 +993,7 @@ cdef class CRElement(pAdicTemplateElement):
         INPUT:
 
         - ``right`` -- a `p`-adic element
-        - ``absprec`` -- an integer, infinity or None
+        - ``absprec`` -- an integer, infinity, or ``None``
 
         EXAMPLES::
 
@@ -1124,7 +1126,7 @@ cdef class CRElement(pAdicTemplateElement):
 
     cdef pAdicTemplateElement lift_to_precision_c(self, long absprec):
         """
-        Lifts this element to another with precision at least absprec.
+        Lifts this element to another with precision at least ``absprec``.
 
         TESTS::
 
@@ -1193,7 +1195,7 @@ cdef class CRElement(pAdicTemplateElement):
         INPUT:
 
         - ``lift_mode`` -- ``'simple'``, ``'smallest'`` or
-          ``'teichmuller'`` (defualt: ``'simple'``)
+          ``'teichmuller'`` (default: ``'simple'``)
 
         - ``start_val`` -- start at this valuation rather than the
           default (`0` or the valuation of this element).  If
@@ -1248,7 +1250,7 @@ cdef class CRElement(pAdicTemplateElement):
 
         TESTS:
 
-        Check to see that #10292 is resolved::
+        Check to see that :trac:`10292` is resolved::
 
             sage: E = EllipticCurve('37a')
             sage: R = E.padic_regulator(7)
@@ -1284,9 +1286,9 @@ cdef class CRElement(pAdicTemplateElement):
         r"""
         Returns a list [`a_0`, `a_1`,..., `a_n`] such that
 
-        - `a_i^p = a_i`
+	- `a_i^q = a_i`, where `q` is the cardinality of the residue field,
 
-        - ``self.unit_part() =`` `\sum_{i = 0}^n a_i p^i`
+        - ``self.unit_part() =`` `\sum_{i = 0}^n a_i p^i`, and
 
         - if `a_i \ne 0`, the absolute precision of `a_i` is
           self.precision_relative() - i
@@ -1462,8 +1464,8 @@ cdef class CRElement(pAdicTemplateElement):
         """
         Returns the valuation of this element.
 
-        If self is an exact zero, returns maxordp, which is defined as
-        (1L << (sizeof(long) * 8 - 2))-1
+        If self is an exact zero, returns ``maxordp``, which is defined as
+        ``(1L << (sizeof(long) * 8 - 2))-1``.
 
         EXAMPLES::
 
@@ -1483,11 +1485,11 @@ cdef class CRElement(pAdicTemplateElement):
 
         INPUT:
 
-        - ``p`` -- a prime (default: None). If specified, will make sure that p==self.parent().prime()
+        - ``p`` -- a prime (default: ``None``). If specified, will make sure that p==self.parent().prime()
 
         .. NOTE::
 
-            The optional argument p is used for consistency with the
+            The optional argument ``p`` is used for consistency with the
             valuation methods on integer and rational.
 
         EXAMPLES::
@@ -1542,7 +1544,7 @@ cdef class CRElement(pAdicTemplateElement):
 
 cdef class pAdicCoercion_ZZ_CR(RingHomomorphism_coercion):
     """
-    The canonical inclusion from ZZ to a capped relative ring.
+    The canonical inclusion from the integer ring to a capped relative ring.
 
     EXAMPLES::
 
@@ -1630,8 +1632,8 @@ cdef class pAdicCoercion_ZZ_CR(RingHomomorphism_coercion):
 
     def section(self):
         """
-        Returns a map back to ZZ that approximates an element of Zp or
-        Qp by an integer.
+	Returns a map back to the ring of integers that approximates an element
+	by an integer.
 
         EXAMPLES::
 
@@ -1643,12 +1645,12 @@ cdef class pAdicCoercion_ZZ_CR(RingHomomorphism_coercion):
 
 cdef class pAdicConvert_CR_ZZ(RingMap):
     """
-    The map from a capped relative ring back to ZZ that returns the
-    the smallest non-negative integer approximation to its input which
-    is accurate up to the precision.
+    The map from a capped relative ring back to the ring of integers that
+    returns the the smallest non-negative integer approximation to its input
+    which is accurate up to the precision.
 
-    If the input is not in the closure of the image of ZZ, raises a
-    ValueError.
+    Raises a ``ValueError``, if the input is not in the closure of the image of
+    the integers.
 
     EXAMPLES::
 
@@ -1699,7 +1701,7 @@ cdef class pAdicConvert_CR_ZZ(RingMap):
 
 cdef class pAdicCoercion_QQ_CR(RingHomomorphism_coercion):
     """
-    The canonical inclusion from QQ to a capped relative field.
+    The canonical inclusion from the rationals to a capped relative field.
 
     EXAMPLES::
 
@@ -1791,7 +1793,7 @@ cdef class pAdicCoercion_QQ_CR(RingHomomorphism_coercion):
 
     def section(self):
         """
-        Returns a map back to QQ that approximates an element of Qp by
+        Returns a map back to the rationals that approximates an element by
         a rational number.
 
         EXAMPLES::
@@ -1806,7 +1808,7 @@ cdef class pAdicCoercion_QQ_CR(RingHomomorphism_coercion):
 
 cdef class pAdicConvert_CR_QQ(RingMap):
     """
-    The map from the capped relative ring back to QQ that returns a
+    The map from the capped relative ring back to the rationals that returns a
     rational approximation of its input.
 
     EXAMPLES::
@@ -1856,8 +1858,8 @@ cdef class pAdicConvert_CR_QQ(RingMap):
 
 cdef class pAdicConvert_QQ_CR(Morphism):
     """
-    The inclusion map from QQ to a capped relative ring that is
-    defined on all elements with non-negative p-adic valuation.
+    The inclusion map from the rationals to a capped relative ring that is
+    defined on all elements with non-negative `p`-adic valuation.
 
     EXAMPLES::
 
@@ -1953,9 +1955,9 @@ cdef class pAdicConvert_QQ_CR(Morphism):
 
     def section(self):
         """
-        Returns the map from Zp back to QQ that returns the smallest
-        non-negative integer approximation to its input which is
-        accurate up to the precision.
+	Returns the map back to the rationals that returns the smallest
+	non-negative integer approximation to its input which is accurate up to
+	the precision.
 
         EXAMPLES::
 

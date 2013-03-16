@@ -1,6 +1,6 @@
 """
-This file provides the declaration for the CRElement and the morphisms
-to and from ZZ and QQ.
+This file provides the declaration for ``CRElement`` and the morphisms
+to and from the integers and rationals.
 
 It is included in the .pxd files associated to gluing files, such as
 padic_capped_relative_element.pxd.

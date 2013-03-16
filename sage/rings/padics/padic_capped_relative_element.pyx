@@ -1,7 +1,7 @@
 """
-p-Adic Capped Relative Elements
+`p`-Adic Capped Relative Elements
 
-Elements of p-Adic Rings with Capped Relative Precision
+Elements of `p`-Adic Rings with Capped Relative Precision
 
 AUTHORS:
 
@@ -119,9 +119,9 @@ cdef class pAdicCappedRelativeElement(CRElement):
     """
     def lift(self):
         """
-        Return an integer or rational congruent to self modulo self's
-        precision.  If a rational is returned, its denominator will
-        eqaul p^ordp(self).
+        Return an integer or rational congruent to ``self`` modulo ``self``'s
+        precision.  If a rational is returned, its denominator will equal
+        ``p^ordp(self)``.
 
         EXAMPLES::
 
@@ -223,11 +223,12 @@ cdef class pAdicCappedRelativeElement(CRElement):
 
         INPUT:
 
-        - absprec - an integer (defaults to 1)
+        - ``absprec`` - an integer (default: ``1``)
 
         OUTPUT:
 
-        Element of `\ZZ/(p^{\mbox{absprec}} \ZZ)` -- the reduction modulo `p^{\mbox{absprec}}`
+        Element of `\ZZ/(p^{\mbox{absprec}} \ZZ)` -- the reduction modulo
+        `p^{\mbox{absprec}}`
 
         EXAMPLES::
 
@@ -281,7 +282,7 @@ def unpickle_pcre_v1(R, unit, ordp, relprec):
 
 def base_p_list(Integer n, bint pos, PowComputer_class prime_pow):
     """
-    Returns a base-p list of digits of ``n``.
+    Returns a base-`p` list of digits of ``n``.
 
     INPUT:
 

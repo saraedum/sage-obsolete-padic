@@ -1,9 +1,11 @@
 """
-This file gives a class from which all the p-adic templates inherit.
+This file gives a class from which all the `p`-adic templates inherit.
 
-This file is included in the various precision template files (such as sage/rings/padics/CR_template.pxi).
-While this choice means that routines here do have access to the inlined functions defined in the linkage files,
-the downside is that there will be multiple pAdicTemplateElement classes, one for each p-adic template.
+This file is included in the various precision template files (such as
+sage/rings/padics/CR_template.pxi).  While this choice means that routines here
+do have access to the inlined functions defined in the linkage files, the
+downside is that there will be multiple ``pAdicTemplateElement``
+classes, one for each `p`-adic template.
 
 AUTHORS:
 
@@ -50,7 +52,7 @@ cdef inline int check_ordp(long ordp) except -1:
 
 cdef class pAdicTemplateElement(pAdicGenericElement):
     """
-    A class for common functionality among the p-adic template classes.
+    A class for common functionality among the `p`-adic template classes.
 
     INPUT:
 
@@ -114,15 +116,20 @@ cdef class pAdicTemplateElement(pAdicGenericElement):
 
     cdef int _set(self, x, long val, long xprec, absprec, relprec) except -1:
         """
-        Sets this element from given data computed in :meth:`__init__`
+        Sets this element from given data computed in :meth:`__init__`.
 
         INPUT:
 
         - ``x`` -- an int, Integer, Rational, PARI p-adic, integer mod `p^k` or Sage p-adic
+
         - ``val`` -- a long, the valuation of ``x``
+
         - ``xprec`` -- a long, the cap on the absolute precision imposed by ``x``
+
         - ``absprec`` -- an integer or infinity, a bound on the absolute precision
+
         - ``relprec`` -- an integer or infinity, a bound on the relative precision
+
         """
         raise NotImplementedError
 
@@ -132,11 +139,11 @@ cdef class pAdicTemplateElement(pAdicGenericElement):
 
         If ``shift`` is negative and this element does not lie in a field,
         digits may be truncated.  See ``__rshift__`` for details.
-        
+
         EXAMPLES:
-        
+
         We create some `p`-adic rings::
-        
+
             sage: R = Zp(5, 20, 'capped-abs'); a = R(1000); a
             3*5^3 + 5^4 + O(5^20)
             sage: S = Zp(5); b = S(1000); b
@@ -144,7 +151,7 @@ cdef class pAdicTemplateElement(pAdicGenericElement):
 
         Shifting to the right is the same as dividing by a power of
         the uniformizer `p` of the `p`-adic ring.::
-        
+
             sage: a >> 1
             3*5^2 + 5^3 + O(5^19)
             sage: b >> 1
@@ -152,7 +159,7 @@ cdef class pAdicTemplateElement(pAdicGenericElement):
 
         Shifting to the left is the same as multiplying by a power of
         `p`::
-        
+
             sage: a << 2
             3*5^5 + 5^6 + O(5^20)
             sage: a*5^2
@@ -194,9 +201,9 @@ cdef class pAdicTemplateElement(pAdicGenericElement):
     def __rshift__(pAdicTemplateElement self, shift):
         """
         Divides by ``p^shift``, and truncates (if the parent is not a field).
-        
+
         EXAMPLES::
-        
+
             sage: R = Zp(997, 7, 'capped-abs'); a = R(123456878908); a
             964*997 + 572*997^2 + 124*997^3 + O(997^7)
             sage: S = Zp(5); K = Qp(5); b = S(17); b
@@ -204,7 +211,7 @@ cdef class pAdicTemplateElement(pAdicGenericElement):
 
         Shifting to the right divides by a power of `p`, but drops
         terms with negative valuation::
-            
+
             sage: a >> 3
             124 + O(997^4)
             sage: b >> 1
@@ -218,7 +225,7 @@ cdef class pAdicTemplateElement(pAdicGenericElement):
             2*5^-1 + 3 + O(5^19)
 
         A negative shift multiplies by that power of `p`::
-        
+
             sage: a >> -3
             964*997^4 + 572*997^5 + 124*997^6 + O(997^7)
             sage: K(17) >> -5
@@ -244,21 +251,23 @@ cdef class pAdicTemplateElement(pAdicGenericElement):
 
     cdef int check_preccap(self) except -1:
         """
-        Checks that this element doesn't have precision higher than allowed by the precision cap.
+	 Checks that this element doesn't have precision higher than allowed by
+	 the precision cap.
         """
         raise NotImplementedError
 
     def lift_to_precision(self, absprec):
         """
-        Returns another element of the same parent with absolute precision at least ``absprec``, 
-        congruent to this `p`-adic element modulo the precision of this element.
+	 Returns another element of the same parent with absolute precision at
+	 least ``absprec``, congruent to this `p`-adic element modulo the
+	 precision of this element.
 
-        If such lifting would yield an element with precision greater
-        than allowed by the precision cap of ``self``'s parent, an
-        error is raised (though not for fixed modulus precision handling).
-        
+	 If such lifting would yield an element with precision greater than
+	 allowed by the precision cap of the parent, an error is raised (though
+	 not for fixed modulus precision handling).
+
         EXAMPLES::
-        
+
             sage: R = ZpCA(17)
             sage: R(-1,2).lift_to_precision(10)
             16 + 16*17 + O(17^10)
@@ -386,7 +395,8 @@ cdef Integer exact_pow_helper(long *ansrelprec, long relprec, _right, PowCompute
 
     OUTPUT:
 
-    - an Integer congruent to the given exponent
+    an Integer congruent to the given exponent
+
     """
     ####### NOTE:  this function needs to be updated for extension elements. #######
     cdef Integer right, p = prime_pow.prime
@@ -402,7 +412,7 @@ cdef Integer exact_pow_helper(long *ansrelprec, long relprec, _right, PowCompute
     ansrelprec[0] = relprec + exp_val
     if exp_val > 0 and mpz_cmp_ui(p.value, 2) == 0 and relprec == 1:
         ansrelprec[0] += 1
-    
+
     return right
 
 cdef long padic_pow_helper(celement result, celement base, long base_val, long base_relprec,
@@ -429,7 +439,7 @@ cdef long padic_pow_helper(celement result, celement base, long base_val, long b
 
     OUTPUT:
 
-    - the precision of the result
+    the precision of the result
 
     EXAMPLES::
 

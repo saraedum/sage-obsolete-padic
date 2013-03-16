@@ -81,7 +81,7 @@ cdef class pAdicCappedAbsoluteElement(CAElement):
 
     cdef lift_c(self):
         """
-        Implementation of lift
+        Implementation of lift.
 
         TESTS::
 
@@ -128,7 +128,7 @@ cdef class pAdicCappedAbsoluteElement(CAElement):
 
     def _integer_(self, Z=None):
         r"""
-        Converts self to an integer
+        Converts this element to an integer.
 
         TESTS::
 
@@ -141,7 +141,7 @@ cdef class pAdicCappedAbsoluteElement(CAElement):
 
     def residue(self, absprec=1):
         r"""
-        Reduces ``self`` modulo ``p^absprec``
+        Reduces this element modulo ``p^absprec``.
 
         INPUT:
 
@@ -149,8 +149,8 @@ cdef class pAdicCappedAbsoluteElement(CAElement):
 
         OUTPUT:
 
-        - element of `\mathbb{Z}/p^{\mbox{absprec}} \mathbb{Z}` --
-          ``self`` reduced modulo ``p^absprec``.
+        element of `\mathbb{Z}/p^{\mbox{absprec}} \mathbb{Z}` -- ``self``
+        reduced modulo ``p^absprec``.
 
         EXAMPLES::
 
@@ -173,17 +173,13 @@ cdef class pAdicCappedAbsoluteElement(CAElement):
 
     def multiplicative_order(self):
         r"""
-        Returns the minimum possible multiplicative order of ``self``.
-
-        INPUT:
-
-        - ``self`` -- a `p`-adic element
+        Returns the minimum possible multiplicative order of this element.
 
         OUTPUT:
 
-        - the multiplicative order of self.  This is the minimum
-          multiplicative order of all elements of `\mathbb{Z}_p`
-          lifting ``self`` to infinite precision.
+        the multiplicative order of self.  This is the minimum multiplicative
+        order of all elements of `\mathbb{Z}_p` lifting ``self`` to infinite
+        precision.
 
         EXAMPLES::
 

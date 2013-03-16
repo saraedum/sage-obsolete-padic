@@ -1,7 +1,7 @@
 """
-p-Adic Fixed-Mod Elements
+`p`-Adic Fixed-Mod Elements
 
-Elements of p-Adic Rings with Fixed Modulus
+Elements of `p`-Adic Rings with Fixed Modulus
 
 AUTHORS:
 
@@ -34,23 +34,24 @@ cdef class pAdicFixedModElement(FMElement):
 
     - ``parent`` -- a ``pAdicRingFixedMod`` object.
     - ``x`` -- input data to be converted into the parent.
-    - ``absprec`` -- ignored; for compatibility with other p-adic rings
-    - ``relprec`` -- ignored; for compatibility with other p-adic rings
+    - ``absprec`` -- ignored; for compatibility with other `p`-adic rings
+    - ``relprec`` -- ignored; for compatibility with other `p`-adic rings
 
     NOTES::
 
     The following types are currently supported for x:
 
     - Integers
-    - Rationals -- denominator must be relatively prime to p
-    - FixedMod p-adics
-    - Elements of IntegerModRing(p^k) for k less than or equal to the modulus
+    - Rationals -- denominator must be relatively prime to `p`
+    - FixedMod `p`-adics
+    - Elements of ``IntegerModRing(p^k)`` for ``k` less than or equal to the
+      modulus
 
     The following types should be supported eventually:
 
     - Finite precision p-adics
     - Lazy p-adics
-    - Elements of local extensions of THIS p-adic ring that actually lie in Zp
+    - Elements of local extensions of THIS `p`-adic ring that actually lie in `\ZZ_p`
 
     EXAMPLES::
 
@@ -106,22 +107,21 @@ cdef class pAdicFixedModElement(FMElement):
         sage: R(R(5))
         5 + O(5^20)
 
-    # todo: doctests for converting from other types of p-adic rings        
+    # todo: doctests for converting from other types of p-adic rings
     """
     def lift(self):
         r"""
-        Return an integer congruent to self modulo self's precision.
+        Return an integer congruent to this element modulo the precision.
 
-        INPUT::
-        
-            - self -- a p-adic element
+        .. WARNING::
 
-        OUTPUT::
-        
-            - integer -- a integer congruent to self mod $p^{\mbox{prec}}$
-            
+            Since fixed modulus elements don't track their precision,
+            the result may not be correct modulo
+            `i^{\mbox{prec_cap}}` if the element was defined by
+            constructions that lost precision.
+
         EXAMPLES::
-        
+
             sage: R = Zp(7,4,'fixed-mod'); a = R(8); a.lift()
             8
             sage: type(a.lift())
@@ -166,7 +166,7 @@ cdef class pAdicFixedModElement(FMElement):
         Converts this element to an equivalent pari element.
 
         EXAMPLES::
-        
+
             sage: R = ZpFM(5, 10); a = R(17); pari(a) #indirect doctest
             2 + 3*5 + O(5^10)
             sage: pari(R(0))
@@ -201,18 +201,18 @@ cdef class pAdicFixedModElement(FMElement):
 
     def residue(self, absprec=1):
         r"""
-        Reduces this mod $p^{\mbox{prec}}$
+        Reduce this element mod `p^{\mbox{absprec}}`.
 
         INPUT::
 
-            - absprec - an integer (default 1)
+        - ``absprec`` - an integer (default: 1)
 
         OUTPUT::
 
-            - element of Z/(p^prec Z) -- self reduced mod p^prec
+        element of Z/(p^prec Z) -- self reduced mod p^prec
 
         EXAMPLES::
-        
+
             sage: R = Zp(7,4,'fixed-mod'); a = R(8); a.residue(1)
             1
         """
@@ -230,13 +230,13 @@ cdef class pAdicFixedModElement(FMElement):
 
     def multiplicative_order(self):
         r"""
-        Returns the minimum possible multiplicative order of self.
+        Returns the minimum possible multiplicative order of this element.
 
         OUTPUT::
 
-            - integer -- the multiplicative order of self.  This is
-              the minimum multiplicative order of all elements of Z_p
-              lifting self to infinite precision.
+        an integer -- the multiplicative order of this element.  This is the
+        minimum multiplicative order of all elements of `\ZZ_p` lifting this
+        element to infinite precision.
 
         EXAMPLES::
 
@@ -276,69 +276,6 @@ cdef class pAdicFixedModElement(FMElement):
         else:
             mpz_clear(tmp)
             return infinity
-
-    #def square_root(self):
-    #    r"""
-    #    Returns the square root of this p-adic number
-
-    #    INPUT:
-    #        self -- a p-adic element
-    #    OUTPUT:
-    #        p-adic element -- the square root of this p-adic number
-
-    #        The square root chosen is the one whose reduction mod p is in
-    #        the range [0, p/2).
-
-    #        Note that because this is a fixed modulus ring, garbage digits
-    #        may be introduced, if either
-    #        (a) the valuation of the input is positive, or
-    #        (b) p = 2.
-
-    #        If no square root exists, a ValueError is raised.
-    #        (This may be changed later to return an element of an extension
-    #        field.)
-            
-    #    EXAMPLES:
-    #        sage: R = Zp(3,20,'fixed-mod')
-    #        sage: R(0).square_root()
-    #            O(3^20)
-    #        sage: R(1).square_root()
-    #            1 + O(3^20)
-    #        sage: R(2).square_root()
-    #        Traceback (most recent call last):
-    #        ...
-    #        ValueError: element is not a square
-    #        sage: R(4).square_root() == R(-2)
-    #            True
-    #        sage: R(9).square_root()
-    #            3 + O(3^20)
-    #        sage: R2 = Zp(2,20,'fixed-mod')
-    #        sage: R2(0).square_root()
-    #            O(2^20)
-    #        sage: R2(1).square_root()
-    #            1 + O(2^20)
-    #        sage: R2(4).square_root()
-    #            2 + O(2^20)
-    #        sage: R2(9).square_root() == R2(3) or R2(9).square_root() == R2(-3)
-    #            True
-    #        sage: R2(17).square_root()
-    #            1 + 2^3 + 2^5 + 2^6 + 2^7 + 2^9 + 2^10 + 2^13 + 2^16 + 2^17 + O(2^20)
-    #        sage: R3 = Zp(5,20,'fixed-mod', 'terse')
-    #        sage: R3(0).square_root()
-    #            0 + O(5^20)
-    #        sage: R3(1).square_root()
-    #            1 + O(5^20)
-    #        sage: R3(-1).square_root() == R3.teichmuller(2) or R3(-1).square_root() == R3.teichmuller(3)
-    #            True
-    #    """
-    #    #todo: make more efficient
-    #    try:
-    #        # use pari
-    #        return self.parent()(pari(self).sqrt())
-    #    except PariError:
-    #        # todo: should eventually change to return an element of
-    #        # an extension field
-    #        raise ValueError, "element is not a square"
 
 def make_pAdicFixedModElement(parent, value):
     """

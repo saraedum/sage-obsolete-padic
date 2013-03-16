@@ -7,7 +7,7 @@ padic_fixed_modulus_element.pyx (gluing file).
 
 The linkage file implements a common API that is then used in the
 class FMElement defined here.  See sage/libs/linkages/padics/API.pxi
-+for the functions needed.
+for the functions needed.
 
 The gluing file does the following:
 
@@ -15,7 +15,7 @@ The gluing file does the following:
 - ctypedef's celement to be the appropriate type (e.g. mpz_t)
 - includes the linkage file
 - includes this template
-- defines a concrete class inheriting from CRElement, and implements
+- defines a concrete class inheriting from FMElement, and implements
   any desired extra methods
 
 AUTHORS:
@@ -114,7 +114,7 @@ cdef class FMElement(pAdicTemplateElement):
 
     def __copy__(self):
         """
-        Returns a copy of self.
+        Return a copy of this element.
 
         EXAMPLES::
 
@@ -130,7 +130,7 @@ cdef class FMElement(pAdicTemplateElement):
 
     def __dealloc__(self):
         """
-        Deallocation.
+        Deallocate the underlying data structure.
 
         TESTS::
 
@@ -142,7 +142,8 @@ cdef class FMElement(pAdicTemplateElement):
 
     def __reduce__(self):
         """
-        Pickling.
+        Return a tuple of a function and data that can be used to unpickle this
+        element.
 
         EXAMPLES::
 
@@ -156,7 +157,7 @@ cdef class FMElement(pAdicTemplateElement):
 
     def __richcmp__(self, right, int op):
         """
-        Comparison.
+        Compare this element to ``right`` using the comparison operator ``op``.
 
         TESTS::
 
@@ -172,7 +173,7 @@ cdef class FMElement(pAdicTemplateElement):
 
     cpdef ModuleElement _neg_(self):
         r"""
-        Returns negative of self.
+        Return the additive inverse of this element.
 
         EXAMPLES::
 
@@ -187,7 +188,7 @@ cdef class FMElement(pAdicTemplateElement):
 
     cpdef ModuleElement _add_(self, ModuleElement _right):
         r"""
-        Returns sum of self and right.
+        Return the sum of this element and ``_right``.
 
         EXAMPLES::
 
@@ -207,7 +208,7 @@ cdef class FMElement(pAdicTemplateElement):
 
     cpdef ModuleElement _sub_(self, ModuleElement _right):
         r"""
-        Returns difference of self and right.
+        Return the difference of this element and ``_right``.
 
         EXAMPLES::
 
@@ -228,7 +229,7 @@ cdef class FMElement(pAdicTemplateElement):
     def __invert__(self):
         r"""
         Returns multiplicative inverse of this element. The valuation
-        of self must be zero.
+        of ``self`` must be zero.
 
         EXAMPLES::
 
@@ -252,7 +253,7 @@ cdef class FMElement(pAdicTemplateElement):
 
     cpdef RingElement _mul_(self, RingElement _right):
         r"""
-        Returns product of self and right.
+        Return the product of this element and ``_right``.
 
         EXAMPLES::
 
@@ -270,7 +271,7 @@ cdef class FMElement(pAdicTemplateElement):
 
     cpdef RingElement _div_(self, RingElement _right):
         r"""
-        Returns quotient of self and right. The latter must have
+        Return the quotient of this element and ``right``. ``right`` must have
         valuation zero.
 
         EXAMPLES::

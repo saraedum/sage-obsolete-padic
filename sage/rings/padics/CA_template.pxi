@@ -1,5 +1,5 @@
 """
-Capped absolute template for complete discrete valuation rings.
+Capped absolute template for complete discrete valuation rings
 
 In order to use this template you need to write a linkage file and gluing file.
 For an example see mpz_linkage.pxi (linkage file) and padic_capped_absolute_element.pyx (gluing file).
@@ -13,7 +13,7 @@ The gluing file does the following:
 - ctypedef's celement to be the appropriate type (e.g. mpz_t)
 - includes the linkage file
 - includes this template
-- defines a concrete class inheriting from CRElement, and implements
+- defines a concrete class inheriting from CAElement, and implements
   any desired extra methods
 
 AUTHORS:
@@ -118,7 +118,7 @@ cdef class CAElement(pAdicTemplateElement):
 
     def __copy__(self):
         """
-        Returns a copy of ``self``.
+        Return a copy of this element.
 
         EXAMPLES::
 
@@ -135,7 +135,7 @@ cdef class CAElement(pAdicTemplateElement):
 
     def __dealloc__(self):
         """
-        Deallocation.
+        Deallocate the underlying data structure.
 
         TESTS::
 
@@ -147,7 +147,8 @@ cdef class CAElement(pAdicTemplateElement):
 
     def __reduce__(self):
         """
-        Pickling.
+        Return a tuple of a function and data that can be used to unpickle this
+        element.
 
         TESTS::
 
@@ -161,7 +162,7 @@ cdef class CAElement(pAdicTemplateElement):
 
     def __richcmp__(self, right, int op):
         """
-        Comparison.
+        Compare this element to ``right`` using the comparison operator ``op``.
 
         TESTS::
 
@@ -177,7 +178,7 @@ cdef class CAElement(pAdicTemplateElement):
 
     cpdef ModuleElement _neg_(self):
         """
-        Returns the negation of self.
+        Return the additive inverse of this element.
 
         EXAMPLES::
 
@@ -194,7 +195,7 @@ cdef class CAElement(pAdicTemplateElement):
 
     cpdef ModuleElement _add_(self, ModuleElement _right):
         """
-        Addition.
+        Return the sum of this element and ``_right``.
 
         EXAMPLES::
 
@@ -213,7 +214,7 @@ cdef class CAElement(pAdicTemplateElement):
 
     cpdef ModuleElement _sub_(self, ModuleElement _right):
         """
-        Subtraction.
+        Return the difference of this element and ``_right``.
 
         EXAMPLES::
 
@@ -232,7 +233,12 @@ cdef class CAElement(pAdicTemplateElement):
 
     def __invert__(self):
         """
-        Returns the multiplicative inverse of ``self``.
+        Return the multiplicative inverse of this element.
+
+        .. NOTE::
+
+            The result always lives in the fraction field, even if this element
+            is a unit.
 
         EXAMPLES::
 
@@ -250,7 +256,7 @@ cdef class CAElement(pAdicTemplateElement):
 
     cpdef RingElement _mul_(self, RingElement _right):
         """
-        Multiplication.
+        Return the product of this element and ``_right``.
 
         EXAMPLES::
 
@@ -273,7 +279,12 @@ cdef class CAElement(pAdicTemplateElement):
 
     cpdef RingElement _div_(self, RingElement right):
         """
-        Division.
+        Return the quotient of this element and ``right``.
+
+        .. NOTE::
+
+            The result always lives in the fraction field, even if ``right`` is
+            a unit.
 
         EXAMPLES::
 
@@ -300,7 +311,7 @@ cdef class CAElement(pAdicTemplateElement):
         precision than expected.  See the documentation in
         :mod:`sage.rings.padics.CR_template.pxi` for more details.
 
-        For `p`-adic exponents, `a^b` is defined as `exp(b log(a))`.
+        For `p`-adic exponents, `a^b` is defined as `\exp(b \log(a))`.
         Since the `p`-adic logarithm is defined for `a` a unit, the
         same is true of exponentiation.
 
@@ -496,7 +507,7 @@ cdef class CAElement(pAdicTemplateElement):
 
         OUTPUT:
 
-        - ``element`` -- ``self`` with precision set to the minimum of ``self's`` precision and ``prec``
+        ``self`` with precision set to the minimum of ``self's`` precision and ``prec``
 
         EXAMPLES::
 
@@ -567,11 +578,7 @@ cdef class CAElement(pAdicTemplateElement):
 
         INPUT:
 
-        - ``absprec`` -- an integer, infinity or None
-
-        OUTPUT:
-
-        - ``boolean`` -- whether this element is zero
+        - ``absprec`` -- an integer, infinity, or ``None``
 
         EXAMPLES::
 
@@ -631,11 +638,7 @@ cdef class CAElement(pAdicTemplateElement):
 
         - ``right`` -- a `p`-adic element with the same parent
 
-        - ``absprec`` -- an integer, infinity or None
-
-        OUTPUT:
-
-        - ``boolean`` -- whether ``self`` is equal to ``right``
+        - ``absprec`` -- an integer, infinity, or ``None``
 
         EXAMPLES::
 
@@ -822,12 +825,12 @@ cdef class CAElement(pAdicTemplateElement):
         r"""
         Returns a list `[a_0, a_1,\ldots, a_n]` such that
 
-        - `a_i^q = a_i`
+	- `a_i^q = a_i`, where `q` is the cardinality of the residue field,
 
-        - ``self`` equals `\sum_{i = 0}^n a_i \pi^i`
+        - ``self`` equals `\sum_{i = 0}^n a_i \pi^i`, and
 
-        - if `a_i \ne 0`, the absolute precision of `a_i` is
-          ``self.precision_relative() - i``
+	- if `a_i \ne 0`, the absolute precision of `a_i` is
+	  ``self.precision_relative() - i``
 
         EXAMPLES::
 
@@ -929,15 +932,7 @@ cdef class CAElement(pAdicTemplateElement):
 
     cpdef pAdicTemplateElement unit_part(CAElement self):
         r"""
-        Returns the unit part of ``self``.
-
-        INPUT:
-
-        - ``self`` -- a `p`-adic element
-
-        OUTPUT:
-
-        - `p`-adic element -- the unit part of ``self``
+        Returns the unit part of this element.
 
         EXAMPLES::
 
@@ -985,10 +980,10 @@ cdef class CAElement(pAdicTemplateElement):
 
     cpdef val_unit(self):
         """
-        Returns a 2-tuple, the first element set to the valuation of
-        ``self``, and the second to the unit part of ``self``.
+	Returns a 2-tuple, the first element set to the valuation of this
+	element, and the second to the unit part of this element.
 
-        If ``self = 0``, then the unit part is ``O(p^0)``.
+	For a zero element, the unit part is ``O(p^0)``.
 
         EXAMPLES::
 
@@ -1024,7 +1019,8 @@ cdef class CAElement(pAdicTemplateElement):
 
 cdef class pAdicCoercion_ZZ_CA(RingHomomorphism_coercion):
     """
-    The canonical inclusion from ZZ to a capped absolute ring.
+    The canonical inclusion from the ring of integers to a capped absolute
+    ring.
 
     EXAMPLES::
 
@@ -1113,8 +1109,8 @@ cdef class pAdicCoercion_ZZ_CA(RingHomomorphism_coercion):
 
     def section(self):
         """
-        Returns a map back to ZZ that approximates an element of Zp by
-        an integer.
+	Returns a map back to the ring of integers that approximates an element
+	by an integer.
 
         EXAMPLES::
 
@@ -1126,12 +1122,12 @@ cdef class pAdicCoercion_ZZ_CA(RingHomomorphism_coercion):
 
 cdef class pAdicConvert_CA_ZZ(RingMap):
     """
-    The map from a capped absolute ring back to ZZ that returns the
-    the smallest non-negative integer approximation to its input which
-    is accurate up to the precision.
+    The map from a capped absolute ring back to the ring of integers that
+    returns the the smallest non-negative integer approximation to its input
+    which is accurate up to the precision.
 
-    If the input is not in the closure of the image of ZZ, raises a
-    ValueError.
+    Raises a ``ValueError`` if the input is not in the closure of the image of
+    the ring of integers.
 
     EXAMPLES::
 
@@ -1175,8 +1171,8 @@ cdef class pAdicConvert_CA_ZZ(RingMap):
 
 cdef class pAdicConvert_QQ_CA(Morphism):
     """
-    The inclusion map from QQ to a capped absolute ring that is
-    defined on all elements with non-negative p-adic valuation.
+    The inclusion map from the rationals to a capped absolute ring that is
+    defined on all elements with non-negative `p`-adic valuation.
 
     EXAMPLES::
 
@@ -1220,7 +1216,7 @@ cdef class pAdicConvert_QQ_CA(Morphism):
         """
         This function is used when some precision cap is passed in (relative or absolute or both).
 
-        See the documentation for pAdicCappedAbsoluteElement.__init__ for more details.
+        See the documentation for :meth:`pAdicCappedAbsoluteElement.__init__` for more details.
 
         EXAMPLES::
 
@@ -1266,7 +1262,7 @@ cdef class pAdicConvert_QQ_CA(Morphism):
 
 def unpickle_cae_v2(cls, parent, value, absprec):
     """
-    Unpickles capped absolute elements.
+    Unpickle capped absolute elements.
 
     INPUT:
 

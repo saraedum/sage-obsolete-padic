@@ -1,6 +1,6 @@
 """
-This file provides the declaration for the FMElement and the morphisms
-to and from ZZ and QQ.
+This file provides the declaration for the ``FMElement`` and the morphisms
+to and from the integers and rationals.
 
 It is included in the .pxd files associated to gluing files, such as
 padic_fixed_mod_element.pxd.
