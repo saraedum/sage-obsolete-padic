@@ -41,7 +41,7 @@ def pAdicPrinter(ring, options={}):
     """
     Creates a pAdicPrinter.
 
-    INPUT::
+    INPUT:
 
         - ring -- a p-adic ring or field.
         
@@ -777,7 +777,7 @@ cdef class pAdicPrinter_class(SageObject):
         """
         The entry point for printing an element.
 
-        INPUT::
+        INPUT:
 
             - elt -- a p-adic element of the appropriate ring to print.
 

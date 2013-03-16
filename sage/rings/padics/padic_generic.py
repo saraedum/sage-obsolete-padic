@@ -180,7 +180,7 @@ class pAdicGeneric(PrincipalIdealDomain, LocalGeneric):
         r"""
         Returns the current print mode as a string.
         
-        INPUT::
+        INPUT:
         
             self -- a p-adic field
 
@@ -203,7 +203,7 @@ class pAdicGeneric(PrincipalIdealDomain, LocalGeneric):
         r"""
         Returns the characteristic of self, which is always 0.
 
-        INPUT::
+        INPUT:
         
             self -- a p-adic parent
 
@@ -222,7 +222,7 @@ class pAdicGeneric(PrincipalIdealDomain, LocalGeneric):
         """
         Returns the prime, ie the characteristic of the residue field.
 
-        INPUT::
+        INPUT:
         
             self -- a p-adic parent
 
@@ -270,7 +270,7 @@ class pAdicGeneric(PrincipalIdealDomain, LocalGeneric):
         """
         Returns the prime, i.e., the characteristic of the residue field.
 
-        INPUT::
+        INPUT:
         
             self -- a p-adic ring
 
@@ -290,7 +290,7 @@ class pAdicGeneric(PrincipalIdealDomain, LocalGeneric):
         """
         Returns the residue class field.
 
-        INPUT::
+        INPUT:
         
             self -- a p-adic ring
 
@@ -312,7 +312,7 @@ class pAdicGeneric(PrincipalIdealDomain, LocalGeneric):
         """
         Returns the residue class field.
 
-        INPUT::
+        INPUT:
         
             self -- a p-adic ring
 
@@ -333,7 +333,7 @@ class pAdicGeneric(PrincipalIdealDomain, LocalGeneric):
         """
         Returns a list of elements representing all the residue classes.
 
-        INPUT::
+        INPUT:
         
             self -- a p-adic ring
 
@@ -353,7 +353,7 @@ class pAdicGeneric(PrincipalIdealDomain, LocalGeneric):
         r"""
         Returns the teichmuller representative of x.
 
-        INPUT::
+        INPUT:
         
             - self -- a p-adic ring
             - x -- something that can be cast into self
@@ -494,7 +494,7 @@ class pAdicGeneric(PrincipalIdealDomain, LocalGeneric):
         """
         Test addition of elements of this ring.
 
-        INPUT::
+        INPUT:
 
          - ``options`` -- any keyword arguments accepted by :meth:`_tester`.
 
@@ -535,7 +535,7 @@ class pAdicGeneric(PrincipalIdealDomain, LocalGeneric):
         """
         Test subtraction on elements of this ring.
 
-        INPUT::
+        INPUT:
 
          - ``options`` -- any keyword arguments accepted by :meth:`_tester`.
 
@@ -576,7 +576,7 @@ class pAdicGeneric(PrincipalIdealDomain, LocalGeneric):
         """
         Test multiplicative inversion of elements of this ring.
 
-        INPUT::
+        INPUT:
 
          - ``options`` -- any keyword arguments accepted by :meth:`_tester`.
 
@@ -611,7 +611,7 @@ class pAdicGeneric(PrincipalIdealDomain, LocalGeneric):
         """
         Test multiplication of elements of this ring.
 
-        INPUT::
+        INPUT:
 
          - ``options`` -- any keyword arguments accepted by :meth:`_tester`.
 
@@ -642,7 +642,7 @@ class pAdicGeneric(PrincipalIdealDomain, LocalGeneric):
         """
         Test division of elements of this ring.
 
-        INPUT::
+        INPUT:
 
          - ``options`` -- any keyword arguments accepted by :meth:`_tester`.
 
@@ -677,7 +677,7 @@ class pAdicGeneric(PrincipalIdealDomain, LocalGeneric):
         """
         Test the negation operator on elements of this ring.
 
-        INPUT::
+        INPUT:
 
          - ``options`` -- any keyword arguments accepted by :meth:`_tester`.
 

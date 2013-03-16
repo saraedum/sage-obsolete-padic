@@ -2749,7 +2749,7 @@ cdef class pAdicZZpXCRElement(pAdicZZpXElement):
 #         only if (p-1) divides the ramification index (see the
 #         documentation on __pow__).
 
-#         INPUT::
+#         INPUT:
         
 #             - self -- a p-adic element
 #             - prec -- an integer

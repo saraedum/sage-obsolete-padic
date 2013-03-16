@@ -268,7 +268,7 @@ class pAdicExtensionGeneric(pAdicGeneric):
         extension of base.integer_ring() determined by the same
         polynomial.
 
-        INPUT::
+        INPUT:
         
             - print_mode -- a dictionary containing print options.
               Defaults to the same options as this ring.

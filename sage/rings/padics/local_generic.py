@@ -496,7 +496,7 @@ class LocalGeneric(CommutativeRing):
         r"""
         Returns whether this ring is finite, i.e. ``False``.
         
-        INPUT::
+        INPUT:
         
         - ``self`` -- a `p`-adic ring
         

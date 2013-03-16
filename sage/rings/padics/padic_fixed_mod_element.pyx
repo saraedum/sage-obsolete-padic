@@ -30,11 +30,14 @@ from sage.rings.finite_rings.integer_mod import Mod
 
 cdef class pAdicFixedModElement(FMElement):
     r"""
-    INPUT::
+    INPUT:
 
     - ``parent`` -- a ``pAdicRingFixedMod`` object.
+
     - ``x`` -- input data to be converted into the parent.
+
     - ``absprec`` -- ignored; for compatibility with other `p`-adic rings
+
     - ``relprec`` -- ignored; for compatibility with other `p`-adic rings
 
     NOTES::
@@ -203,7 +206,7 @@ cdef class pAdicFixedModElement(FMElement):
         r"""
         Reduce this element mod `p^{\mbox{absprec}}`.
 
-        INPUT::
+        INPUT:
 
         - ``absprec`` - an integer (default: 1)
 

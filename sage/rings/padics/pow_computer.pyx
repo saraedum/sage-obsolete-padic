@@ -61,7 +61,7 @@ cdef class PowComputer_class(SageObject):
         """
         Initializes self.
 
-        INPUT::
+        INPUT:
 
             * prime -- the prime that is the base of the exponentials
               stored in this pow_computer.
@@ -547,7 +547,7 @@ def PowComputer(m, cache_limit, prec_cap, in_field = False):
     You can input any integer, even if it's outside of the precomputed
     range.
 
-    INPUT::
+    INPUT:
     
         * m -- An integer, the base that you want to exponentiate.
         * cache_limit -- A positive integer that you want to cache powers up to.

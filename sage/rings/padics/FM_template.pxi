@@ -402,9 +402,9 @@ cdef class FMElement(pAdicTemplateElement):
         """
         Returns a new element truncated modulo `\pi^{\mbox{absprec}}`.
 
-        INPUT::
+        INPUT:
 
-            - ``absprec`` -- an integer
+        - ``absprec`` -- an integer
 
         OUTPUT::
 
@@ -458,7 +458,7 @@ cdef class FMElement(pAdicTemplateElement):
         r"""
         Returns whether self is zero modulo `\pi^{\mbox{absprec}}`.
 
-        INPUT::
+        INPUT:
 
         - ``absprec`` -- an integer
 
@@ -500,14 +500,14 @@ cdef class FMElement(pAdicTemplateElement):
 
     def is_equal_to(self, _right, absprec=None):
         r"""
-        Returns whether self is equal to right modulo $p^{\mbox{absprec}}$.
+        Returns whether this element is equal to ``right`` modulo `p^{\mbox{absprec}}`.
 
-        If absprec is None, returns if self == 0.
+        If ``absprec`` is ``None``, returns if ``self == 0``.
 
-        INPUT::
+        INPUT:
 
-            - right -- a p-addic element with the same parent
-            - absprec -- a positive integer (or None)
+        - ``right`` -- a p-addic element with the same parent
+        - ``absprec`` -- a positive integer or ``None`` (default: ``None``)
 
         EXAMPLES::
 
@@ -587,14 +587,14 @@ cdef class FMElement(pAdicTemplateElement):
         r"""
         Returns a list of coefficients of `\pi^i` starting with `\pi^0`.
 
-        INPUT::
+        INPUT:
 
-        - ``lift_mode`` -- 'simple', 'smallest' or 'teichmuller'
-          (default 'simple')
+        - ``lift_mode`` -- ``'simple'``, ``'smallest'`` or ``'teichmuller'``
+          (default: ``'simple'``:)
 
         OUTPUT::
 
-        - the list of coefficients of self
+        The list of coefficients of this elements
 
         .. NOTES::
 
@@ -876,7 +876,7 @@ cdef class pAdicCoercion_ZZ_FM(RingHomomorphism_coercion):
         """
         This function is used when some precision cap is passed in (relative or absolute or both).
 
-        INPUTS:
+        INPUT:
 
         - ``x`` -- an Integer
 
@@ -1017,7 +1017,7 @@ cdef class pAdicConvert_QQ_FM(Morphism):
         """
         This function is used when some precision cap is passed in (relative or absolute or both).
 
-        INPUTS:
+        INPUT:
 
         - ``x`` -- a Rational
 

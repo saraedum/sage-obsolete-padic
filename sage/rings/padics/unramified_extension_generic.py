@@ -269,7 +269,7 @@ class UnramifiedExtensionGeneric(pAdicExtensionGeneric):
         totally ramified extension, self will contain one if and only
         if the ground ring does.
 
-        INPUT::
+        INPUT:
         
             - self -- a p-adic ring
 
@@ -292,7 +292,7 @@ class UnramifiedExtensionGeneric(pAdicExtensionGeneric):
         Returns whether or not $\ZZ_p$ has a primitive $n^{\mbox{th}}$
         root of unity.
 
-        INPUT::
+        INPUT:
         
             - self -- a p-adic ring
             - n -- an integer

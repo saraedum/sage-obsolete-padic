@@ -1045,7 +1045,7 @@ cdef class pAdicZZpXFMElement(pAdicZZpXElement):
 #         multiplication by self on the power basis, where we view the
 #         parent field as a field over base.
 
-#         INPUT::
+#         INPUT:
         
 #             base -- field or morphism
 #         """
@@ -1387,7 +1387,7 @@ cdef class pAdicZZpXFMElement(pAdicZZpXElement):
 #         only if (p-1) divides the ramification index (see the
 #         documentation on __pow__).
 
-#         INPUT::
+#         INPUT:
         
 #             - self -- a p-adic element
 #             - prec -- an integer
