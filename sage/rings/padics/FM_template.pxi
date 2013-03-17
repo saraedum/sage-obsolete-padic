@@ -506,7 +506,7 @@ cdef class FMElement(pAdicTemplateElement):
 
         INPUT:
 
-        - ``right`` -- a p-addic element with the same parent
+        - ``right`` -- a p-adic element with the same parent
         - ``absprec`` -- a positive integer or ``None`` (default: ``None``)
 
         EXAMPLES::
@@ -594,7 +594,7 @@ cdef class FMElement(pAdicTemplateElement):
 
         OUTPUT:
 
-        The list of coefficients of this elements
+        The list of coefficients of this element
 
         .. NOTES::
 
