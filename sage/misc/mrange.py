@@ -43,12 +43,14 @@ def _len(L):
     except AttributeError:
         return len(L)
 
-def _is_finite(L):
+def _is_finite(L, fallback=True):
     """
     Determines whether ``L`` is finite.
 
     If ``L`` implements none of ``is_finite``, ``cardinality`` or
-    ``__len__``, we assume it is finite for speed reasons.
+    ``__len__``, we assume by default that it is finite for speed
+    reasons.  This choice can be overridden by passing in
+    ``fallback``.
 
     EXAMPLES::
 
@@ -75,7 +77,7 @@ def _is_finite(L):
         n = _len(L)
     except (TypeError, AttributeError):
         # We assume L is finite for speed reasons
-        return True
+        return fallback
 
     from sage.rings.infinity import infinity
     if n is infinity:
