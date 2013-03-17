@@ -495,6 +495,7 @@ class pAdicFieldCappedRelative(pAdicFieldBaseGeneric, pAdicCappedRelativeFieldGe
 
     EXAMPLES::
 
+        sage: K = Qp(17, 1000000) #indirect doctest
         sage: K = Qp(101) #indirect doctest
 
     """

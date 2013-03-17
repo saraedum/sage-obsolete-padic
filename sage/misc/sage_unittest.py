@@ -384,7 +384,8 @@ class InstanceTester(unittest.TestCase):
         self._verbose = verbose
         self._elements = elements
         self._prefix = prefix
-        self._max_runs = max_runs
+        from sage.rings.all import ZZ
+        self._max_runs = ZZ(max_runs)
 
     def runTest(self):
         """

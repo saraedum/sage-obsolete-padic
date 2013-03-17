@@ -518,14 +518,14 @@ class pAdicGeneric(PrincipalIdealDomain, LocalGeneric):
             tester.assertEqual(y.precision_relative(),x.precision_relative())
 
         from sage.combinat.cartesian_product import CartesianProduct
-        elements = CartesianProduct(tester.some_elements(), tester.some_elements())
+        elements = CartesianProduct(elements, elements)
         if len(elements) > tester._max_runs:
             from random import sample
             elements = sample(elements, tester._max_runs)
         for x,y in elements:
             z = x + y
             tester.assertIs(z.parent(), self)
-            tester.assertLessEqual(z.precision_absolute(), min(x.precision_absolute(), y.precision_absolute()))
+            tester.assertEqual(z.precision_absolute(), min(x.precision_absolute(), y.precision_absolute()))
             tester.assertGreaterEqual(z.valuation(), min(x.valuation(),y.valuation()))
             if x.valuation() != y.valuation():
                 tester.assertEqual(z.valuation(), min(x.valuation(),y.valuation()))
@@ -559,14 +559,14 @@ class pAdicGeneric(PrincipalIdealDomain, LocalGeneric):
             tester.assertEqual(y.precision_relative(), x.precision_relative())
 
         from sage.combinat.cartesian_product import CartesianProduct
-        elements = CartesianProduct(tester.some_elements(), tester.some_elements())
+        elements = CartesianProduct(elements, elements)
         if len(elements) > tester._max_runs:
             from random import sample
             elements = sample(elements, tester._max_runs)
         for x,y in elements:
             z = x - y
             tester.assertIs(z.parent(), self)
-            tester.assertLessEqual(z.precision_absolute(), min(x.precision_absolute(), y.precision_absolute()))
+            tester.assertEqual(z.precision_absolute(), min(x.precision_absolute(), y.precision_absolute()))
             tester.assertGreaterEqual(z.valuation(), min(x.valuation(),y.valuation()))
             if x.valuation() != y.valuation():
                 tester.assertEqual(z.valuation(), min(x.valuation(),y.valuation()))
@@ -594,19 +594,19 @@ class pAdicGeneric(PrincipalIdealDomain, LocalGeneric):
 
         elements = tester.some_elements()
         for x in elements:
-            if x.is_unit():
+            try:
                 y = ~x
+            except (ZeroDivisionError, PrecisionError, ValueError):
+                tester.assertFalse(x.is_unit())
+                if not self.is_fixed_mod(): tester.assertTrue(x.is_zero())
+            else:
                 e = y * x
+
+                tester.assertFalse(x.is_zero())
                 tester.assertIs(y.parent(), self if self.is_fixed_mod() else self.fraction_field())
                 tester.assertTrue(e.is_one())
-                tester.assertGreaterEqual(e.precision_relative(), x.precision_relative())
+                tester.assertEqual(e.precision_relative(), x.precision_relative())
                 tester.assertEqual(y.valuation(), -x.valuation())
-            else:
-                try:
-                    y = ~x
-                except (ZeroDivisionError, PrecisionError, ValueError): pass
-                else:
-                    assert not y.parent() is x.parent() and y.parent() is x.parent().fraction_field()
 
     def _test_mul(self, **options):
         """
@@ -672,7 +672,7 @@ class pAdicGeneric(PrincipalIdealDomain, LocalGeneric):
             else:
                 tester.assertFalse(y.is_zero())
                 tester.assertIs(z.parent(), self if self.is_fixed_mod() else self.fraction_field())
-                tester.assertLessEqual(z.precision_relative(), min(x.precision_relative(), y.precision_relative()))
+                tester.assertEqual(z.precision_relative(), min(x.precision_relative(), y.precision_relative()))
                 tester.assertEqual(z.valuation(), x.valuation() - y.valuation())
 
     def _test_neg(self, **options):
