@@ -31,6 +31,7 @@ from local_generic import LocalGeneric
 from sage.rings.ring import PrincipalIdealDomain
 from sage.rings.integer import Integer
 from sage.rings.padics.padic_printing import pAdicPrinter
+from sage.rings.padics.precision_error import PrecisionError
 
 class pAdicGeneric(PrincipalIdealDomain, LocalGeneric):
     def __init__(self, base, p, prec, print_mode, names, element_class, category=None):
@@ -596,14 +597,14 @@ class pAdicGeneric(PrincipalIdealDomain, LocalGeneric):
             if x.is_unit():
                 y = ~x
                 e = y * x
-                tester.assertIs(y.parent(), self.fraction_field())
+                tester.assertIs(y.parent(), self if self.is_fixed_mod() else self.fraction_field())
                 tester.assertTrue(e.is_one())
                 tester.assertGreaterEqual(e.precision_relative(), x.precision_relative())
                 tester.assertEqual(y.valuation(), -x.valuation())
             else:
                 try:
                     y = ~x
-                except ZeroDivisionError, TypeError: pass
+                except (ZeroDivisionError, PrecisionError, ValueError): pass
                 else:
                     assert not y.parent() is x.parent() and y.parent() is x.parent().fraction_field()
 
@@ -665,13 +666,14 @@ class pAdicGeneric(PrincipalIdealDomain, LocalGeneric):
         for x,y in elements:
             try:
                 z = x / y
-            except ZeroDivisionError:
-                tester.assertTrue(y.is_zero())
+            except (ZeroDivisionError, PrecisionError, ValueError):
+                if self.is_fixed_mod(): tester.assertFalse(y.is_unit())
+                else: tester.assertTrue(y.is_zero())
             else:
                 tester.assertFalse(y.is_zero())
-            tester.assertIs(z.parent(), self.fraction_field())
-            tester.assertLessEqual(z.precision_relative(), min(x.precision_relative(), y.precision_relative()))
-            tester.assertEqual(z.valuation(), x.valuation() - y.valuation())
+                tester.assertIs(z.parent(), self if self.is_fixed_mod() else self.fraction_field())
+                tester.assertLessEqual(z.precision_relative(), min(x.precision_relative(), y.precision_relative()))
+                tester.assertEqual(z.valuation(), x.valuation() - y.valuation())
 
     def _test_neg(self, **options):
         """

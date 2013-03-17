@@ -161,17 +161,17 @@ this choice in order to not produce incorrect results.
 TESTS::
 
     sage: R = Qp(5, 15, print_mode='bars', print_sep='&')
-    sage: repr(S(2777))[3:]
+    sage: repr(R(2777))[3:]
     '4&2&1&0&2'
     sage: TestSuite(R).run()
 
     sage: R = Zp(5, 15, print_mode='bars', print_sep='&')
-    sage: repr(S(2777))[3:]
+    sage: repr(R(2777))[3:]
     '4&2&1&0&2'
     sage: TestSuite(R).run()
 
     sage: R = ZpCA(5, 15, print_mode='bars', print_sep='&')
-    sage: repr(S(2777))[3:]
+    sage: repr(R(2777))[3:]
     '4&2&1&0&2'
     sage: TestSuite(R).run()
 
@@ -219,12 +219,13 @@ class pAdicRingCappedRelative(pAdicRingBaseGeneric, pAdicCappedRelativeRingGener
 
             sage: R = ZpCR(next_prime(10^60)) #indirect doctest
             sage: type(R)
+            <class 'sage.rings.padics.padic_base_leaves.pAdicRingCappedRelative_with_category'>
 
         TESTS::
 
             sage: R = ZpCR(2)
             sage: TestSuite(R).run()
-            sage: TestSuite(R).run(elements = [R.random_element() for i in range(2^20)], max_runs = 2^24) # long time
+            sage: TestSuite(R).run(elements = [R.random_element() for i in range(2^10)], max_runs = 2^12) # long time
 
             sage: R = ZpCR(3, 1)
             sage: TestSuite(R).run(elements = [R.random_element() for i in range(3^3)])
@@ -234,7 +235,7 @@ class pAdicRingCappedRelative(pAdicRingBaseGeneric, pAdicCappedRelativeRingGener
 
             sage: R = ZpCR(next_prime(10^60))
             sage: TestSuite(R).run()
-            sage: TestSuite(R).run(elements = [R.random_element() for i in range(2^20)], max_runs = 2^24) # long time
+            sage: TestSuite(R).run(elements = [R.random_element() for i in range(2^4)], max_runs = 2^6) # long time
 
         """
         pAdicRingBaseGeneric.__init__(self, p, prec, print_mode, names, pAdicCappedRelativeElement)
@@ -307,12 +308,13 @@ class pAdicRingCappedAbsolute(pAdicRingBaseGeneric, pAdicCappedAbsoluteRingGener
 
             sage: R = ZpCA(next_prime(10^60)) #indirect doctest
             sage: type(R)
+            <class 'sage.rings.padics.padic_base_leaves.pAdicRingCappedAbsolute_with_category'>
 
         TESTS::
 
             sage: R = ZpCA(2)
             sage: TestSuite(R).run()
-            sage: TestSuite(R).run(elements = [R.random_element() for i in range(2^20)], max_runs = 2^24) # long time
+            sage: TestSuite(R).run(elements = [R.random_element() for i in range(2^10)], max_runs = 2^12) # long time
 
             sage: R = ZpCA(3, 1)
             sage: TestSuite(R).run(elements = [R.random_element() for i in range(3^3)])
@@ -322,7 +324,7 @@ class pAdicRingCappedAbsolute(pAdicRingBaseGeneric, pAdicCappedAbsoluteRingGener
 
             sage: R = ZpCA(next_prime(10^60))
             sage: TestSuite(R).run()
-            sage: TestSuite(R).run(elements = [R.random_element() for i in range(2^20)], max_runs = 2^24) # long time
+            sage: TestSuite(R).run(elements = [R.random_element() for i in range(2^4)], max_runs = 2^6) # long time
 
         """
         pAdicRingBaseGeneric.__init__(self, p, prec, print_mode, names, pAdicCappedAbsoluteElement)
@@ -397,12 +399,13 @@ class pAdicRingFixedMod(pAdicRingBaseGeneric, pAdicFixedModRingGeneric):
 
             sage: R = ZpFM(next_prime(10^60)) #indirect doctest
             sage: type(R)
+            <class 'sage.rings.padics.padic_base_leaves.pAdicRingFixedMod_with_category'>
 
         TESTS::
 
             sage: R = ZpFM(2)
             sage: TestSuite(R).run()
-            sage: TestSuite(R).run(elements = [R.random_element() for i in range(2^20)], max_runs = 2^24) # long time
+            sage: TestSuite(R).run(elements = [R.random_element() for i in range(2^10)], max_runs = 2^12) # long time
 
             sage: R = ZpFM(3, 1)
             sage: TestSuite(R).run(elements = [R.random_element() for i in range(3^3)])
@@ -412,7 +415,7 @@ class pAdicRingFixedMod(pAdicRingBaseGeneric, pAdicFixedModRingGeneric):
 
             sage: R = ZpFM(next_prime(10^60))
             sage: TestSuite(R).run()
-            sage: TestSuite(R).run(elements = [R.random_element() for i in range(2^20)], max_runs = 2^24) # long time
+            sage: TestSuite(R).run(elements = [R.random_element() for i in range(2^4)], max_runs = 2^6) # long time
 
         """
         pAdicRingBaseGeneric.__init__(self, p, prec, print_mode, names, pAdicFixedModElement)
@@ -511,12 +514,13 @@ class pAdicFieldCappedRelative(pAdicFieldBaseGeneric, pAdicCappedRelativeFieldGe
 
             sage: K = Qp(next_prime(10^60)) # indirect doctest
             sage: type(K)
+            <class 'sage.rings.padics.padic_base_leaves.pAdicFieldCappedRelative_with_category'>
 
         TESTS::
 
             sage: R = Qp(2)
             sage: TestSuite(R).run()
-            sage: TestSuite(R).run(elements = [R.random_element() for i in range(2^20)], max_runs = 2^24) # long time
+            sage: TestSuite(R).run(elements = [R.random_element() for i in range(2^10)], max_runs = 2^12) # long time
 
             sage: R = Qp(3, 1)
             sage: TestSuite(R).run(elements = [R.random_element() for i in range(3^6)])
@@ -526,7 +530,7 @@ class pAdicFieldCappedRelative(pAdicFieldBaseGeneric, pAdicCappedRelativeFieldGe
 
             sage: R = Qp(next_prime(10^60))
             sage: TestSuite(R).run()
-            sage: TestSuite(R).run(elements = [R.random_element() for i in range(2^20)], max_runs = 2^24) # long time
+            sage: TestSuite(R).run(elements = [R.random_element() for i in range(2^4)], max_runs = 2^6) # long time
         """
         pAdicFieldBaseGeneric.__init__(self, p, prec, print_mode, names, pAdicCappedRelativeElement)
 
