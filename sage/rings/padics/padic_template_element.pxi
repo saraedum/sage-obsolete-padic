@@ -251,20 +251,20 @@ cdef class pAdicTemplateElement(pAdicGenericElement):
 
     cdef int check_preccap(self) except -1:
         """
-	 Checks that this element doesn't have precision higher than allowed by
-	 the precision cap.
+        Checks that this element doesn't have precision higher than allowed by
+        the precision cap.
         """
         raise NotImplementedError
 
     def lift_to_precision(self, absprec):
         """
-	 Returns another element of the same parent with absolute precision at
-	 least ``absprec``, congruent to this `p`-adic element modulo the
-	 precision of this element.
+        Returns another element of the same parent with absolute precision at
+        least ``absprec``, congruent to this `p`-adic element modulo the
+        precision of this element.
 
-	 If such lifting would yield an element with precision greater than
-	 allowed by the precision cap of the parent, an error is raised (though
-	 not for fixed modulus precision handling).
+        If such lifting would yield an element with precision greater than
+        allowed by the precision cap of the parent, an error is raised (though
+        not for fixed modulus precision handling).
 
         EXAMPLES::
 

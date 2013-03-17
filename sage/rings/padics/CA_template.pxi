@@ -825,12 +825,12 @@ cdef class CAElement(pAdicTemplateElement):
         r"""
         Returns a list `[a_0, a_1,\ldots, a_n]` such that
 
-	- `a_i^q = a_i`, where `q` is the cardinality of the residue field,
+        - `a_i^q = a_i`, where `q` is the cardinality of the residue field,
 
         - ``self`` equals `\sum_{i = 0}^n a_i \pi^i`, and
 
-	- if `a_i \ne 0`, the absolute precision of `a_i` is
-	  ``self.precision_relative() - i``
+        - if `a_i \ne 0`, the absolute precision of `a_i` is
+          ``self.precision_relative() - i``
 
         EXAMPLES::
 
@@ -980,10 +980,10 @@ cdef class CAElement(pAdicTemplateElement):
 
     cpdef val_unit(self):
         """
-	Returns a 2-tuple, the first element set to the valuation of this
-	element, and the second to the unit part of this element.
+        Returns a 2-tuple, the first element set to the valuation of this
+        element, and the second to the unit part of this element.
 
-	For a zero element, the unit part is ``O(p^0)``.
+        For a zero element, the unit part is ``O(p^0)``.
 
         EXAMPLES::
 
@@ -1109,8 +1109,8 @@ cdef class pAdicCoercion_ZZ_CA(RingHomomorphism_coercion):
 
     def section(self):
         """
-	Returns a map back to the ring of integers that approximates an element
-	by an integer.
+        Returns a map back to the ring of integers that approximates an element
+        by an integer.
 
         EXAMPLES::
 

@@ -830,8 +830,8 @@ cdef class CRElement(pAdicTemplateElement):
 
         OUTPUT:
 
-	an equal element with precision set to the minimum of ``self's``
-	precision and ``absprec``
+        an equal element with precision set to the minimum of ``self's``
+        precision and ``absprec``
 
         EXAMPLE::
 
@@ -1286,7 +1286,7 @@ cdef class CRElement(pAdicTemplateElement):
         r"""
         Returns a list [`a_0`, `a_1`,..., `a_n`] such that
 
-	- `a_i^q = a_i`, where `q` is the cardinality of the residue field,
+        - `a_i^q = a_i`, where `q` is the cardinality of the residue field,
 
         - ``self.unit_part() =`` `\sum_{i = 0}^n a_i p^i`, and
 
@@ -1632,8 +1632,8 @@ cdef class pAdicCoercion_ZZ_CR(RingHomomorphism_coercion):
 
     def section(self):
         """
-	Returns a map back to the ring of integers that approximates an element
-	by an integer.
+        Returns a map back to the ring of integers that approximates an element
+        by an integer.
 
         EXAMPLES::
 
@@ -1955,9 +1955,9 @@ cdef class pAdicConvert_QQ_CR(Morphism):
 
     def section(self):
         """
-	Returns the map back to the rationals that returns the smallest
-	non-negative integer approximation to its input which is accurate up to
-	the precision.
+        Returns the map back to the rationals that returns the smallest
+        non-negative integer approximation to its input which is accurate up to
+        the precision.
 
         EXAMPLES::
 
