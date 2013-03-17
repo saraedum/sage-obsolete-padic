@@ -491,7 +491,14 @@ element of the parent?)::
 See :class:`TestSuite` for more information.
 
 Let us see what happens when the test fails. Here we redefine the
-product of `S` to something definitely not associative::
+product of `S` to something definitely not associative.  Since
+enumeration of elements uses the product, we need to determine a list
+of elements first::
+
+    sage: L = list(S.some_elements()); len(L)
+    4
+
+Now we break the product::
 
     sage: %pdb                  # not tested
     sage: S.product = lambda x, y: S("("+x.value +y.value+")")
@@ -500,7 +507,7 @@ Combined with the use of the debugger and introspection, those tests
 gives instantly a counter example to the associativity of our broken
 semigroup::
 
-    sage: S._test_associativity()
+    sage: S._test_associativity(elements=L)
     Traceback (most recent call last):
       ...
       File ".../sage/categories/semigroups.py", line ..., in _test_associativity
