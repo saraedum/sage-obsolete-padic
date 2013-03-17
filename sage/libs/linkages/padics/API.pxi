@@ -311,7 +311,7 @@ cdef inline int cinvert(celement out, celement a, long prec, PowComputer_class p
     - ``prime_pow`` -- the PowComputer for the ring.
     """
     pass
-    
+
 cdef inline int cmul(celement out, celement a, celement b, long prec, PowComputer_class prime_pow) except -1:
     """
     Multiplication.
@@ -355,7 +355,7 @@ cdef inline int csetone(celement out, PowComputer_class prime_pow) except -1:
     - ``prime_pow`` -- the PowComputer for the ring.
     """
     pass
-    
+
 cdef inline int csetzero(celement out, PowComputer_class prime_pow) except -1:
     """
     Sets to 0.
@@ -366,7 +366,7 @@ cdef inline int csetzero(celement out, PowComputer_class prime_pow) except -1:
     - ``prime_pow`` -- the PowComputer for the ring.
     """
     pass
-    
+
 cdef inline bint cisone(celement out, PowComputer_class prime_pow) except -1:
     """
     Returns whether this element is equal to 1.
@@ -381,7 +381,7 @@ cdef inline bint cisone(celement out, PowComputer_class prime_pow) except -1:
     - returns True if `a = 1`, and False otherwise.
     """
     pass
-    
+
 cdef inline bint ciszero(celement out, PowComputer_class prime_pow) except -1:
     """
     Returns whether this element is equal to 0.
@@ -396,7 +396,7 @@ cdef inline bint ciszero(celement out, PowComputer_class prime_pow) except -1:
     - returns True if `a = 0`, and False otherwise.
     """
     pass
-    
+
 cdef inline int cpow(celement out, celement a, mpz_t n, long prec, PowComputer_class prime_pow) except -1:
     """
     Exponentiation.

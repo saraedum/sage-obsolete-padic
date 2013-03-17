@@ -366,7 +366,7 @@ cdef class CRElement(pAdicTemplateElement):
         cdef long tmpL
         if self.ordp == right.ordp:
             ans = self._new_c()
-            # The relative precision of the difference is the minimum of the relative precisions in this case, 
+            # The relative precision of the difference is the minimum of the relative precisions in this case,
             # possibly decreasing if we got cancellation
             ans.ordp = self.ordp
             ans.relprec = min(self.relprec, right.relprec)
@@ -1672,7 +1672,7 @@ cdef class pAdicConvert_CR_ZZ(RingMap):
             sage: Zp(5).coerce_map_from(ZZ).section().category()
             Category of hom sets in Category of sets
         """
-        if R.is_field() or R.degree() > 1 or R.characteristic() != 0 or R.residue_characteristic() == 0: 
+        if R.is_field() or R.degree() > 1 or R.characteristic() != 0 or R.residue_characteristic() == 0:
             RingMap.__init__(self, Hom(R, ZZ, SetsWithPartialMaps()))
         else:
             RingMap.__init__(self, Hom(R, ZZ, Sets()))

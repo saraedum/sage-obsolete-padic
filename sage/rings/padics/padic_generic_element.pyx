@@ -480,9 +480,9 @@ cdef class pAdicGenericElement(LocalGenericElement):
         Returns a minimal polynomial of this `p`-adic element, i.e., ``x - self``
 
         INPUT:
-        
+
         - ``self`` -- a `p`-adic element
-        
+
         - ``name`` -- string: the name of the variable
 
         EXAMPLES::
@@ -548,20 +548,20 @@ cdef class pAdicGenericElement(LocalGenericElement):
         satisfied by this number. Note that the returned polynomial need not be
         irreducible, and indeed usually won't be if this number is a good
         approximation to an algebraic number of degree less than `n`.
-        
+
         ALGORITHM: Uses the PARI C-library ``algdep`` command.
 
         INPUT:
-        
+
         - ``self`` -- a p-adic element
         - ``n`` -- an integer
-            
+
         OUTPUT:
-        
+
         polynomial -- degree n polynomial approximately satisfied by self
 
         EXAMPLES::
-        
+
             sage: K = Qp(3,20,'capped-rel','series'); R = Zp(3,20,'capped-rel','series')
             sage: a = K(7/19); a
             1 + 2*3 + 3^2 + 3^3 + 2*3^4 + 2*3^5 + 3^8 + 2*3^9 + 3^11 + 3^12 + 2*3^15 + 2*3^16 + 3^17 + 2*3^19 + O(3^20)
@@ -1032,11 +1032,8 @@ cdef class pAdicGenericElement(LocalGenericElement):
             sage: r._shifted_log(4)
             5 + 3*5^2 + 4*5^3 + O(5^4)
 
-        #sage: r._shifted_log(100) 
-        #5 + 3*5^2 + 4*5^3 + 4*5^4 + O(5^5)
-
             sage: r = Zp(5,prec=4,type='fixed-mod')(5)
-            sage: r._shifted_log(5) 
+            sage: r._shifted_log(5)
             5 + 3*5^2 + 4*5^3 + O(5^4)
 
         """
@@ -1082,7 +1079,7 @@ cdef class pAdicGenericElement(LocalGenericElement):
                 if u%p==0:
                     new_term = 0
                 else:
-                    new_term = 1/R(u) 
+                    new_term = 1/R(u)
 
                 # This hack is to deal with rings that don't lift to fields
                 if u>1 or x2p_p.is_zero():
@@ -1294,7 +1291,7 @@ cdef class pAdicGenericElement(LocalGenericElement):
             aprec=y.precision_absolute()
 
 
-        # Cute optimization, however we need to be able to carry computations 
+        # Cute optimization, however we need to be able to carry computations
         # in higher precision.
         # Otherwise this will lose precision, so we deactivate it for now.
         r"""
@@ -1476,7 +1473,7 @@ cdef class pAdicGenericElement(LocalGenericElement):
                 cur_u *= xu
                 cur_v += xv
 
-                # Now we add them. 
+                # Now we add them.
                 new_v = min(cur_v,fact_v)
                 cur_u = cur_u*R.uniformiser_pow(cur_v-new_v)+ fact_u*R.uniformiser_pow(fact_v-new_v)
                 cur_v = new_v
