@@ -32,6 +32,7 @@ from sage.rings.ring import PrincipalIdealDomain
 from sage.rings.integer import Integer
 from sage.rings.padics.padic_printing import pAdicPrinter
 from sage.rings.padics.precision_error import PrecisionError
+from sage.misc.cachefunc import cached_method
 
 class pAdicGeneric(PrincipalIdealDomain, LocalGeneric):
     def __init__(self, base, p, prec, print_mode, names, element_class, category=None):
@@ -701,6 +702,71 @@ class pAdicGeneric(PrincipalIdealDomain, LocalGeneric):
             tester.assertEqual(x.precision_relative(),y.precision_relative())
             tester.assertEqual(x.is_zero(),y.is_zero())
             tester.assertEqual(x.is_unit(),y.is_unit())
+
+    @cached_method
+    def _log_unit_part_p(self):
+        """
+        Compute the logarithm of the unit-part of `p`.
+
+        If `\pi` is the uniformizer in this ring, then we can uniquely write
+        `p=\pi^e u` where `u` is a `\pi`-adic unit. This method computes the
+        logarithm of `u`.
+
+        This is a helper method for
+        :meth:`sage.rings.padics.padic_generic_element.pAdicGenericElement.log`.
+
+        TESTS::
+
+            sage: R = Qp(3,5)
+            sage: R._log_unit_part_p()
+            O(3^5)
+
+            sage: S.<x> = ZZ[]
+            sage: W.<pi> = R.extension(x^3-3)
+            sage: W._log_unit_part_p()
+            O(pi^15)
+
+            sage: W.<pi> = R.extension(x^3-3*x-3)
+            sage: W._log_unit_part_p()
+            2 + pi + 2*pi^2 + pi^4 + pi^5 + 2*pi^7 + 2*pi^8 + pi^9 + 2*pi^10 + pi^11 + pi^12 + 2*pi^14 + O(pi^15)
+
+        """
+        return self(self.prime()).unit_part().log()
+
+    @cached_method
+    def _exp_p(self):
+        """
+        Compute the exponential of `p`.
+
+        This is a helper method for
+        :meth:`sage.rings.padics.padic_generic_element.pAdicGenericElement.exp`.
+
+        TESTS::
+
+            sage: R = Qp(3, 5)
+            sage: R._exp_p()
+            1 + 3 + 3^2 + 2*3^3 + 2*3^4 + O(3^5)
+
+            sage: S.<x> = ZZ[]
+            sage: W.<pi> = R.extension(x^3-3)
+            sage: W._exp_p()
+            1 + pi^3 + pi^6 + 2*pi^9 + 2*pi^12 + O(pi^15)
+            sage: R._exp_p() == W._exp_p()
+            True
+
+            sage: W.<pi> = R.extension(x^3-3*x-3)
+            sage: W._exp_p()
+            1 + pi^3 + 2*pi^4 + pi^5 + pi^7 + pi^9 + pi^10 + 2*pi^11 + pi^12 + pi^13 + 2*pi^14 + O(pi^15)
+            sage: R._exp_p() == W._exp_p()
+            True
+
+        """
+        p = self.prime()
+        if p == 2:
+            # the exponential of 2 does not exists, so we compute the
+            # exponential of 4 instead.
+            p = 4
+        return self(p)._exp(self.precision_cap())
 
 def local_print_mode(obj, print_options, pos = None, ram_name = None):
     r"""
