@@ -768,6 +768,25 @@ class pAdicGeneric(PrincipalIdealDomain, LocalGeneric):
             p = 4
         return self(p)._exp(self.precision_cap())
 
+    def _test_elements_eq_transitive(self, **options):
+        """
+        The operator ``==`` is not transitive for `p`-adic numbers. We disable
+        the check of the category framework by overriding this method.
+
+        EXAMPLES:
+
+            sage: R = Zp(3)
+            sage: R(3) == R(0,1)
+            True
+            sage: R(0,1) == R(6)
+            True
+            sage: R(3) == R(6)
+            False
+            sage: R._test_elements_eq_transitive()
+
+        """
+        pass
+
 def local_print_mode(obj, print_options, pos = None, ram_name = None):
     r"""
     Context manager for safely temporarily changing the print_mode
