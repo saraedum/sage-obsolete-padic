@@ -72,11 +72,14 @@ def _is_finite(L, fallback=True):
         return L.is_finite()
     except AttributeError:
         pass
+    except ValueError:
+        # L doesn't know how to determine whether it's finite
+        return fallback
 
     try:
         n = _len(L)
     except (TypeError, AttributeError):
-        # We assume L is finite for speed reasons
+        # We usually assume L is finite for speed reasons
         return fallback
 
     from sage.rings.infinity import infinity
@@ -117,7 +120,7 @@ def _xmrange_iter( iter_list, typ=list ):
 
     """
     if len(iter_list) == 0:
-        yield ()
+        yield typ()
         return
     # If any iterator in the list is infinite we need to be more careful
     if any(not _is_finite(L) for L in iter_list):
@@ -191,7 +194,7 @@ def mrange_iter(iter_list, typ=list):
     ::
         
         sage: mrange_iter([])
-        [()]
+        [[]]
 
     AUTHORS:
 
@@ -279,7 +282,7 @@ class xmrange_iter:
     ::
         
         sage: list(xmrange_iter([]))
-        [()]
+        [[]]
     
     We use a multi-range iterator to iterate through the Cartesian
     product of sets.

@@ -221,10 +221,15 @@ class CartesianProduct_iters(CombinatorialClass):
             ...
             ValueError: Unable to determine whether this product is finite
         """
-        ans = _is_finite(self._iters, fallback=None)
-        if ans is None:
+        finites = [_is_finite(L, fallback=None) for L in self.iters]
+        if any(f is None for f in finites):
             raise ValueError("Unable to determine whether this product is finite")
-        return ans
+        if all(f is True for f in finites):
+            return True
+        lens = [_len(L) for L in self.iters]
+        if any(l == 0 for l in lens):
+            return True
+        return False
 
     def unrank(self, x):
         """
@@ -246,9 +251,11 @@ class CartesianProduct_iters(CombinatorialClass):
             if n is infinity:
                 return CartesianProduct_iters.unrank(self, x)
             if n == 0:
-                raise ValueError("Cartesian Product is empty")
+                raise IndexError("Cartesian Product is empty")
             positions.append(x % n)
             x = x // n
+        if x != 0:
+            raise IndexError("x larger than the size of the Cartesian Product")
         positions.reverse()
         return [L[i] for L,i in zip(self.iters, positions)]
 
