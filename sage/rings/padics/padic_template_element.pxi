@@ -256,15 +256,23 @@ cdef class pAdicTemplateElement(pAdicGenericElement):
         """
         raise NotImplementedError
 
-    def lift_to_precision(self, absprec):
+    def lift_to_precision(self, absprec=None):
         """
         Returns another element of the same parent with absolute precision at
         least ``absprec``, congruent to this `p`-adic element modulo the
         precision of this element.
 
-        If such lifting would yield an element with precision greater than
-        allowed by the precision cap of the parent, an error is raised (though
-        not for fixed modulus precision handling).
+        INPUT:
+
+        - ``absprec`` -- an integer or ``None`` (default: ``None``), the
+          absolute precision of the result. If ``None``, lifts to the maximum
+          precision allowed.
+
+        .. NOTE::
+
+            If setting ``absprec`` that high would violate the precision cap,
+            raises a precision error.  Note that the new digits will not
+            necessarily be zero.
 
         EXAMPLES::
 
@@ -277,9 +285,13 @@ cdef class pAdicTemplateElement(pAdicGenericElement):
             Traceback (most recent call last):
             ...
             PrecisionError: Precision higher than allowed by the precision cap.
+            sage: R(-1,2).lift_to_precision().precision_absolute() == R.precision_cap()
+            True
 
             sage: R = Zp(5); c = R(17,3); c.lift_to_precision(8)
             2 + 3*5 + O(5^8)
+            sage: c.lift_to_precision().precision_relative() == R.precision_cap()
+            True
 
         Fixed modulus elements don't raise errors::
 
@@ -287,7 +299,10 @@ cdef class pAdicTemplateElement(pAdicGenericElement):
             5 + O(5^20)
             sage: a.lift_to_precision(10000)
             5 + O(5^20)
+
         """
+        if absprec is None:
+            absprec = maxordp
         if not PY_TYPE_CHECK(absprec, Integer):
             absprec = Integer(absprec)
         if mpz_fits_slong_p((<Integer>absprec).value) == 0:

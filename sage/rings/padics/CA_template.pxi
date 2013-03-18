@@ -717,9 +717,12 @@ cdef class CAElement(pAdicTemplateElement):
             sage: a.lift_to_precision(4) is a
             True
         """
+        cdef CAElement ans
+        if absprec == maxordp:
+            absprec = self.prime_pow.prec_cap
         if absprec <= self.absprec:
             return self
-        cdef CAElement ans = self._new_c()
+        ans = self._new_c()
         ccopy(ans.value, self.value, ans.prime_pow)
         ans.absprec = absprec
         return ans

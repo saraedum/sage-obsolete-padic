@@ -1148,10 +1148,18 @@ cdef class CRElement(pAdicTemplateElement):
             ...
             PrecisionError: Precision higher than allowed by the precision cap.
         """
+        cpdef CRElement ans
+        if absprec == maxordp:
+            if self.relprec == 0:
+                ans = self._new_c()
+                ans._set_exact_zero()
+                return ans
+            else:
+                absprec = self.ordp + self.prime_pow.prec_cap
         cdef long relprec = absprec - self.ordp
         if relprec <= self.relprec:
             return self
-        cdef CRElement ans = self._new_c()
+        ans = self._new_c()
         if self.relprec == 0:
             ans._set_inexact_zero(absprec)
         else:
