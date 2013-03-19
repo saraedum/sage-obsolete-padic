@@ -380,4 +380,19 @@ cdef class pAdicExtElement(pAdicGenericElement):
         return ans
 
     cpdef bint _is_base_elt(self, p) except -1:
+        """
+        Return ``True`` if this element is an element of Zp or Qp (rather than
+        an extension).
+
+        INPUT:
+
+        - ``p`` -- a prime, which is compared with the parent of this element.
+
+        EXAMPLES::
+
+            sage: K.<a> = Qq(7^3,4)
+            sage: a._is_base_elt(5)
+            False
+
+        """
         return False

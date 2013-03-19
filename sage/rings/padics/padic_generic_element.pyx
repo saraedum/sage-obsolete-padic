@@ -2023,4 +2023,20 @@ cdef class pAdicGenericElement(LocalGenericElement):
             return Rational(K.prime())**(-self.valuation()) 
 
     cpdef bint _is_base_elt(self, p) except -1:
+        """
+        Return ``True`` if this element is an element of Zp or Qp (rather than
+        an extension).
+
+        INPUT:
+
+        - ``p`` -- a prime, which is compared with the parent of this element.
+
+        EXAMPLES::
+
+            sage: a = Zp(5)(3); a._is_base_elt(5)
+            True
+            sage: a._is_base_elt(17)
+            False
+
+        """
         raise NotImplementedError

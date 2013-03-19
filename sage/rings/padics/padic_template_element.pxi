@@ -376,7 +376,8 @@ cdef class pAdicTemplateElement(pAdicGenericElement):
 
     cpdef bint _is_base_elt(self, p) except -1:
         """
-        Returns True if this element is an element of Zp or Qp (rather than an extension).
+        Return ``True`` if this element is an element of Zp or Qp (rather than
+        an extension).
 
         INPUT:
 
@@ -388,6 +389,7 @@ cdef class pAdicTemplateElement(pAdicGenericElement):
             True
             sage: a._is_base_elt(17)
             False
+
         """
         return self.prime_pow.prime == p and self.prime_pow.deg == 1
 
